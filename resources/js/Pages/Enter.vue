@@ -1,10 +1,11 @@
 <script setup>
-import { onMounted, ref } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Check, CircleAlert, KeyRound } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { ArrowLeft, Check, CircleAlert, KeyRound, Search, UserRound } from 'lucide-vue-next';
 import GuestLayout from '../Components/GuestLayout.vue';
 import Mascot from '../Components/Mascot.vue';
 import { post } from '../lib/api';
+import { toastError } from '../lib/toast';
 
 const props = defineProps({
     code: {
@@ -13,32 +14,191 @@ const props = defineProps({
     },
 });
 
-const inviteCode = ref('');
-const error = ref('');
-const checked = ref(false);
+// Steps: invite -> search -> confirm -> pin
+const step = ref('invite');
 const busy = ref(false);
 
-onMounted(() => {
-    const params = new URLSearchParams(window.location.search);
-    inviteCode.value = props.code || params.get('code') || '';
-});
+// Invite
+const inviteCode = ref('');
+const inviteError = ref('');
 
-async function submit() {
-    error.value = '';
-    checked.value = false;
+// Search
+const party = ref(null);
+const guests = ref([]);
+const listLoaded = ref(false);
+const query = ref('');
+const selected = ref(null);
+
+// PIN
+const pin = ref('');
+const pinConfirmation = ref('');
+const pinError = ref('');
+
+/* ---------- fuzzy name matching (mirrors the backend rules) ---------- */
+
+function normalize(value) {
+    return (value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function levenshtein(a, b) {
+    const rows = a.length + 1;
+    const cols = b.length + 1;
+    const grid = Array.from({ length: rows }, () => new Array(cols).fill(0));
+    for (let i = 0; i < rows; i++) grid[i][0] = i;
+    for (let j = 0; j < cols; j++) grid[0][j] = j;
+    for (let i = 1; i < rows; i++) {
+        for (let j = 1; j < cols; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            grid[i][j] = Math.min(grid[i - 1][j] + 1, grid[i][j - 1] + 1, grid[i - 1][j - 1] + cost);
+        }
+    }
+    return grid[a.length][b.length];
+}
+
+function guestMatches(guest, rawQuery) {
+    const q = normalize(rawQuery);
+    if (!q) return true;
+    const fields = [guest.display, guest.nickname, ...(guest.aliases || [])]
+        .map(normalize)
+        .filter(Boolean);
+    if (fields.some((field) => field.includes(q))) return true;
+    // One-letter typo tolerance against name tokens of 4+ letters.
+    const queryTokens = q.split(' ').filter((token) => token.length >= 4);
+    const nameTokens = fields.flatMap((field) => field.split(' ')).filter((token) => token.length >= 4);
+    return queryTokens.some((qt) => nameTokens.some((nt) => levenshtein(qt, nt) <= 1));
+}
+
+const results = computed(() => guests.value.filter((guest) => guestMatches(guest, query.value)));
+
+/* ---------- flow ---------- */
+
+async function loadList() {
+    try {
+        const body = await post('list');
+        party.value = body.party || null;
+        guests.value = body.guests || [];
+    } catch (err) {
+        toastError(err.message || 'The guest list could not be loaded. Please try again.');
+        party.value = null;
+        guests.value = [];
+    } finally {
+        listLoaded.value = true;
+    }
+}
+
+async function checkInvite(code) {
+    await post('invite_check', { code });
+    await loadList();
+    step.value = 'search';
+}
+
+async function submitInvite() {
+    inviteError.value = '';
     busy.value = true;
     try {
-        await post('invite_check', { code: inviteCode.value.trim() });
-        checked.value = true;
+        await checkInvite(inviteCode.value.trim());
     } catch (err) {
         if (err.code === 'invite_incorrect') {
-            error.value =
-                'That invite code does not look right. Check the code or link from your host and try again.';
+            inviteError.value =
+                'That invite code does not match this party. Check the code and try again.';
         } else if (err.code === 'not_set_up') {
-            error.value = 'No party is set up yet. Your host needs to set up the party first.';
+            inviteError.value = 'No party set up yet. The host needs to set it up first.';
         } else {
-            error.value = err.message || 'That code could not be checked. Please try again.';
+            inviteError.value = err.message || 'That code could not be checked. Please try again.';
         }
+    } finally {
+        busy.value = false;
+    }
+}
+
+onMounted(async () => {
+    const params = new URLSearchParams(window.location.search);
+    const code = props.code || params.get('code') || '';
+    if (code) {
+        inviteCode.value = code;
+        busy.value = true;
+        try {
+            await checkInvite(code.trim());
+        } catch {
+            // Fall back to the invite form with the code filled in.
+            inviteError.value =
+                'That invite code does not match this party. Check the code and try again.';
+            step.value = 'invite';
+        } finally {
+            busy.value = false;
+        }
+    }
+});
+
+function pick(guest) {
+    selected.value = guest;
+    pinError.value = '';
+    step.value = 'confirm';
+}
+
+function backToSearch() {
+    selected.value = null;
+    pin.value = '';
+    pinConfirmation.value = '';
+    pinError.value = '';
+    step.value = 'search';
+}
+
+function confirmIdentity() {
+    pin.value = '';
+    pinConfirmation.value = '';
+    pinError.value = '';
+    step.value = 'pin';
+}
+
+function digitsOnly(value) {
+    return (value || '').replace(/\D/g, '').slice(0, 4);
+}
+
+const PIN_MESSAGES = {
+    pin_incorrect: 'That PIN is not right. Try again.',
+    pin_must_be_4_digits: 'Your PIN must be exactly 4 digits.',
+    pin_mismatch: 'The two PINs do not match.',
+    pin_required_create: 'Create a 4-digit PIN to continue.',
+    pin_already_set: 'That PIN is not right. Try again.',
+    not_set_up: 'No party set up yet. The host needs to set it up first.',
+    guest_not_found: 'That name is not on the guest list anymore. Go back and pick your name again.',
+};
+
+async function submitPin() {
+    pinError.value = '';
+    const createMode = selected.value && selected.value.needs_pin;
+    const enteredPin = digitsOnly(pin.value);
+    const enteredConfirmation = digitsOnly(pinConfirmation.value);
+
+    if (enteredPin.length !== 4) {
+        pinError.value = PIN_MESSAGES.pin_must_be_4_digits;
+        return;
+    }
+    if (createMode && enteredConfirmation.length !== 4) {
+        pinError.value = PIN_MESSAGES.pin_must_be_4_digits;
+        return;
+    }
+    if (createMode && enteredPin !== enteredConfirmation) {
+        pinError.value = PIN_MESSAGES.pin_mismatch;
+        return;
+    }
+
+    busy.value = true;
+    try {
+        const body = await post('enter', {
+            guest_id: selected.value.id,
+            pin: enteredPin,
+            ...(createMode ? { pin_confirmation: enteredConfirmation } : {}),
+        });
+        router.visit(body.revealed ? '/guest' : '/reveal');
+    } catch (err) {
+        pinError.value = PIN_MESSAGES[err.code] || err.message || 'Something went wrong. Please try again.';
     } finally {
         busy.value = false;
     }
@@ -46,11 +206,10 @@ async function submit() {
 </script>
 
 <template>
-    <Head title="Enter your invite code" />
+    <Head title="Who are you?" />
     <GuestLayout>
-        <Mascot message="Psst... have your invite code ready?" />
-
-        <div class="card slide-in" style="margin-top: 26px">
+        <!-- Step: invite code -->
+        <div v-if="step === 'invite'" class="card slide-in">
             <span class="section-label">Guest entry</span>
             <h1 class="card-title">Enter your invite code</h1>
             <p class="card-subtitle" style="margin-bottom: 22px">
@@ -58,18 +217,12 @@ async function submit() {
                 get started.
             </p>
 
-            <p v-if="error" class="error-text">
+            <p v-if="inviteError" class="error-text">
                 <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
-                <span>{{ error }}</span>
+                <span>{{ inviteError }}</span>
             </p>
 
-            <p v-if="checked" class="success-text">
-                <strong>That code works.</strong>
-                Finding your name is coming in the very next step of the build, so
-                sit tight — you are in the right place.
-            </p>
-
-            <form @submit.prevent="submit">
+            <form @submit.prevent="submitInvite">
                 <label class="field">
                     <span class="field-label">Invite code</span>
                     <input
@@ -84,22 +237,252 @@ async function submit() {
                 </label>
                 <button type="submit" class="btn btn-primary btn-block" :disabled="busy">
                     <KeyRound :size="18" />
-                    <span>{{ busy ? 'Checking...' : 'Check code' }}</span>
+                    <span>{{ busy ? 'Checking...' : 'Continue' }}</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Step: who are you? -->
+        <template v-else-if="step === 'search'">
+            <Mascot message="Find your name to get started" />
+
+            <div class="card slide-in" style="margin-top: 26px">
+                <span class="section-label">Guest entry</span>
+                <h1 class="card-title">Who are you?</h1>
+                <p class="card-subtitle" style="margin-bottom: 20px">
+                    Search for your name, then tap it. You can search by your name,
+                    nickname, or another name people call you.
+                </p>
+
+                <template v-if="!listLoaded">
+                    <p class="muted">Loading the guest list...</p>
+                </template>
+
+                <div v-else-if="!party || guests.length === 0" class="empty-state">
+                    <UserRound :size="40" />
+                    <p class="empty-state-title">No party set up yet</p>
+                    <p class="empty-state-text">
+                        The host needs to set it up first. Check back once they have
+                        shared the invite.
+                    </p>
+                </div>
+
+                <template v-else>
+                    <label class="field">
+                        <span class="field-label">Your name</span>
+                        <span style="position: relative; display: block">
+                            <Search
+                                :size="18"
+                                style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--placeholder)"
+                            />
+                            <input
+                                v-model="query"
+                                class="input"
+                                type="text"
+                                autocomplete="off"
+                                placeholder="Start typing your name"
+                                style="padding-left: 42px"
+                            />
+                        </span>
+                    </label>
+
+                    <div v-if="results.length" class="stack" style="gap: 10px">
+                        <button
+                            v-for="guest in results"
+                            :key="guest.id"
+                            type="button"
+                            class="guest-row"
+                            @click="pick(guest)"
+                        >
+                            <span class="guest-row-main">
+                                <span class="guest-row-name">{{ guest.display }}</span>
+                                <span v-if="guest.nickname" class="guest-row-sub">
+                                    “{{ guest.nickname }}”
+                                </span>
+                                <span v-if="guest.aliases && guest.aliases.length" class="guest-row-sub">
+                                    (also: {{ guest.aliases.join(', ') }})
+                                </span>
+                            </span>
+                            <ArrowLeft :size="18" class="guest-row-arrow" />
+                        </button>
+                    </div>
+                    <p v-else class="muted" style="margin: 4px 0 0">
+                        No matching names. Check the spelling, or try a nickname.
+                    </p>
+                </template>
+            </div>
+        </template>
+
+        <!-- Step: is this you? -->
+        <div v-else-if="step === 'confirm' && selected" class="card slide-in">
+            <span class="section-label">Guest entry</span>
+            <h1 class="card-title">Is this you?</h1>
+            <div class="identity-card">
+                <p class="identity-name">{{ selected.display }}</p>
+                <p v-if="selected.nickname" class="identity-sub">“{{ selected.nickname }}”</p>
+                <p v-if="selected.aliases && selected.aliases.length" class="identity-sub">
+                    (also: {{ selected.aliases.join(', ') }})
+                </p>
+            </div>
+            <div class="stack">
+                <button type="button" class="btn btn-primary btn-block" @click="confirmIdentity">
+                    <Check :size="18" />
+                    <span>Yes, that's me</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-block" @click="backToSearch">
+                    <ArrowLeft :size="18" />
+                    <span>Not me</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step: PIN -->
+        <div v-else-if="step === 'pin' && selected" class="card slide-in">
+            <span class="section-label">Guest entry</span>
+            <h1 class="card-title">{{ selected.needs_pin ? 'Create your PIN' : 'Enter your PIN' }}</h1>
+            <p class="card-subtitle" style="margin-bottom: 22px">
+                <template v-if="selected.needs_pin">
+                    Pick a 4-digit PIN you will remember. You will use it if you come
+                    back later, so keep it to yourself.
+                </template>
+                <template v-else>
+                    Enter the 4-digit PIN for {{ selected.display }}.
+                </template>
+            </p>
+
+            <p v-if="pinError" class="error-text">
+                <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
+                <span>{{ pinError }}</span>
+            </p>
+
+            <form @submit.prevent="submitPin">
+                <label class="field">
+                    <span class="field-label">
+                        {{ selected.needs_pin ? 'Create your 4-digit PIN' : 'Your 4-digit PIN' }}
+                    </span>
+                    <input
+                        :value="pin"
+                        class="input mono pin-input"
+                        type="password"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="4"
+                        autocomplete="off"
+                        placeholder="••••"
+                        @input="pin = digitsOnly($event.target.value)"
+                    />
+                </label>
+                <label v-if="selected.needs_pin" class="field">
+                    <span class="field-label">Enter it again</span>
+                    <input
+                        :value="pinConfirmation"
+                        class="input mono pin-input"
+                        type="password"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="4"
+                        autocomplete="off"
+                        placeholder="••••"
+                        @input="pinConfirmation = digitsOnly($event.target.value)"
+                    />
+                </label>
+                <button type="submit" class="btn btn-primary btn-block" :disabled="busy">
+                    <KeyRound :size="18" />
+                    <span>{{ busy ? 'One moment...' : selected.needs_pin ? 'Save PIN and continue' : 'Continue' }}</span>
                 </button>
             </form>
 
             <div style="text-align: center; margin-top: 6px">
-                <Link href="/" class="host-signin-link">
+                <button type="button" class="text-btn" @click="backToSearch">
                     <ArrowLeft :size="13" style="vertical-align: -2px" />
-                    Back to the start
-                </Link>
+                    Back to the name list
+                </button>
             </div>
         </div>
-
-        <!-- Slice 1 bridge: name search, PIN, and reveal replace this page in Slice 2. -->
-        <p class="muted small" style="text-align: center; margin-top: 18px">
-            <Check :size="14" style="vertical-align: -2px" />
-            No account and no password to remember — just your invite code and your name.
-        </p>
     </GuestLayout>
 </template>
+
+<style scoped>
+.guest-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--card-border);
+    background: var(--glass);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.guest-row:hover,
+.guest-row:active {
+    background: var(--glass-strong);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.guest-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.guest-row-name {
+    font-weight: 700;
+    font-size: 1.02rem;
+}
+
+.guest-row-sub {
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+}
+
+.guest-row-arrow {
+    flex: none;
+    color: var(--text-tertiary);
+    transform: rotate(180deg);
+}
+
+.identity-card {
+    border: 1px solid var(--card-border);
+    background: var(--glass);
+    border-radius: 18px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 22px;
+}
+
+.identity-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+
+.identity-sub {
+    color: var(--text-secondary);
+    margin: 5px 0 0;
+}
+
+.pin-input {
+    font-size: 1.3rem;
+    letter-spacing: 0.5em;
+    text-align: center;
+}
+
+.text-btn {
+    background: none;
+    border: none;
+    color: var(--lavender);
+    font-size: 0.88rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 6px;
+}
+</style>

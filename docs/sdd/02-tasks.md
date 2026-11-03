@@ -30,6 +30,13 @@ prepared (97 files, ~718 KB).
   open `/` signed out and confirm no party data leaks.
 
 ## Slice 2 — Entry / PIN / reveal
+Status: DONE 2026-11-04 (36 tests, 1,535 assertions, all passing; frontend
+build passes; live end-to-end run against a real server verified: host setup,
+guest enter with PIN creation, /guest redirecting to /reveal before the tear,
+reveal returning a non-self recipient with budget exactly once, second reveal
+409 already_claimed with no recipient data, /reveal redirecting to /guest
+afterwards, reveal after logout returning not_claimed). One new error code:
+pin_mismatch (create-PIN confirmation mismatch).
 - Guest search (A13 fuzzy matching), results tap-only (no free-typed names),
   "Is this you?" confirm.
 - `enter`: one transaction — lock name, create PIN (two 4-digit fields, must

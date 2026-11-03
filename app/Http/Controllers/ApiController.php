@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Guest;
 use App\Models\Party;
 use App\Services\DrawService;
+use App\Services\GuestEntryException;
+use App\Services\GuestEntryService;
 use App\Support\Serializers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,10 +37,21 @@ class ApiController extends Controller
         'host_invite_regen' => 'hostInviteRegen',
         'invite_check' => 'inviteCheck',
         'list' => 'publicList',
+        'enter' => 'guestEnter',
+        'reveal' => 'guestReveal',
+        'guest_verify_pin' => 'guestVerifyPin',
+        'guest_set_pin' => 'guestSetPin',
+        'guest_logout' => 'guestLogout',
     ];
 
     /** Actions reachable while signed out. Everything else requires the host session. */
     private array $publicActions = ['host_login', 'invite_check', 'list'];
+
+    /**
+     * Guest actions are gated by the guest session (guest_id + pin_verified),
+     * never by host auth: guests have no accounts (Hard Rule 1).
+     */
+    private array $guestActions = ['enter', 'reveal', 'guest_verify_pin', 'guest_set_pin', 'guest_logout'];
 
     public function __invoke(Request $request, string $action, DrawService $draw): JsonResponse
     {
@@ -46,7 +59,9 @@ class ApiController extends Controller
             return $this->error('unknown_action', 404);
         }
 
-        if (! in_array($action, $this->publicActions, true) && ! Auth::check()) {
+        if (! in_array($action, $this->publicActions, true)
+            && ! in_array($action, $this->guestActions, true)
+            && ! Auth::check()) {
             return $this->error('forbidden', 403);
         }
 
@@ -322,6 +337,112 @@ class ApiController extends Controller
             'party' => Serializers::partyPublic($party),
             'guests' => $party->guests()->orderBy('id')->get()
                 ->map(fn (Guest $guest) => Serializers::publicGuest($guest))->all(),
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Guest entry, PIN, and reveal (guest session, never host auth)
+    // ------------------------------------------------------------------
+
+    private function guestEnter(Request $request): JsonResponse
+    {
+        $entry = app(GuestEntryService::class);
+
+        $party = $this->currentParty();
+        if ($party === null) {
+            return $this->error('not_set_up', 422, [
+                'message' => 'No party has been set up yet.',
+            ]);
+        }
+
+        $guest = $this->findGuest($party, $request->input('guest_id'));
+        if ($guest === null) {
+            return $this->error('guest_not_found', 404);
+        }
+
+        try {
+            $result = $entry->enter($request, $guest);
+        } catch (GuestEntryException $e) {
+            return $this->guestError($e);
+        }
+
+        return $this->ok($result);
+    }
+
+    private function guestReveal(Request $request): JsonResponse
+    {
+        try {
+            $result = app(GuestEntryService::class)->reveal($request);
+        } catch (GuestEntryException $e) {
+            return $this->guestError($e);
+        }
+
+        return $this->ok($result);
+    }
+
+    private function guestVerifyPin(Request $request): JsonResponse
+    {
+        $entry = app(GuestEntryService::class);
+
+        $guest = $entry->sessionGuest($request);
+        if ($guest === null) {
+            return $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+        }
+
+        $pin = $request->input('pin');
+        $pin = is_string($pin) ? $pin : (is_int($pin) ? (string) $pin : null);
+
+        if (! $entry->isValidPinFormat($pin)) {
+            return $this->error('pin_must_be_4_digits', 422, [
+                'message' => 'Your PIN must be exactly 4 digits.',
+            ]);
+        }
+
+        if (! $entry->verifyPin($guest, $pin)) {
+            return $this->error('pin_incorrect', 422, [
+                'message' => 'That PIN does not match. Try again.',
+            ]);
+        }
+
+        return $this->ok();
+    }
+
+    private function guestSetPin(Request $request): JsonResponse
+    {
+        $entry = app(GuestEntryService::class);
+
+        $guest = $entry->sessionGuest($request);
+        if ($guest === null) {
+            return $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+        }
+
+        try {
+            $entry->setPin($request, $guest);
+        } catch (GuestEntryException $e) {
+            return $this->guestError($e);
+        }
+
+        return $this->ok();
+    }
+
+    private function guestLogout(Request $request): JsonResponse
+    {
+        // Clears the guest identity only: the name stays locked and the
+        // revealed flag stays set (spec). The invite code is kept so the
+        // guest can get back in from this device.
+        $request->session()->forget(['guest_id', 'pin_verified']);
+
+        return $this->ok();
+    }
+
+    private function guestError(GuestEntryException $e): JsonResponse
+    {
+        return $this->error($e->errorCode, $e->status, [
+            'message' => $e->getMessage(),
         ]);
     }
 

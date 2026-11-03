@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Guest;
 use App\Models\Party;
+use App\Services\GuestEntryService;
 use App\Support\Serializers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,11 +29,111 @@ class PageController extends Controller
         ]);
     }
 
-    public function enter(): Response
+    public function enter(Request $request): Response|RedirectResponse
     {
+        $guest = $this->sessionGuest($request);
+
+        // A guest who already entered never lands on entry again: the
+        // tear comes first, guest home only once they have revealed.
+        if ($guest !== null && $guest->revealed) {
+            return redirect()->route('guest.home');
+        }
+        if ($guest !== null && $guest->claimed) {
+            return redirect()->route('reveal');
+        }
+
         return Inertia::render('Enter', [
             'party' => Serializers::partyPublic($this->currentParty()),
         ]);
+    }
+
+    public function reveal(Request $request): Response|RedirectResponse
+    {
+        $guest = $this->sessionGuest($request);
+
+        if ($guest === null || ! $guest->claimed) {
+            return redirect()->route('enter');
+        }
+        if ($guest->revealed) {
+            return redirect()->route('guest.home');
+        }
+
+        return Inertia::render('Reveal', [
+            'party' => Serializers::partyPublic($guest->party),
+            'guest' => Serializers::publicGuest($guest),
+        ]);
+    }
+
+    public function guestHome(Request $request): Response|RedirectResponse
+    {
+        $guest = $this->guardedGuest($request);
+        if ($guest instanceof RedirectResponse) {
+            return $guest;
+        }
+
+        $party = $guest->party;
+
+        return Inertia::render('Guest/Home', [
+            'party' => Serializers::partyPublic($party),
+            'guest' => Serializers::publicGuest($guest),
+            'counts' => [
+                'locked' => $party->guests()->where('claimed', true)->count(),
+                'total' => $party->guests()->count(),
+                'wishes' => $guest->wishlistItems()->count(),
+            ],
+        ]);
+    }
+
+    public function guestGifts(Request $request): Response|RedirectResponse
+    {
+        return $this->guestPage($request, 'Guest/Gifts');
+    }
+
+    public function guestWishlists(Request $request): Response|RedirectResponse
+    {
+        return $this->guestPage($request, 'Guest/Wishlists');
+    }
+
+    public function guestVote(Request $request): Response|RedirectResponse
+    {
+        return $this->guestPage($request, 'Guest/Vote');
+    }
+
+    /**
+     * Shared guard for the post-reveal guest pages: no guest session goes
+     * to entry, a guest who has entered but not yet torn the strip goes
+     * back to the reveal page.
+     */
+    private function guardedGuest(Request $request): Guest|RedirectResponse
+    {
+        $guest = $this->sessionGuest($request);
+
+        if ($guest === null) {
+            return redirect()->route('enter');
+        }
+        if ($guest->claimed && ! $guest->revealed) {
+            return redirect()->route('reveal');
+        }
+
+        return $guest;
+    }
+
+    private function guestPage(Request $request, string $component): Response|RedirectResponse
+    {
+        $guest = $this->guardedGuest($request);
+        if ($guest instanceof RedirectResponse) {
+            return $guest;
+        }
+
+        return Inertia::render($component, [
+            'party' => Serializers::partyPublic($guest->party),
+            'guest' => Serializers::publicGuest($guest),
+        ]);
+    }
+
+    private function sessionGuest(Request $request): ?Guest
+    {
+        return app(GuestEntryService::class)->sessionGuest($request);
     }
 
     /**
