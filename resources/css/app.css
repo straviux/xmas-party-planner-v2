@@ -37,6 +37,11 @@
     --host-teal: #01b7c5;
     --host-border: rgba(255, 255, 255, 0.09);
 
+    /* Danger family (same red as --error, for destructive host actions) */
+    --danger: #d64545;
+    --danger-border: rgba(248, 113, 113, 0.45);
+    --danger-tint: rgba(248, 113, 113, 0.07);
+
     --radius-card: 24px;
     --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-display: 'Baloo 2', 'Inter', system-ui, sans-serif;
@@ -969,6 +974,97 @@ button {
     justify-content: flex-end;
     margin-top: 22px;
     flex-wrap: wrap;
+}
+
+/* ---------- Host admin controls & danger zone ---------- */
+
+.btn-danger {
+    background: var(--danger);
+    color: #ffffff;
+}
+
+.btn-danger:hover {
+    transform: translateY(-1px);
+}
+
+.modal-card.modal-danger {
+    border-color: var(--danger-border);
+}
+
+.admin-block {
+    padding: 18px 0 4px;
+}
+
+.admin-block + .admin-block {
+    border-top: 1px solid var(--host-border);
+    margin-top: 14px;
+}
+
+.admin-block-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+}
+
+.admin-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 16px 0 6px;
+}
+
+.admin-block + .admin-row,
+.admin-row + .admin-row {
+    border-top: 1px solid var(--host-border);
+    margin-top: 14px;
+}
+
+.admin-row-text {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.admin-row-title {
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+
+.admin-row-sub {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.hint-text {
+    color: var(--error);
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 8px 0 0;
+}
+
+.danger-zone {
+    background:
+        linear-gradient(160deg, var(--danger-tint), rgba(248, 113, 113, 0.02)),
+        var(--host-panel);
+    border-color: var(--danger-border);
+}
+
+.danger-zone-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--error);
+}
+
+.danger-zone .admin-row + .admin-row {
+    border-top-color: rgba(248, 113, 113, 0.18);
 }
 
 /* ---------- Landing extras ---------- */

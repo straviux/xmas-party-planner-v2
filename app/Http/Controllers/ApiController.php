@@ -6,6 +6,8 @@ use App\Models\Guest;
 use App\Models\Party;
 use App\Models\Poll;
 use App\Models\WishlistItem;
+use App\Services\AdminException;
+use App\Services\AdminService;
 use App\Services\DrawService;
 use App\Services\GuestEntryException;
 use App\Services\GuestEntryService;
@@ -58,6 +60,13 @@ class ApiController extends Controller
         'host_poll_toggle' => 'hostPollToggle',
         'poll_get' => 'pollGet',
         'poll_vote' => 'pollVote',
+        'reset_one' => 'resetOne',
+        'host_unclaim_all' => 'hostUnclaimAll',
+        'host_redraw' => 'hostRedraw',
+        'host_reset_pin' => 'hostResetPin',
+        'host_clear_wishlists' => 'hostClearWishlists',
+        'reset_all' => 'resetAll',
+        'host_change_password' => 'hostChangePassword',
     ];
 
     /** Actions reachable while signed out. Everything else requires the host session. */
@@ -683,6 +692,145 @@ class ApiController extends Controller
         }
 
         return $this->ok(['poll' => $shape]);
+    }
+
+    // ------------------------------------------------------------------
+    // Host admin controls (each scoped to exactly what its name says)
+    // ------------------------------------------------------------------
+
+    private function resetOne(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        $guest = $this->findGuest($party, $this->guestIdInput($request));
+        if ($guest === null) {
+            return $this->error('guest_not_found', 404);
+        }
+
+        // Claimed + revealed only: the PIN, the recipient mapping, the
+        // wishlist, and the guest's votes are untouched.
+        $guest = app(AdminService::class)->resetOne($guest);
+
+        return $this->ok(['guest' => Serializers::hostGuest($guest)]);
+    }
+
+    private function hostUnclaimAll(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        // Claims only: no redraw, no PIN changes, nothing deleted.
+        $unclaimed = app(AdminService::class)->unclaimAll($party);
+
+        return $this->ok(['unclaimed' => $unclaimed]);
+    }
+
+    private function hostRedraw(Request $request, DrawService $draw): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        try {
+            app(AdminService::class)->redraw($party, $draw);
+        } catch (\DomainException $e) {
+            // DrawService refuses while any name is claimed; map it exactly
+            // like the guest-management lock (409 guests_locked, plain
+            // locked message).
+            if ($e->getMessage() === 'guests_locked') {
+                return $this->error('guests_locked', 409, [
+                    'message' => DrawService::LOCKED_MESSAGE,
+                ]);
+            }
+
+            throw $e;
+        }
+
+        // No recipient data in the response: the host stays blind.
+        return $this->ok();
+    }
+
+    private function hostResetPin(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        $guest = $this->findGuest($party, $this->guestIdInput($request));
+        if ($guest === null) {
+            return $this->error('guest_not_found', 404);
+        }
+
+        // The PIN hash only: claimed status, recipient, wishlist, and
+        // votes are untouched, even when the guest is claimed.
+        $guest = app(AdminService::class)->resetPin($guest);
+
+        return $this->ok(['guest' => Serializers::hostGuest($guest)]);
+    }
+
+    private function hostClearWishlists(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        $deleted = app(AdminService::class)->clearWishlists($party);
+
+        return $this->ok(['deleted' => $deleted]);
+    }
+
+    private function resetAll(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        // Deletes the party row; the cascades clear guests, wishlist
+        // items, polls, options, and votes with it.
+        app(AdminService::class)->resetAll($party);
+
+        return $this->ok(['exists' => false]);
+    }
+
+    private function hostChangePassword(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $string = fn (mixed $value): ?string => is_string($value)
+            ? $value
+            : (is_int($value) ? (string) $value : null);
+
+        try {
+            app(AdminService::class)->changePassword(
+                $user,
+                $string($request->input('current_password')),
+                $string($request->input('new_password')),
+                $string($request->input('new_password_confirmation')),
+            );
+        } catch (AdminException $e) {
+            return $this->error($e->errorCode, $e->status, [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        // The host stays signed in with the new password.
+        return $this->ok();
+    }
+
+    /** Admin actions name the guest as guest_id (id is accepted too). */
+    private function guestIdInput(Request $request): mixed
+    {
+        return $request->input('guest_id', $request->input('id'));
     }
 
     private function pollError(PollException $e): JsonResponse

@@ -97,6 +97,13 @@ poll_needs_options, poll_not_found, option_not_found, poll_closed.
   confirm no voter names anywhere in responses.
 
 ## Slice 5 — Host admin (full)
+Status: DONE 2026-11-04 (71 tests, 2,191 assertions; build passes; live E2E
+verified: redraw blocked while claimed, unclaim all leaving the draw mapping
+byte-identical at the DB level, redraw after unclaim producing a derangement,
+reset one, reset PIN with re-entry creating a new PIN, clear wishlists count,
+change password with old-password login refused, reset everything leaving
+zero rows in all six tables). New error codes: password_incorrect,
+password_too_short, password_mismatch, password_same.
 - Sidebar layout (260px, teal, non-collapsible), header per page.
 - Dashboard: 4 stat cards, locked progress, Party panel (Copy/Regen invite,
   QR Print per A5), Claimed table with per-guest Reset, Quick actions,
