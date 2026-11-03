@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Guest;
 use App\Models\Party;
+use App\Models\WishlistItem;
 use App\Services\DrawService;
 use App\Services\GuestEntryException;
 use App\Services\GuestEntryService;
+use App\Services\WishlistException;
+use App\Services\WishlistService;
 use App\Support\Serializers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,16 +45,23 @@ class ApiController extends Controller
         'guest_verify_pin' => 'guestVerifyPin',
         'guest_set_pin' => 'guestSetPin',
         'guest_logout' => 'guestLogout',
+        'wishlist_add' => 'wishlistAdd',
+        'wishlist_delete' => 'wishlistDelete',
+        'wishlist_reserve' => 'wishlistReserve',
+        'wishlist_list' => 'wishlistList',
     ];
 
     /** Actions reachable while signed out. Everything else requires the host session. */
-    private array $publicActions = ['host_login', 'invite_check', 'list'];
+    private array $publicActions = ['host_login', 'invite_check', 'list', 'wishlist_list'];
 
     /**
      * Guest actions are gated by the guest session (guest_id + pin_verified),
      * never by host auth: guests have no accounts (Hard Rule 1).
      */
-    private array $guestActions = ['enter', 'reveal', 'guest_verify_pin', 'guest_set_pin', 'guest_logout'];
+    private array $guestActions = [
+        'enter', 'reveal', 'guest_verify_pin', 'guest_set_pin', 'guest_logout',
+        'wishlist_add', 'wishlist_delete', 'wishlist_reserve',
+    ];
 
     public function __invoke(Request $request, string $action, DrawService $draw): JsonResponse
     {
@@ -444,6 +454,140 @@ class ApiController extends Controller
         return $this->error($e->errorCode, $e->status, [
             'message' => $e->getMessage(),
         ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Wishlists (guest session; items always belong to the session guest)
+    // ------------------------------------------------------------------
+
+    private function wishlistAdd(Request $request): JsonResponse
+    {
+        $guest = $this->sessionGuestOrError($request);
+        if ($guest instanceof JsonResponse) {
+            return $guest;
+        }
+
+        try {
+            // Only these fields are read. A guest_id in the payload is
+            // ignored on purpose: items always land on the session
+            // guest's own list (A7).
+            $item = app(WishlistService::class)->addItem($guest, [
+                'text' => $request->input('text'),
+                'link' => $request->input('link'),
+                'notes' => $request->input('notes'),
+                'image' => $request->input('image'),
+            ]);
+        } catch (WishlistException $e) {
+            return $this->wishlistError($e);
+        }
+
+        return $this->ok(['item' => Serializers::wishlistItem($item, (int) $guest->id)]);
+    }
+
+    private function wishlistDelete(Request $request): JsonResponse
+    {
+        $guest = $this->sessionGuestOrError($request);
+        if ($guest instanceof JsonResponse) {
+            return $guest;
+        }
+
+        $item = $this->findPartyItem($request->input('id'));
+        if ($item === null) {
+            return $this->error('wish_not_found', 404);
+        }
+
+        try {
+            app(WishlistService::class)->deleteItem($guest, $item);
+        } catch (WishlistException $e) {
+            return $this->wishlistError($e);
+        }
+
+        return $this->ok();
+    }
+
+    private function wishlistReserve(Request $request): JsonResponse
+    {
+        $guest = $this->sessionGuestOrError($request);
+        if ($guest instanceof JsonResponse) {
+            return $guest;
+        }
+
+        $item = $this->findPartyItem($request->input('id'));
+        if ($item === null) {
+            return $this->error('wish_not_found', 404);
+        }
+
+        try {
+            $state = app(WishlistService::class)->reserveToggle($guest, $item);
+        } catch (WishlistException $e) {
+            return $this->wishlistError($e);
+        }
+
+        return $this->ok($state);
+    }
+
+    /**
+     * The everyone's-wishlists board: a public read like `list`. The
+     * reserve state is shaped for the viewing guest when a guest session
+     * exists (reserved / reserved_by_me), and never exposes who reserved
+     * anything.
+     */
+    private function wishlistList(Request $request): JsonResponse
+    {
+        $party = $this->currentParty();
+
+        if ($party === null) {
+            return $this->ok(['party' => null, 'guests' => []]);
+        }
+
+        $viewer = app(GuestEntryService::class)->sessionGuest($request);
+        $viewerId = $viewer === null ? null : (int) $viewer->id;
+
+        $guests = $party->guests()
+            ->with(['wishlistItems' => fn ($query) => $query->latest('id')])
+            ->orderBy('id')
+            ->get();
+
+        return $this->ok([
+            'party' => Serializers::partyPublic($party),
+            'guests' => $guests->map(fn (Guest $guest) => [
+                ...Serializers::publicGuest($guest),
+                'wish_count' => $guest->wishlistItems->count(),
+                'items' => $guest->wishlistItems
+                    ->map(fn (WishlistItem $item) => Serializers::wishlistItem($item, $viewerId))
+                    ->values()
+                    ->all(),
+            ])->all(),
+        ]);
+    }
+
+    private function wishlistError(WishlistException $e): JsonResponse
+    {
+        return $this->error($e->errorCode, $e->status, [
+            'message' => $e->getMessage(),
+        ]);
+    }
+
+    private function sessionGuestOrError(Request $request): Guest|JsonResponse
+    {
+        return app(GuestEntryService::class)->sessionGuest($request)
+            ?? $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+    }
+
+    /** An item counts only when its owner belongs to the current party. */
+    private function findPartyItem(mixed $id): ?WishlistItem
+    {
+        $party = $this->currentParty();
+        if ($party === null || ! is_numeric($id)) {
+            return null;
+        }
+
+        return WishlistItem::query()
+            ->whereKey((int) $id)
+            ->whereHas('guest', fn ($query) => $query->where('party_id', $party->id))
+            ->first();
     }
 
     // ------------------------------------------------------------------

@@ -94,6 +94,33 @@ class PageController extends Controller
         return $this->guestPage($request, 'Guest/Wishlists');
     }
 
+    /**
+     * One member's wishlist, linked from the everyone's-wishlists board.
+     * An unknown member just goes back to the board: nothing about other
+     * parties or missing ids is worth surfacing here.
+     */
+    public function guestMemberWishlist(Request $request, mixed $member): Response|RedirectResponse
+    {
+        $guest = $this->guardedGuest($request);
+        if ($guest instanceof RedirectResponse) {
+            return $guest;
+        }
+
+        $memberGuest = is_numeric($member)
+            ? $guest->party->guests()->whereKey((int) $member)->first()
+            : null;
+
+        if ($memberGuest === null) {
+            return redirect()->route('guest.wishlists');
+        }
+
+        return Inertia::render('Guest/MemberWishlist', [
+            'party' => Serializers::partyPublic($guest->party),
+            'guest' => Serializers::publicGuest($guest),
+            'member' => Serializers::publicGuest($memberGuest),
+        ]);
+    }
+
     public function guestVote(Request $request): Response|RedirectResponse
     {
         return $this->guestPage($request, 'Guest/Vote');

@@ -56,6 +56,13 @@ pin_mismatch (create-PIN confirmation mismatch).
 - Test: full checklist "Guest flow" items 1–7 on a real phone.
 
 ## Slice 3 — Wishlists (shopping-app layout)
+Status: DONE 2026-11-04 (49 tests, 1,664 assertions; build passes; live E2E
+verified: text/link/image kinds, PNG upload stored as a WebP data URL, bare
+links normalised to https, own-item reserve refused, anonymous reserve with
+reserved/reserved_by_me only, conflict for a second reserver, toggle
+unreserve, non-owner delete forbidden, owner delete works). New error codes:
+wish_empty, image_too_large, image_invalid, cannot_reserve_own,
+already_reserved, wish_not_found.
 - `wishlist_add` (text/link/notes/image; kind derived; 10 MB client limit,
   14M-char server cap; WebP conversion per A12; broken image hides itself),
   `wishlist_delete`, `wishlist_list` board.
