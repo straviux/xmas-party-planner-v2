@@ -18,7 +18,7 @@ import { toastState, dismissToast } from '../lib/toast';
             <button
                 type="button"
                 class="icon-btn"
-                style="width: 30px; height: 30px; border: none; background: transparent"
+                style="width: 36px; height: 36px; border: none; background: transparent"
                 aria-label="Dismiss"
                 @click="dismissToast(item.id)"
             >

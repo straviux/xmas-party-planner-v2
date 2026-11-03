@@ -408,6 +408,12 @@ button {
         top: 18px;
         bottom: auto;
     }
+
+    /* The raised centre button must not clip above the viewport when the
+       dock sits at the top: keep a small raise instead of the full one. */
+    .dock-centre {
+        margin-top: -8px;
+    }
 }
 
 /* ---------- Mascot (pure CSS) ---------- */
@@ -1613,6 +1619,10 @@ button.poll-option:hover:not(:disabled) {
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto !important;
+    }
+
     .mascot,
     .mascot-arm.right,
     .pop-in,
@@ -1626,7 +1636,8 @@ button.poll-option:hover:not(:disabled) {
     .wish-tile,
     .chip,
     .member-row,
-    .poll-option {
+    .poll-option,
+    .guest-row {
         transition: none !important;
     }
 

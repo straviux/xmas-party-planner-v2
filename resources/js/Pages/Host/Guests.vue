@@ -202,7 +202,7 @@ async function removeGuest(guest) {
             <Users :size="40" />
             <h2 class="empty-state-title">No party yet</h2>
             <p class="empty-state-text">
-                Create your party in Party settings first — you can add the whole
+                Create your party in Party settings first. You can add the whole
                 guest list there in one go.
             </p>
         </section>
@@ -329,7 +329,7 @@ async function removeGuest(guest) {
                     </tbody>
                 </table>
                 <p v-else class="muted" style="margin: 12px 0 2px">
-                    {{ search ? 'No guests match that search.' : 'No guests yet — add your first guest above.' }}
+                    {{ search ? 'No guests match that search.' : 'No guests yet, add your first guest above.' }}
                 </p>
             </section>
         </template>

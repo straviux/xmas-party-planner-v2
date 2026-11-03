@@ -120,6 +120,16 @@ password_too_short, password_mismatch, password_same.
   changed password.
 
 ## Slice 6 — Final polish + README
+Status: DONE 2026-11-04. Build complete: all six slices shipped. Polish
+audit fixed the desktop top-nav centre button clipping, gave Guest Home a
+real 3-column desktop grid, closed two reduced-motion gaps and two touch
+targets under the minimums, and removed em dashes from host empty states.
+Favicon added. Final README rewritten (run, deploy, host and guest guides,
+phone test checklist). Automated sweep: all 32 API actions and 29 error
+codes present, zero emojis, zero non-none text shadows, zero forbidden keys
+in any serializer output. Full suite 71 tests / 2,191 assertions passing,
+build passing, core guest-flow E2E re-verified on the final code. Remaining
+verification is the owner's real-device acceptance pass per Hard Rule 8.
 - Desktop guest reflow pass against the checklist (top nav, 1120px
   container, dashboard grid), reduced-motion audit, empty-state copy pass,
   toast coverage, inline-error pass.

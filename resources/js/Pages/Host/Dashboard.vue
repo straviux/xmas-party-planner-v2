@@ -352,7 +352,7 @@ async function printQr() {
             <PartyPopper :size="40" />
             <h2 class="empty-state-title">No party yet</h2>
             <p class="empty-state-text">
-                Set up your party first — name, date, budget, and your guest list.
+                Set up your party first: name, date, budget, and your guest list.
                 Everything else starts from there.
             </p>
             <Link href="/host/settings" class="btn btn-teal">
@@ -470,7 +470,7 @@ async function printQr() {
                     </tbody>
                 </table>
                 <p v-else class="muted" style="margin: 10px 0 2px">
-                    No guests yet — add your guest list in Party settings or the Guests page.
+                    No guests yet. Add your guest list in Party settings or on the Guests page.
                 </p>
             </section>
 

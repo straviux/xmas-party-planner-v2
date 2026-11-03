@@ -99,13 +99,13 @@ async function signOut() {
                 </span>
                 <p class="dash-value">{{ counts?.wishes || 0 }}</p>
                 <p class="dash-sub">wishes on your own list</p>
-                <Link href="/guest/gifts" class="btn btn-secondary btn-sm" style="margin-top: 14px">
+                <Link href="/guest/gifts" class="btn btn-secondary" style="margin-top: 14px">
                     <Gift :size="15" />
                     <span>Open my wishlist</span>
                 </Link>
             </div>
 
-            <div class="card">
+            <div class="card dash-span">
                 <span class="section-label">Done for now?</span>
                 <p class="dash-sub" style="margin-bottom: 16px">
                     Signing out does not unlock your name or undo your reveal. Just
@@ -134,6 +134,12 @@ async function signOut() {
 
     .dash-span {
         grid-column: 1 / -1;
+    }
+}
+
+@media (min-width: 1024px) {
+    .dash-grid {
+        grid-template-columns: 1fr 1fr 1fr;
     }
 }
 
