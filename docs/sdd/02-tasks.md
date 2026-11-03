@@ -5,6 +5,14 @@ the "test this before we move on" list for Arc's phone and desktop.
 No visual test servers or browser automation (Hard Rule 8).
 
 ## Slice 1 — Setup + draw (critical path start)
+Status: DONE locally 2026-11-03 (Laravel 13.40 scaffold in
+workspace/xmas-party-planner/app; 21 tests passed, 1410 assertions; frontend
+build passes; fresh-DB migrate+seed verified; live smoke: / and /host 200,
+signed-out host props carry authed:false only). Push to GitHub pending a repo
+target from Arc (the GitHub App cannot create user repos, 403 verified; the
+existing straviux/xmas-party-planner repo is the OLD app, still actively
+committed by Arc on 2026-11-03, and must not be overwritten). Push manifest
+prepared (97 files, ~718 KB).
 - Laravel + Inertia + Vue 3 scaffold, Vite, design-token CSS, tab title.
 - Migrations for all 7 tables (spec data model, cascades, UNIQUE vote key).
 - `users` seeder: `ADMIN_USERNAME` / `ADMIN_PASSWORD`, first-or-create.
