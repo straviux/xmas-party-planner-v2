@@ -81,6 +81,11 @@ already_reserved, wish_not_found.
 - Test: checklist wishlist + reserve items, in Chrome and LibreWolf.
 
 ## Slice 4 — Polls
+Status: DONE 2026-11-04 (61 tests, 1,824 assertions; build passes; live E2E
+verified: create validation, vote, change of vote keeping the total at 1,
+per-guest my_vote, close refusing votes with poll_closed, winner reported on
+the closed poll, reopen, delete). New error codes: poll_question_required,
+poll_needs_options, poll_not_found, option_not_found, poll_closed.
 - Host actions A1: `host_poll_create`, `host_poll_update`,
   `host_poll_delete`, `host_poll_toggle`.
 - `poll_get` (counts + `my_vote`), `poll_vote` (upsert on UNIQUE key,

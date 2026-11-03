@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Guest;
 use App\Models\Party;
+use App\Models\Poll;
 use App\Models\WishlistItem;
 use App\Services\DrawService;
 use App\Services\GuestEntryException;
 use App\Services\GuestEntryService;
+use App\Services\PollException;
+use App\Services\PollService;
 use App\Services\WishlistException;
 use App\Services\WishlistService;
 use App\Support\Serializers;
@@ -49,10 +52,16 @@ class ApiController extends Controller
         'wishlist_delete' => 'wishlistDelete',
         'wishlist_reserve' => 'wishlistReserve',
         'wishlist_list' => 'wishlistList',
+        'host_poll_create' => 'hostPollCreate',
+        'host_poll_update' => 'hostPollUpdate',
+        'host_poll_delete' => 'hostPollDelete',
+        'host_poll_toggle' => 'hostPollToggle',
+        'poll_get' => 'pollGet',
+        'poll_vote' => 'pollVote',
     ];
 
     /** Actions reachable while signed out. Everything else requires the host session. */
-    private array $publicActions = ['host_login', 'invite_check', 'list', 'wishlist_list'];
+    private array $publicActions = ['host_login', 'invite_check', 'list', 'wishlist_list', 'poll_get'];
 
     /**
      * Guest actions are gated by the guest session (guest_id + pin_verified),
@@ -60,7 +69,7 @@ class ApiController extends Controller
      */
     private array $guestActions = [
         'enter', 'reveal', 'guest_verify_pin', 'guest_set_pin', 'guest_logout',
-        'wishlist_add', 'wishlist_delete', 'wishlist_reserve',
+        'wishlist_add', 'wishlist_delete', 'wishlist_reserve', 'poll_vote',
     ];
 
     public function __invoke(Request $request, string $action, DrawService $draw): JsonResponse
@@ -559,6 +568,145 @@ class ApiController extends Controller
                     ->all(),
             ])->all(),
         ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Polls (host manages, guests vote; results are counts only)
+    // ------------------------------------------------------------------
+
+    private function hostPollCreate(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        try {
+            $poll = app(PollService::class)->create(
+                $party,
+                $request->input('question'),
+                $this->inputArray($request->input('options')),
+            );
+        } catch (PollException $e) {
+            return $this->pollError($e);
+        }
+
+        return $this->ok(['poll' => app(PollService::class)->shape($poll, null)]);
+    }
+
+    private function hostPollUpdate(Request $request): JsonResponse
+    {
+        $poll = $this->findPartyPoll($request->input('id'));
+        if ($poll === null) {
+            return $this->error('poll_not_found', 404);
+        }
+
+        try {
+            $poll = app(PollService::class)->update(
+                $poll,
+                $request->input('question'),
+                $this->inputArray($request->input('options')),
+            );
+        } catch (PollException $e) {
+            return $this->pollError($e);
+        }
+
+        return $this->ok(['poll' => app(PollService::class)->shape($poll, null)]);
+    }
+
+    private function hostPollDelete(Request $request): JsonResponse
+    {
+        $poll = $this->findPartyPoll($request->input('id'));
+        if ($poll === null) {
+            return $this->error('poll_not_found', 404);
+        }
+
+        app(PollService::class)->delete($poll);
+
+        return $this->ok();
+    }
+
+    private function hostPollToggle(Request $request): JsonResponse
+    {
+        $poll = $this->findPartyPoll($request->input('id'));
+        if ($poll === null) {
+            return $this->error('poll_not_found', 404);
+        }
+
+        $poll = app(PollService::class)->toggle($poll);
+
+        return $this->ok(['poll' => app(PollService::class)->shape($poll, null)]);
+    }
+
+    /**
+     * The guest poll view: a public read like `poll_get`'s siblings. A
+     * viewing guest session personalizes my_vote only; nothing in the
+     * payload identifies any voter.
+     */
+    private function pollGet(Request $request): JsonResponse
+    {
+        $party = $this->currentParty();
+
+        if ($party === null) {
+            return $this->ok(['polls' => []]);
+        }
+
+        $viewer = app(GuestEntryService::class)->sessionGuest($request);
+        $service = app(PollService::class);
+
+        $polls = $party->polls()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return $this->ok([
+            'polls' => $polls->map(fn (Poll $poll) => $service->shape($poll, $viewer))->all(),
+        ]);
+    }
+
+    private function pollVote(Request $request): JsonResponse
+    {
+        $guest = $this->sessionGuestOrError($request);
+        if ($guest instanceof JsonResponse) {
+            return $guest;
+        }
+
+        $poll = $this->findPartyPoll($request->input('poll_id'));
+        if ($poll === null) {
+            return $this->error('poll_not_found', 404);
+        }
+
+        try {
+            $shape = app(PollService::class)->vote($guest, $poll, $request->input('option_id'));
+        } catch (PollException $e) {
+            return $this->pollError($e);
+        }
+
+        return $this->ok(['poll' => $shape]);
+    }
+
+    private function pollError(PollException $e): JsonResponse
+    {
+        return $this->error($e->errorCode, $e->status, [
+            'message' => $e->getMessage(),
+        ]);
+    }
+
+    /** A poll counts only when it belongs to the current party. */
+    private function findPartyPoll(mixed $id): ?Poll
+    {
+        $party = $this->currentParty();
+        if ($party === null || ! is_numeric($id)) {
+            return null;
+        }
+
+        return $party->polls()->whereKey((int) $id)->first();
+    }
+
+    /** @return array<int, mixed> */
+    private function inputArray(mixed $value): array
+    {
+        return is_array($value) ? array_values($value) : [];
     }
 
     private function wishlistError(WishlistException $e): JsonResponse
