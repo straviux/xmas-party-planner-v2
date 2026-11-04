@@ -31,7 +31,7 @@ async function submit() {
 </script>
 
 <template>
-    <div class="guest-shell">
+    <div class="guest-shell" scroll-region>
         <main class="guest-container" style="padding-top: 56px">
             <div class="card slide-in">
                 <span class="section-label">Host only</span>

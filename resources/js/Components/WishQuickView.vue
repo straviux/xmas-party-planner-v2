@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Check, ExternalLink, X } from 'lucide-vue-next';
 import WishActionsMenu from './WishActionsMenu.vue';
+import { pageScroller } from '../lib/scroller';
 
 const props = defineProps({
     item: {
@@ -23,8 +24,9 @@ const emit = defineEmits(['close', 'delete', 'edit']);
 
 const closeButton = ref(null);
 const broken = ref(false);
-let savedScrollY = null;
+let savedScrollTop = null;
 let previousOverflow = '';
+let lockedScroller = null;
 
 const displayName = computed(() => {
     const item = props.item;
@@ -50,20 +52,28 @@ const showMenu = computed(
     () => Boolean(props.item) && !props.item.mine && props.mode === 'mine',
 );
 
+// The guest shell is the scroller (the document never scrolls on
+// guest pages), so locking means freezing the shell: remember its
+// position and hide its overflow until the quick view closes.
 function lockScroll() {
-    if (savedScrollY === null) {
-        savedScrollY = window.scrollY;
-        previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+    if (savedScrollTop === null) {
+        lockedScroller = pageScroller();
+        savedScrollTop = lockedScroller.scrollTop;
+        previousOverflow = lockedScroller.style.overflow;
+        lockedScroller.style.overflow = 'hidden';
     }
 }
 
 function unlockScroll() {
-    if (savedScrollY !== null) {
-        const y = savedScrollY;
-        savedScrollY = null;
-        document.body.style.overflow = previousOverflow;
-        window.scrollTo(0, y);
+    if (savedScrollTop !== null) {
+        const top = savedScrollTop;
+        const target = lockedScroller;
+        savedScrollTop = null;
+        lockedScroller = null;
+        if (target) {
+            target.style.overflow = previousOverflow;
+            target.scrollTop = top;
+        }
     }
 }
 

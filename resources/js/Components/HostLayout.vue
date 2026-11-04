@@ -107,7 +107,9 @@ async function signOut() {
             </div>
         </aside>
 
-        <div class="host-main-scroll">
+        <!-- scroll-region: this column, not the document, scrolls on
+             host pages, so Inertia resets/restores its position. -->
+        <div class="host-main-scroll" scroll-region>
             <main class="host-content">
                 <header v-if="title" class="host-header">
                     <div>

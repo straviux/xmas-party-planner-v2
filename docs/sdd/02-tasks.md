@@ -259,3 +259,13 @@ Overscroll fix (2026-11-04): overscroll-behavior none on html/body
 plus a document touch guard in app.js that swallows swipes past a
 scroller edge (page or inner scroller judged by its own edges), so
 mobile pages no longer rubber-band or chain at the top/bottom.
+
+Overscroll fix v2 (2026-11-04): the v1 guard could not stop iOS
+momentum bounces (no touch events fire during a flick, and iOS
+ignores overscroll-behavior on the root scroller). The app now uses
+the shell architecture: .guest-shell is a fixed 100dvh inner scroller
+with overscroll-behavior none, the document itself no longer scrolls,
+and the host main column got the same treatment. Quick view and reels
+save/restore the shell's scroll position via lib/scroller.js, and the
+shells carry Inertia's scroll-region attribute so navigation resets
+and restores scroll as before.

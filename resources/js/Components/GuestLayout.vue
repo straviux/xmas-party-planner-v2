@@ -31,7 +31,10 @@ const current = computed(() => {
 </script>
 
 <template>
-    <div class="guest-shell">
+    <!-- scroll-region: the shell, not the document, scrolls on guest
+         pages, so Inertia must reset/restore THIS element's position
+         on navigations (its window-level handling would do nothing). -->
+    <div class="guest-shell" scroll-region>
         <main class="guest-container" :class="{ wide, 'has-dock': dock }">
             <slot />
         </main>

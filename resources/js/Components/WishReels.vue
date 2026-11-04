@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-vue-next';
+import { pageScroller } from '../lib/scroller';
 
 const props = defineProps({
     items: {
@@ -24,8 +25,9 @@ const closeButton = ref(null);
 
 let dragPointerId = null;
 let dragStartX = 0;
-let savedScrollY = null;
+let savedScrollTop = null;
 let previousOverflow = '';
+let lockedScroller = null;
 
 const currentItem = computed(() => props.items[currentIndex.value] || null);
 const canPrevious = computed(() => currentIndex.value > 0);
@@ -62,20 +64,29 @@ function clampIndex(index) {
     return Math.min(Math.max(index, 0), props.items.length - 1);
 }
 
+// The overlay is teleported to <body>, but the page underneath
+// scrolls inside the guest shell, not the document: freezing the
+// page means freezing the shell (position + overflow), so swipes on
+// the viewer never move the grid behind it.
 function lockScroll() {
-    if (savedScrollY === null) {
-        savedScrollY = window.scrollY;
-        previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+    if (savedScrollTop === null) {
+        lockedScroller = pageScroller();
+        savedScrollTop = lockedScroller.scrollTop;
+        previousOverflow = lockedScroller.style.overflow;
+        lockedScroller.style.overflow = 'hidden';
     }
 }
 
 function unlockScroll() {
-    if (savedScrollY !== null) {
-        const y = savedScrollY;
-        savedScrollY = null;
-        document.body.style.overflow = previousOverflow;
-        window.scrollTo(0, y);
+    if (savedScrollTop !== null) {
+        const top = savedScrollTop;
+        const target = lockedScroller;
+        savedScrollTop = null;
+        lockedScroller = null;
+        if (target) {
+            target.style.overflow = previousOverflow;
+            target.scrollTop = top;
+        }
     }
 }
 

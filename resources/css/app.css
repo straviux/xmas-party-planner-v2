@@ -55,9 +55,10 @@ html,
 body {
     margin: 0;
     padding: 0;
-    /* No scroll chaining or pull-to-refresh past the page edges; the
-       matching touch guard in app.js covers the iOS rubber-band, which
-       ignores this property for the root scroller. */
+    /* No scroll chaining or pull-to-refresh past the page edges. The
+       real work happens in the shells (.guest-shell / .host-main-scroll
+       are the scrollers; the document never scrolls), backed by the
+       touch guard in app.js. */
     overscroll-behavior: none;
 }
 
@@ -71,6 +72,11 @@ body {
         linear-gradient(156deg, var(--bg-start) 0%, var(--bg-end) 100%);
     background-attachment: fixed;
     min-height: 100vh;
+    /* Paired dvh: the shells are exactly 100dvh tall, and an unpaired
+       vh here would leave the body a toolbar-height taller than the
+       viewport on mobile browsers, giving the document a few pixels
+       of scroll (and its bounce) back. */
+    min-height: 100dvh;
     -webkit-font-smoothing: antialiased;
     /* No double-tap zoom delay/gesture on controls (zoom is disabled). */
     touch-action: manipulation;
@@ -92,8 +98,18 @@ button {
 /* ---------- Guest layout ---------- */
 
 .guest-shell {
-    min-height: 100vh;
-    min-height: 100dvh;
+    /* The shell is the page scroller, not the document: iOS ignores
+       overscroll-behavior on the root scroller and momentum-scrolls the
+       document into a rubber-band bounce, but an exactly-viewport-tall
+       inner scroller honours overscroll-behavior (and the app.js touch
+       guard judges its edges), so swiping stops dead at the top and
+       bottom. The document itself has nothing left to scroll. The
+       fixed dock is a child of the shell but has no transformed or
+       filtered ancestor here, so it stays glued to the viewport. */
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: none;
     width: 100%;
 }
 
@@ -727,8 +743,11 @@ button {
 
 .host-shell {
     display: flex;
-    min-height: 100vh;
-    min-height: 100dvh;
+    /* Fixed height + hidden overflow: the document must not scroll on
+       host pages either; .host-main-scroll below is the scroller. */
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
     background: var(--host-bg);
 }
 
@@ -817,7 +836,13 @@ button {
 .host-main-scroll {
     flex: 1;
     margin-left: 260px;
+    /* The host scroller (the shell above never lets the document
+       scroll): overflow-x stays for the wide desktop tables on narrow
+       screens, overflow-y is the page scroll, and overscroll-behavior
+       stops the edge bounce/chaining here too. */
     overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior: none;
     min-width: 0;
 }
 
