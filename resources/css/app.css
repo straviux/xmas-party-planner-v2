@@ -408,24 +408,45 @@ button {
 }
 
 @media (max-width: 1023.98px) {
-    /* Mobile: the dock is a full-width bar fixed flush to the bottom of
-       the screen, not a floating centred pill. No centring transform
-       (transform-based centring is what makes fixed bars drift or ride
-       up in some mobile browsers and webviews), rounded top corners,
-       and the device safe area kept clear at the very bottom. */
+    /* Mobile: the dock is a full-width bar fixed flush to the TOP of the
+       screen (owner's pick, 2026-11-04), not a floating centred pill. No
+       centring transform (transform-based centring is what makes fixed
+       bars drift in some mobile browsers and webviews), rounded bottom
+       corners, and the device safe area kept clear at the very top. The
+       centre button sits inline here instead of raised: raised upward
+       would poke into the status area, and the bar reads as a header. */
     .dock {
         left: 0;
         right: 0;
-        bottom: 0;
+        top: 0;
+        bottom: auto;
         transform: none;
         width: 100%;
         justify-content: space-around;
+        align-items: flex-start;
         gap: 0;
-        padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
-        border-radius: 22px 22px 0 0;
+        padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 8px;
+        border-radius: 0 0 22px 22px;
         border-left: none;
         border-right: none;
-        border-bottom: none;
+        border-top: none;
+    }
+
+    .dock-centre {
+        margin-top: 0;
+    }
+
+    /* Page content clears the top bar instead of a bottom one. */
+    .guest-container.has-dock {
+        padding-top: calc(118px + env(safe-area-inset-top, 0px));
+        padding-bottom: 48px;
+    }
+
+    /* Toasts normally sit at the top; with the nav now up there too,
+       they move to the free bottom edge on mobile. */
+    .toast-wrap {
+        top: auto;
+        bottom: 24px;
     }
 }
 

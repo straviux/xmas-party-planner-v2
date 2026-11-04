@@ -244,3 +244,10 @@ bar above the chips. Phone size pass at <=767.98px: buttons, chips, the
 board view toggle, helper subtitles, counts line, and tile text all
 step down ~10-15%; form-control font sizes untouched (16px anti-zoom
 rule still wins); dock untouched.
+
+Owner change (2026-11-04): the guest dock moves to the TOP on mobile
+too (it was already the top nav on desktop). The mobile bar is now
+flush to the top with rounded bottom corners and safe-area-inset-top
+padding; the centre button sits inline instead of raised; page content
+reserves top space instead of bottom; toasts move to the bottom edge
+on mobile so they never cover the nav.
