@@ -417,3 +417,8 @@ another; the 2.8 s auto-revert to the page message is removed.
 Bubble float strengthened (2026-11-04): the chatbox float was
 only 2px, effectively invisible on a phone. It now bobs a
 consistent 8px with a slight sway on a 3.6 s loop.
+
+Thought-bubble dots (2026-11-04): the chatbox's pointed tail is
+replaced by two floating cream circles trailing toward Scor, the
+lower one smaller (14px over 8px), each on its own float timing
+(2.7s and 3.9s), independent of the bubble's float.
