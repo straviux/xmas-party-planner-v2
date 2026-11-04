@@ -136,7 +136,7 @@ async function confirmDeleteWish() {
 </script>
 
 <template>
-    <Head :title="member ? `${member.display}'s wishlist` : 'Wishlist'" />
+    <Head :title="member?.secret_name ? `${member.secret_name}'s wishlist` : 'Wishlist'" />
     <GuestLayout dock wide active="wishlists">
         <div class="card slide-in">
             <Link href="/guest/wishlists" class="back-link">
@@ -146,9 +146,17 @@ async function confirmDeleteWish() {
             <span class="section-label" style="margin-top: 14px">
                 {{ isMine ? 'Your wishlist, as everyone sees it' : 'Wishlist' }}
             </span>
-            <h1 class="card-title">{{ member?.display || 'Wishlist' }}</h1>
+            <h1 class="card-title">
+                <template v-if="member?.secret_name">{{ member.secret_name }}</template>
+                <span
+                    v-else-if="member"
+                    class="member-name-placeholder"
+                    role="img"
+                    aria-label="Secret name not picked yet"
+                >???</span>
+                <template v-else>Wishlist</template>
+            </h1>
             <p class="card-subtitle">
-                <template v-if="member?.nickname">“{{ member.nickname }}” · </template>
                 <template v-if="loading">Loading wishes...</template>
                 <template v-else-if="items.length">
                     {{ items.length }} wish{{ items.length === 1 ? '' : 'es' }} on this list
@@ -164,7 +172,16 @@ async function confirmDeleteWish() {
             <div v-if="!loading && items.length === 0" class="card">
                 <div class="empty-state">
                     <Gift :size="40" />
-                    <p class="empty-state-title">{{ member?.display }} has no wishes yet</p>
+                    <p class="empty-state-title">
+                        <template v-if="member?.secret_name">{{ member.secret_name }} has no wishes yet</template>
+                        <template v-else>
+                            <span
+                                class="member-name-placeholder"
+                                role="img"
+                                aria-label="Secret name not picked yet"
+                            >???</span> has no wishes yet
+                        </template>
+                    </p>
                     <p class="empty-state-text">
                         <template v-if="isMine">
                             Add your first wish from your Gifts page, and it will
@@ -220,6 +237,13 @@ async function confirmDeleteWish() {
 </template>
 
 <style scoped>
+/* Same muted italic ??? as the reveal and recipient waiting states. */
+.member-name-placeholder {
+    font-style: italic;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+}
+
 .back-link {
     display: inline-flex;
     align-items: center;

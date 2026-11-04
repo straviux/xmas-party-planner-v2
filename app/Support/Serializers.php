@@ -146,6 +146,29 @@ class Serializers
     }
 
     /**
+     * Wishlist member shape: id, secret_name.
+     *
+     * Guest-facing wishlist surfaces (the `wishlist_list` board entries
+     * and the member-wishlist page's `member` prop) identify each wisher
+     * by their secret name (codename) only: the wisher's real display
+     * name and nickname must never ship in a wishlist payload, so the
+     * board cannot out who is who before the gift exchange. A wisher who
+     * has not picked a codename yet serializes as null, same as the
+     * reveal shape. This is the one guest-facing context where the secret
+     * name VALUE ships; everywhere else public payloads carry only the
+     * has_secret_name flag (publicGuest).
+     */
+    public static function wishlistMember(Guest $guest): array
+    {
+        return [
+            'id' => (int) $guest->id,
+            'secret_name' => is_string($guest->secret_name) && $guest->secret_name !== ''
+                ? $guest->secret_name
+                : null,
+        ];
+    }
+
+    /**
      * Wishlist board item shape (spec): id, text, link, notes, kind, image.
      * Wishlists are posting only, so there is no reserve state. Never
      * reserved_by_id.

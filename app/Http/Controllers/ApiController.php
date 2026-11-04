@@ -606,7 +606,9 @@ class ApiController extends Controller
 
     /**
      * The everyone's-wishlists board: a public read like `list`. Wishlists
-     * are posting only, so items carry no per-viewer state.
+     * are posting only, so items carry no per-viewer state. Wishers are
+     * identified by codename only (Serializers::wishlistMember): real
+     * display names and nicknames never ship on the board.
      */
     private function wishlistList(Request $request): JsonResponse
     {
@@ -624,7 +626,7 @@ class ApiController extends Controller
         return $this->ok([
             'party' => Serializers::partyPublic($party),
             'guests' => $guests->map(fn (Guest $guest) => [
-                ...Serializers::publicGuest($guest),
+                ...Serializers::wishlistMember($guest),
                 'wish_count' => $guest->wishlistItems->count(),
                 'items' => $guest->wishlistItems
                     ->map(fn (WishlistItem $item) => Serializers::wishlistItem($item))

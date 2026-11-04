@@ -47,8 +47,7 @@ const allItems = computed(() => {
                 ...item,
                 owner: {
                     id: member.id,
-                    display: member.display,
-                    nickname: member.nickname || null,
+                    secret_name: member.secret_name || null,
                 },
                 mine,
             });

@@ -122,7 +122,10 @@ class PageController extends Controller
         return Inertia::render('Guest/MemberWishlist', [
             'party' => Serializers::partyPublic($guest->party),
             'guest' => Serializers::publicGuest($guest),
-            'member' => Serializers::publicGuest($memberGuest),
+            // The member is identified by codename only on wishlist
+            // surfaces: their real display name and nickname never ship
+            // here (the viewer's own `guest` shape above is unaffected).
+            'member' => Serializers::wishlistMember($memberGuest),
         ]);
     }
 

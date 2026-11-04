@@ -58,9 +58,9 @@ const visibleItems = computed(() => {
     const filtered = withIndex.filter(({ item }) => {
         if (q) {
             const parts = [item.text, item.notes, item.link];
-            // Combined views attach the wisher; searching their name or
-            // nickname finds their wishes too. Absent elsewhere, so inert.
-            if (item.owner) parts.push(item.owner.display, item.owner.nickname);
+            // Combined views attach the wisher; searching their secret
+            // name finds their wishes too. Absent elsewhere, so inert.
+            if (item.owner) parts.push(item.owner.secret_name);
             const haystack = normalizeText(parts.filter(Boolean).join(' '));
             if (!haystack.includes(q)) return false;
         }
@@ -154,22 +154,27 @@ function confirmDelete() {
                         <p class="wish-name clamp-2">{{ displayName(item) }}</p>
                         <p v-if="item.notes" class="wish-notes clamp-3">{{ item.notes }}</p>
                         <p v-if="item.owner" class="wish-owner">
-                            by {{ item.owner.display }}<span v-if="item.owner.nickname"> “{{ item.owner.nickname }}”</span>
+                            by <template v-if="item.owner.secret_name">{{ item.owner.secret_name }}</template><span
+                                v-else
+                                class="wish-owner-placeholder"
+                                role="img"
+                                aria-label="Secret name not picked yet"
+                            >???</span>
                         </p>
                     </div>
                     <div v-if="item.link || item.mine || props.mode === 'mine'" class="wish-tile-actions">
                         <a
                             v-if="item.link"
-                            class="icon-btn"
+                            class="icon-btn wish-tile-link"
                             :href="item.link"
                             target="_blank"
                             rel="noopener noreferrer"
                             :aria-label="`Open the shop link for ${displayName(item)}`"
                             @click.stop
                         >
-                            <ExternalLink :size="19" />
+                            <ExternalLink :size="16" />
                         </a>
-                        <span v-if="item.mine" class="wish-mine-chip">Your wish</span>
+                        <span v-if="item.mine" class="wish-mine-chip">Me</span>
                         <WishActionsMenu
                             v-else-if="props.mode === 'mine'"
                             :item="item"
@@ -208,10 +213,17 @@ function confirmDelete() {
     color: var(--text-tertiary);
 }
 
+/* Same muted italic ??? as the reveal and recipient waiting states, so
+   an unpicked secret name never reads as an actual name. */
+.wish-owner-placeholder {
+    font-style: italic;
+    letter-spacing: 0.04em;
+}
+
 .wish-mine-chip {
     display: inline-flex;
     align-items: center;
-    min-height: 38px;
+    min-height: 36px;
     padding: 8px 13px;
     border-radius: 999px;
     border: 1px solid var(--card-border);

@@ -129,7 +129,12 @@ onBeforeUnmount(() => {
                 <h2 class="qv-name">{{ displayName }}</h2>
                 <p v-if="item.notes" class="qv-notes">{{ item.notes }}</p>
                 <p v-if="item.owner && !item.mine" class="qv-wisher">
-                    Wished by {{ item.owner.display }}<span v-if="item.owner.nickname"> “{{ item.owner.nickname }}”</span>
+                    Wished by <template v-if="item.owner.secret_name">{{ item.owner.secret_name }}</template><span
+                        v-else
+                        class="qv-wisher-placeholder"
+                        role="img"
+                        aria-label="Secret name not picked yet"
+                    >???</span>
                 </p>
 
                 <p v-if="stateLine" class="qv-state">
@@ -169,5 +174,12 @@ onBeforeUnmount(() => {
     margin: 8px 0 0;
     font-size: 0.9rem;
     color: var(--text-secondary);
+}
+
+/* Same muted italic ??? as the reveal and recipient waiting states. */
+.qv-wisher-placeholder {
+    font-style: italic;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
 }
 </style>

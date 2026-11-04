@@ -53,7 +53,11 @@ and best practices.
    case-insensitively; errors `secret_name_invalid` 422 and
    `secret_name_taken` 409). Public payloads carry only the
    `has_secret_name` flag, never the value; the host shape carries the
-   value, and `host_status` counts `secret_names_set`.
+   value, and `host_status` counts `secret_names_set`. One exception:
+   guest-facing wishlist surfaces identify wishers by codename, so
+   `wishlist_list` entries and the member-wishlist page's `member` prop
+   use `Serializers::wishlistMember` ({id, secret_name}, null when
+   unset) and never carry the wisher's real display name or nickname.
    `guest_secret_name_view` {pin} returns the session guest's own secret
    name after PIN verification (same PIN failure codes as
    `reveal_again`); a claimed guest who has not picked one yet gets

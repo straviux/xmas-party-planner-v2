@@ -42,9 +42,8 @@ const displayName = computed(() => {
     return 'Untitled wish';
 });
 
-const ownerName = computed(() => currentItem.value?.owner?.display || 'Guest');
-const ownerNickname = computed(() => currentItem.value?.owner?.nickname || null);
-const ownerInitial = computed(() => ownerName.value.trim().charAt(0).toUpperCase() || 'G');
+const ownerSecretName = computed(() => currentItem.value?.owner?.secret_name || null);
+const ownerInitial = computed(() => ownerSecretName.value?.trim().charAt(0).toUpperCase() || '?');
 const showImage = computed(
     () => Boolean(currentItem.value?.image) && brokenImageId.value !== currentItem.value?.id,
 );
@@ -220,12 +219,15 @@ onBeforeUnmount(() => {
                 <div class="reel-owner">
                     <span class="reel-avatar" aria-hidden="true">{{ ownerInitial }}</span>
                     <span class="reel-owner-text">
-                        <span class="reel-owner-name">{{ ownerName }}</span>
-                        <span v-if="ownerNickname" class="reel-owner-nickname">
-                            “{{ ownerNickname }}”
-                        </span>
+                        <span v-if="ownerSecretName" class="reel-owner-name">{{ ownerSecretName }}</span>
+                        <span
+                            v-else
+                            class="reel-owner-name reel-owner-placeholder"
+                            role="img"
+                            aria-label="Secret name not picked yet"
+                        >???</span>
                     </span>
-                    <span v-if="currentItem.mine" class="reel-mine-chip">Your wish</span>
+                    <span v-if="currentItem.mine" class="reel-mine-chip">Me</span>
                 </div>
 
                 <span class="reel-counter">{{ currentIndex + 1 }} / {{ items.length }}</span>
@@ -383,12 +385,11 @@ onBeforeUnmount(() => {
     white-space: nowrap;
 }
 
-.reel-owner-nickname {
-    overflow: hidden;
-    color: var(--text-secondary);
-    font-size: 0.88rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+/* Same muted italic ??? as the reveal and recipient waiting states. */
+.reel-owner-placeholder {
+    font-style: italic;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
 }
 
 .reel-mine-chip {

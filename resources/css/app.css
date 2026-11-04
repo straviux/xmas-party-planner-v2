@@ -1961,7 +1961,7 @@ button {
 }
 
 .wish-tile-body {
-    padding: 14px;
+    padding: 12px 14px 10px;
 }
 
 .wish-open-area {
@@ -2003,7 +2003,7 @@ button {
     display: flex;
     gap: 8px;
     align-items: stretch;
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
 .wish-tile-actions .btn {
@@ -2015,6 +2015,13 @@ button {
     height: 48px;
     flex: none;
     border-radius: 14px;
+}
+
+/* The tile's shop-link button reads oversized at 48px next to the
+   "Me" tag; it alone shrinks to the standard 36px icon button. */
+.wish-tile-actions .wish-tile-link {
+    width: 36px;
+    height: 36px;
 }
 
 /* Quick view (product detail) */

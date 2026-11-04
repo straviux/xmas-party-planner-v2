@@ -374,3 +374,12 @@ Pinch zoom is disabled app wide (2026-11-04): the viewport meta
 already forbade it but iOS Safari ignores it, so app.js now
 swallows any two-finger touchmove and cancels Safari's gesture
 events. Single-finger scrolling and dragging are unaffected.
+
+Wishlist identity round (2026-11-04): guest-facing wishlist
+payloads now identify wishers by secret name only (new
+wishlistMember shape {id, secret_name}); real names and nicknames
+no longer travel to the board, quick view, reels, or member
+wishlist page, with leak-scan tests to prove it. Tiles show
+"by <secret name>" (or the ??? placeholder), the own-wish tag now
+reads "Me", the tile open-link button shrank from 48px to 36px,
+and the tile footer is tighter.
