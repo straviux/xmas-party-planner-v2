@@ -396,3 +396,10 @@ Scor's bubble now types its message out character by character
 (2026-11-04), chat style, on first show, on tap-reaction swaps,
 and on revert; long lines speed up so typing never runs past
 about 700 ms.
+
+Snowfall behind Scor (2026-11-04): about 90 runtime-generated
+flakes fall behind the mascot everywhere she appears (random
+position, size, opacity, drift with a mid-fall sway, soft glow),
+reproducing the owner-supplied SCSS snow effect without a build
+step. It counts as mascot presentation and stays exempt from the
+reduced-motion freeze.

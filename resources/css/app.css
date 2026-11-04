@@ -492,6 +492,7 @@ button {
 /* ---------- Mascot (pure CSS) ---------- */
 
 .mascot-wrap {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -558,6 +559,57 @@ button {
     border-left: 11px solid transparent;
     border-right: 11px solid transparent;
     border-top: 12px solid #f7e8c9;
+}
+
+/* Snowfall behind Scor (Mascot.vue renders the flakes with random
+   inline values). One shared keyframes for every flake: fall the
+   full layer height while drifting sideways by --drift, with a
+   mid-fall stop at a fraction of the drift to mimic the original
+   snippet's yoyo sway. The drop-shadow filter gives the whole
+   layer the snippet's soft glow; it is safe here because the wrap
+   holds no fixed-position descendants. Like the rest of the
+   mascot presentation, the snow is deliberately NOT in the
+   reduced-motion freeze list (owner's call, 2026-11-04). */
+.scor-snow {
+    position: absolute;
+    top: -8px;
+    right: -56px;
+    bottom: -6px;
+    left: -56px;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.55));
+}
+
+/* The bubble and the character paint above the snow layer. */
+.mascot-bubble,
+.scor {
+    z-index: 1;
+}
+
+.scor-snow-flake {
+    position: absolute;
+    top: 0;
+    border-radius: 50%;
+    background: #fff;
+    animation-name: scor-snow-fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+@keyframes scor-snow-fall {
+    from {
+        transform: translate(0, -14px);
+    }
+
+    55% {
+        transform: translate(calc(var(--drift) * 0.55), 250px);
+    }
+
+    to {
+        transform: translate(var(--drift), 470px);
+    }
 }
 
 /* Santa Scor (pure CSS, ported from the owner's reference file).
@@ -2339,8 +2391,10 @@ button.poll-option:hover:not(:disabled) {
 
     /* The mascot and its speech bubble are deliberately NOT listed
        here: the owner wants Scor animated on every phone, including
-       ones reporting reduced motion (2026-11-04). Everything else
-       still honours the setting. */
+       ones reporting reduced motion (2026-11-04). The snowfall
+       behind Scor is part of that same exempt mascot presentation,
+       at the owner's request. Everything else still honours the
+       setting. */
     .pop-in,
     .slide-in,
     .toast {

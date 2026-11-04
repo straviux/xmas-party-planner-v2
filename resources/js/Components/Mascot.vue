@@ -68,6 +68,33 @@ function startTyping(text) {
 
 watch(displayedMessage, (text) => startTyping(text), { immediate: true });
 
+// Snowfall behind Scor: the owner's pure-CSS snow, rebuilt at
+// runtime because this project has no SCSS for its @for loops.
+// Each flake gets a random start position, size, opacity, fall
+// speed, and sideways drift; the negative delay is spread across
+// the whole fall duration so it is already snowing on first
+// paint. All flakes share one keyframes rule (.scor-snow-fall in
+// app.css) driven by the --drift custom property. The snow is
+// part of the mascot presentation, so it shares the mascot's
+// reduced-motion exemption (owner's call, see app.css).
+const SNOWFLAKE_COUNT = 90;
+
+function snowRandom(min, max) {
+    return min + Math.random() * (max - min);
+}
+
+const snowflakes = Array.from({ length: SNOWFLAKE_COUNT }, () => {
+    const duration = snowRandom(7, 16);
+    return {
+        left: snowRandom(0, 100),
+        size: snowRandom(2, 5),
+        opacity: snowRandom(0.3, 1),
+        duration,
+        delay: -snowRandom(0, duration),
+        drift: snowRandom(-34, 34),
+    };
+});
+
 function pickLine() {
     let index = Math.floor(Math.random() * REACTION_LINES.length);
     if (index === lastLineIndex.value) {
@@ -105,6 +132,22 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="mascot-wrap" aria-hidden="true" @click="react">
+        <div class="scor-snow" aria-hidden="true">
+            <span
+                v-for="(flake, index) in snowflakes"
+                :key="index"
+                class="scor-snow-flake"
+                :style="{
+                    left: `${flake.left}%`,
+                    width: `${flake.size}px`,
+                    height: `${flake.size}px`,
+                    opacity: flake.opacity,
+                    animationDuration: `${flake.duration}s`,
+                    animationDelay: `${flake.delay}s`,
+                    '--drift': `${flake.drift}px`,
+                }"
+            ></span>
+        </div>
         <div v-if="displayedMessage" :key="displayedMessage" class="mascot-bubble">{{ typedText }}</div>
         <div ref="scorRef" class="scor">
             <div class="scor-head">
