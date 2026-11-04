@@ -315,3 +315,12 @@ that opens the secret-name form pre-filled with the current name
 the PIN check and is wiped on close, form remounted per entry). The
 standalone Change button still opens a blank form for a quick change
 without viewing.
+
+Mascot swap (2026-11-04): the pure-CSS round mascot was replaced by
+Santa Scor from the owner's supplied reference (scor-christmas.html):
+white fluffy character, big ears, Santa hat and beard, red torso.
+Ported faithfully and scaled by a single font-size knob on .scor
+(5.5px, all units em): about 110px visible width, 162px tall. His
+own animations came with him (7s blink, ear and foot wiggles, hover
+head tilt); the speech bubble above him is unchanged. The demo's
+snow overlay was not ported.
