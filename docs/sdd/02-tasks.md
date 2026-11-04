@@ -442,3 +442,7 @@ search bar; the order is sort (right), chips, search.
 
 Sort labels shortened (2026-11-04): Newest, Oldest, A-Z, and a
 new Z-A option (reverse alphabetical) in the wishlist grids.
+
+Sort select shrunk (2026-11-04): tighter box (32px tall desktop,
+30px on phones, slimmer padding and radius). The label font stays
+at the 16px anti-zoom size on purpose.
