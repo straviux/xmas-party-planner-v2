@@ -307,3 +307,11 @@ has no secret name yet) now keep the result shape: a "You are buying
 for" label with a muted italic ??? placeholder in the name slot, on
 both the Reveal page and the Show-my-recipient-again popup, so the
 slot itself is never just missing.
+
+Follow-up (2026-11-04): codename view and edit are one flow. Inside
+the PIN-verified Show popup, the result step now has an Edit button
+that opens the secret-name form pre-filled with the current name
+(the only prefilled form; the value exists only in popup state after
+the PIN check and is wiped on close, form remounted per entry). The
+standalone Change button still opens a blank form for a quick change
+without viewing.

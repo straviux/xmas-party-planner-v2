@@ -89,18 +89,24 @@ function onSecretSaved() {
 // only inside this popup. closeShowPopup() wipes the PIN and the
 // fetched value together, so neither ever persists on the page.
 const showPopupOpen = ref(false);
-const showStep = ref('pin'); // 'pin' | 'result'
+const showStep = ref('pin'); // 'pin' | 'result' | 'edit'
 const showPin = ref('');
 const showPinError = ref('');
 const showChecking = ref(false);
 const showPinInput = ref(null);
 const shownSecretName = ref(null);
+// Remount lever for the edit step's SecretNameForm: bumped on every
+// popup open and every entry into the edit step, so the form always
+// mounts fresh from shownSecretName and a value typed in a previous
+// popup session can never linger in its field.
+const showEditKey = ref(0);
 
 function openShowPopup() {
     showPin.value = '';
     showPinError.value = '';
     showStep.value = 'pin';
     shownSecretName.value = null;
+    showEditKey.value++;
     showPopupOpen.value = true;
     nextTick(() => {
         if (showPinInput.value) showPinInput.value.focus();
@@ -114,6 +120,27 @@ function closeShowPopup() {
     showPinError.value = '';
     showChecking.value = false;
     shownSecretName.value = null;
+    showEditKey.value++;
+}
+
+function openShowEdit() {
+    // The only prefill of the secret-name form anywhere: the value is
+    // in popup state solely because the PIN was just verified.
+    showEditKey.value++;
+    showStep.value = 'edit';
+}
+
+function backToShowResult() {
+    showEditKey.value++;
+    showStep.value = 'result';
+}
+
+function onShowEditSaved() {
+    // The saved value is deliberately NOT kept: saving ends the popup
+    // session with the same full wipe as any other close.
+    hasSecretName.value = true;
+    closeShowPopup();
+    toastSuccess('Your secret name is saved.');
 }
 
 function showBackdropClick() {
@@ -527,9 +554,16 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Show my secret name: PIN check, then the value, in a popup
-             only. Closing it by any route wipes the PIN and the value. -->
+             only. The result step can swap to an edit step prefilled
+             with that just-verified value; closing the popup by any
+             route, from any step, wipes the PIN and the value. -->
         <div v-if="showPopupOpen" class="modal-backdrop" @click.self="showBackdropClick">
-            <div class="modal-card pop-in" role="dialog" aria-modal="true" aria-label="Show my secret name">
+            <div
+                class="modal-card pop-in"
+                role="dialog"
+                aria-modal="true"
+                :aria-label="showStep === 'pin' ? 'Show my secret name' : showStep === 'result' ? 'Your secret name' : 'Edit secret name'"
+            >
                 <template v-if="showStep === 'pin'">
                     <h3 class="modal-title">Show my secret name</h3>
                     <p class="muted" style="margin: 0 0 18px; line-height: 1.55">
@@ -575,7 +609,7 @@ onBeforeUnmount(() => {
                     </form>
                 </template>
 
-                <template v-else>
+                <template v-else-if="showStep === 'result'">
                     <div style="text-align: center">
                         <span class="section-label">
                             <VenetianMask :size="12" style="vertical-align: -1px" />
@@ -588,8 +622,26 @@ onBeforeUnmount(() => {
                         </p>
                     </div>
                     <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" @click="openShowEdit">
+                            <VenetianMask :size="16" />
+                            <span>Edit secret name</span>
+                        </button>
                         <button type="button" class="btn btn-primary" @click="closeShowPopup">
                             <span>Close</span>
+                        </button>
+                    </div>
+                </template>
+
+                <template v-else-if="showStep === 'edit'">
+                    <h3 class="modal-title">Edit secret name</h3>
+                    <SecretNameForm
+                        :key="showEditKey"
+                        :initial="shownSecretName || ''"
+                        @saved="onShowEditSaved"
+                    />
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" @click="backToShowResult">
+                            <span>Back</span>
                         </button>
                     </div>
                 </template>
