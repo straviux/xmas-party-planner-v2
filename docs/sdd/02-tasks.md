@@ -439,3 +439,6 @@ way to add a wish.
 Toolbar order (2026-11-04): in the shared wishlist grid the
 filter chips (All / With photos / Text only) now sit above the
 search bar; the order is sort (right), chips, search.
+
+Sort labels shortened (2026-11-04): Newest, Oldest, A-Z, and a
+new Z-A option (reverse alphabetical) in the wishlist grids.

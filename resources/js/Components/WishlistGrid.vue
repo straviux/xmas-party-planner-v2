@@ -80,8 +80,9 @@ const visibleItems = computed(() => {
     };
 
     filtered.sort((a, b) => {
-        if (sort.value === 'az') {
-            return displayName(a.item).localeCompare(displayName(b.item));
+        if (sort.value === 'az' || sort.value === 'za') {
+            const order = displayName(a.item).localeCompare(displayName(b.item));
+            return sort.value === 'az' ? order : -order;
         }
         const da = dateOf(a.item);
         const db = dateOf(b.item);
@@ -111,9 +112,10 @@ function confirmDelete() {
         <div class="wish-controls">
             <div class="sort-row">
                 <select v-model="sort" class="select sort-select" aria-label="Sort wishes">
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                    <option value="az">A–Z</option>
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="az">A-Z</option>
+                    <option value="za">Z-A</option>
                 </select>
             </div>
             <div class="chip-row">
