@@ -446,3 +446,7 @@ new Z-A option (reverse alphabetical) in the wishlist grids.
 Sort select shrunk (2026-11-04): tighter box (32px tall desktop,
 30px on phones, slimmer padding and radius). The label font stays
 at the 16px anti-zoom size on purpose.
+
+Tile settings to the right (2026-11-04): on your own wish tiles
+the gear (settings) button now sits at the right end of the tile
+footer, opposite the shop-link button.

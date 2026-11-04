@@ -2128,6 +2128,12 @@ button {
     height: 36px;
 }
 
+/* The settings gear sits at the right end of the tile footer,
+   opposite the shop-link button (owner's call, 2026-11-04). */
+.wish-tile-actions .wish-tile-settings {
+    margin-left: auto;
+}
+
 /* Quick view (product detail) */
 
 .qv-card {

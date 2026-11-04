@@ -179,6 +179,7 @@ function confirmDelete() {
                         <span v-if="item.mine" class="wish-mine-chip">Me</span>
                         <WishActionsMenu
                             v-else-if="props.mode === 'mine'"
+                            class="wish-tile-settings"
                             :item="item"
                             :busy="props.busyId === item.id"
                             @edit="emit('edit', $event)"
