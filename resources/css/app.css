@@ -582,6 +582,19 @@ button {
     filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.55));
 }
 
+/* The snow layer is only rendered while a shower runs (tap
+   burst or random shower in Mascot.vue) and fades in and out
+   through Vue's Transition classes. */
+.snow-fade-enter-active,
+.snow-fade-leave-active {
+    transition: opacity 0.45s ease;
+}
+
+.snow-fade-enter-from,
+.snow-fade-leave-to {
+    opacity: 0;
+}
+
 /* The bubble and the character paint above the snow layer. */
 .mascot-bubble,
 .scor {

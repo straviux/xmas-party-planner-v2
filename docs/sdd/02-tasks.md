@@ -403,3 +403,9 @@ position, size, opacity, drift with a mid-fall sway, soft glow),
 reproducing the owner-supplied SCSS snow effect without a build
 step. It counts as mascot presentation and stays exempt from the
 reduced-motion freeze.
+
+Snowfall correction (2026-11-04): the snow is NOT always on. It
+appears as a burst when Scor is tapped (about 3.2 s, with her hop
+and bubble line) and as random showers on its own (every 14 to
+30 s, lasting 5 to 8 s), fading in and out; between showers the
+layer is not rendered at all.

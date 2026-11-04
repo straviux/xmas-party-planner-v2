@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import scorHatUrl from '../../assets/scorHatData.js';
 
 const props = defineProps({
@@ -72,11 +72,22 @@ watch(displayedMessage, (text) => startTyping(text), { immediate: true });
 // runtime because this project has no SCSS for its @for loops.
 // Each flake gets a random start position, size, opacity, fall
 // speed, and sideways drift; the negative delay is spread across
-// the whole fall duration so it is already snowing on first
-// paint. All flakes share one keyframes rule (.scor-snow-fall in
+// the whole fall duration so a shower opens with flakes already
+// spread through the layer instead of dropping as a curtain.
+// All flakes share one keyframes rule (.scor-snow-fall in
 // app.css) driven by the --drift custom property. The snow is
 // part of the mascot presentation, so it shares the mascot's
 // reduced-motion exemption (owner's call, see app.css).
+//
+// The snow is occasional, never constant (owner's call): the
+// layer is not even rendered while idle, so it costs nothing
+// between showers. It shows for tap bursts (see react()) and
+// for self-scheduled random showers: wait a random 14 to 30s
+// gap, snow for a random 5 to 8s, then wait again. One shared
+// stop timestamp governs every trigger, so overlapping bursts
+// simply keep the snow on until the later end time; a single
+// stop timer is re-armed on every start, never two competing
+// off-timers. The fade in and out lives in app.css (.snow-fade).
 const SNOWFLAKE_COUNT = 90;
 
 function snowRandom(min, max) {
@@ -93,6 +104,40 @@ const snowflakes = Array.from({ length: SNOWFLAKE_COUNT }, () => {
         delay: -snowRandom(0, duration),
         drift: snowRandom(-34, 34),
     };
+});
+
+const snowing = ref(false);
+let snowStopAt = 0;
+let snowStopTimer = null;
+let snowCycleTimer = null;
+
+function startSnow(durationMs) {
+    snowStopAt = Math.max(snowStopAt, Date.now() + durationMs);
+    snowing.value = true;
+
+    window.clearTimeout(snowStopTimer);
+    snowStopTimer = window.setTimeout(() => {
+        snowStopTimer = null;
+        snowStopAt = 0;
+        snowing.value = false;
+    }, snowStopAt - Date.now());
+}
+
+// Self-rescheduling timeout chain (not an interval) so every
+// gap and every shower duration is freshly randomized. The
+// next gap is scheduled from the end of the current shower.
+function scheduleSnowCycle(delayMs) {
+    window.clearTimeout(snowCycleTimer);
+    snowCycleTimer = window.setTimeout(() => {
+        snowCycleTimer = null;
+        const duration = snowRandom(5000, 8000);
+        startSnow(duration);
+        scheduleSnowCycle(duration + snowRandom(14000, 30000));
+    }, delayMs);
+}
+
+onMounted(() => {
+    scheduleSnowCycle(snowRandom(14000, 30000));
 });
 
 function pickLine() {
@@ -117,6 +162,11 @@ function react() {
         el.classList.add('reacting');
     }
 
+    // A tap also bursts the snow, lasting just past the
+    // reaction window; it merges with any random shower in
+    // progress via the shared stop timestamp in startSnow().
+    startSnow(3200);
+
     window.clearTimeout(revertTimer);
     revertTimer = window.setTimeout(() => {
         reactionLine.value = null;
@@ -127,27 +177,31 @@ function react() {
 onBeforeUnmount(() => {
     window.clearTimeout(revertTimer);
     window.clearInterval(typeTimer);
+    window.clearTimeout(snowStopTimer);
+    window.clearTimeout(snowCycleTimer);
 });
 </script>
 
 <template>
     <div class="mascot-wrap" aria-hidden="true" @click="react">
-        <div class="scor-snow" aria-hidden="true">
-            <span
-                v-for="(flake, index) in snowflakes"
-                :key="index"
-                class="scor-snow-flake"
-                :style="{
-                    left: `${flake.left}%`,
-                    width: `${flake.size}px`,
-                    height: `${flake.size}px`,
-                    opacity: flake.opacity,
-                    animationDuration: `${flake.duration}s`,
-                    animationDelay: `${flake.delay}s`,
-                    '--drift': `${flake.drift}px`,
-                }"
-            ></span>
-        </div>
+        <Transition name="snow-fade">
+            <div v-if="snowing" class="scor-snow" aria-hidden="true">
+                <span
+                    v-for="(flake, index) in snowflakes"
+                    :key="index"
+                    class="scor-snow-flake"
+                    :style="{
+                        left: `${flake.left}%`,
+                        width: `${flake.size}px`,
+                        height: `${flake.size}px`,
+                        opacity: flake.opacity,
+                        animationDuration: `${flake.duration}s`,
+                        animationDelay: `${flake.delay}s`,
+                        '--drift': `${flake.drift}px`,
+                    }"
+                ></span>
+            </div>
+        </Transition>
         <div v-if="displayedMessage" :key="displayedMessage" class="mascot-bubble">{{ typedText }}</div>
         <div ref="scorRef" class="scor">
             <div class="scor-head">
