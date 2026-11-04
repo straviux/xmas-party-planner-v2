@@ -22,6 +22,7 @@ class GuestEntryException extends DomainException
         'not_claimed' => 'Find and confirm your name first.',
         'secret_name_invalid' => 'Your secret name must be between 2 and 30 characters.',
         'secret_name_taken' => 'That secret name is already taken. Pick another one.',
+        'secret_name_unset' => 'You have not picked a secret name yet.',
         'already_claimed' => 'This name has already revealed its recipient.',
         'not_revealed' => 'You have not revealed your person yet.',
     ];

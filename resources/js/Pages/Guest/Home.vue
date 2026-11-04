@@ -22,12 +22,12 @@ const props = defineProps({
         type: Object,
         default: () => ({ locked: 0, total: 0, wishes: 0 }),
     },
-    // The viewer's OWN secret name (or null). This is the one place a
-    // secret name value is ever a page prop: your own codename is yours
-    // to see and change; everyone else's stays server-side.
-    ownSecretName: {
-        type: String,
-        default: null,
+    // Whether the viewer has set their own secret name. The VALUE is
+    // never a page prop: it is only ever fetched inside the PIN-guarded
+    // show popup (guest_secret_name_view) and wiped when it closes.
+    ownHasSecretName: {
+        type: Boolean,
+        default: false,
     },
 });
 
@@ -61,9 +61,10 @@ async function signOut() {
 
 /* ---------- Your secret name ---------- */
 
-// Local copy of the viewer's own secret name so a save updates the card
-// in place, with no page reload.
-const mySecretName = ref(props.ownSecretName || null);
+// Only WHETHER the viewer has a secret name lives on this page, never
+// the value: the card always renders a mask, and the value itself is
+// fetched by PIN inside the show popup below and wiped when it closes.
+const hasSecretName = ref(!!props.ownHasSecretName);
 const secretPopupOpen = ref(false);
 
 function openSecretPopup() {
@@ -74,10 +75,94 @@ function closeSecretPopup() {
     secretPopupOpen.value = false;
 }
 
-function onSecretSaved(name) {
-    mySecretName.value = name;
+function onSecretSaved() {
+    // SecretNameForm emits the stored name; it is deliberately NOT kept
+    // here, so the value never sits in page state or renders anywhere.
+    hasSecretName.value = true;
     secretPopupOpen.value = false;
     toastSuccess('Your secret name is saved.');
+}
+
+/* ---------- Show my secret name (guest_secret_name_view) ---------- */
+
+// Mirrors the reveal-again popup below: PIN first, then the value, and
+// only inside this popup. closeShowPopup() wipes the PIN and the
+// fetched value together, so neither ever persists on the page.
+const showPopupOpen = ref(false);
+const showStep = ref('pin'); // 'pin' | 'result'
+const showPin = ref('');
+const showPinError = ref('');
+const showChecking = ref(false);
+const showPinInput = ref(null);
+const shownSecretName = ref(null);
+
+function openShowPopup() {
+    showPin.value = '';
+    showPinError.value = '';
+    showStep.value = 'pin';
+    shownSecretName.value = null;
+    showPopupOpen.value = true;
+    nextTick(() => {
+        if (showPinInput.value) showPinInput.value.focus();
+    });
+}
+
+function closeShowPopup() {
+    showPopupOpen.value = false;
+    showStep.value = 'pin';
+    showPin.value = '';
+    showPinError.value = '';
+    showChecking.value = false;
+    shownSecretName.value = null;
+}
+
+function showBackdropClick() {
+    if (!showChecking.value) {
+        closeShowPopup();
+    }
+}
+
+async function submitShowPin() {
+    if (showChecking.value) return;
+    showPinError.value = '';
+    if (showPin.value.length !== 4) {
+        showPinError.value = 'Enter all 4 digits of your PIN.';
+        return;
+    }
+    showChecking.value = true;
+    try {
+        const body = await post('guest_secret_name_view', { pin: showPin.value });
+        shownSecretName.value = body.secret_name || null;
+        showPin.value = '';
+        showStep.value = 'result';
+    } catch (err) {
+        if (err.code === 'pin_incorrect') {
+            showPinError.value = 'That PIN does not match.';
+            showPin.value = '';
+            nextTick(() => {
+                if (showPinInput.value) showPinInput.value.focus();
+            });
+        } else if (err.code === 'pin_must_be_4_digits') {
+            showPinError.value = 'Enter all 4 digits of your PIN.';
+        } else if (err.code === 'pin_required_create') {
+            showPinError.value = 'You have not set a PIN yet. Sign out and enter again to create one.';
+        } else if (err.code === 'secret_name_unset') {
+            // The card thought a name was set but the server disagrees:
+            // drop back to the pick-one prompt state.
+            closeShowPopup();
+            hasSecretName.value = false;
+            return;
+        } else if (err.code === 'not_claimed') {
+            closeShowPopup();
+            toastError('Your session has ended. Enter your name and PIN to continue.');
+            router.visit('/enter');
+            return;
+        } else {
+            toastError(err.message || 'Something went wrong. Please try again.');
+        }
+    } finally {
+        showChecking.value = false;
+    }
 }
 
 /* ---------- Show my recipient again (reveal_again) ---------- */
@@ -180,6 +265,9 @@ function onKeydown(event) {
     if (popupOpen.value && !checking.value) {
         closePopup();
     }
+    if (showPopupOpen.value && !showChecking.value) {
+        closeShowPopup();
+    }
     if (secretPopupOpen.value) {
         closeSecretPopup();
     }
@@ -235,16 +323,26 @@ onBeforeUnmount(() => {
                     <VenetianMask :size="12" style="vertical-align: -1px" />
                     Your secret name
                 </span>
-                <template v-if="mySecretName">
-                    <p class="dash-value" style="font-size: 1.5rem">{{ mySecretName }}</p>
+                <template v-if="hasSecretName">
+                    <!-- The value itself is never rendered here: a fixed
+                         mask only, so a glance at the phone shows nothing.
+                         The PIN popup is the one place it can be seen. -->
+                    <p class="dash-value secret-mask" aria-hidden="true">••••••••</p>
+                    <p class="dash-sub" style="margin-bottom: 6px">Your secret name is hidden.</p>
                     <p class="dash-sub" style="margin-bottom: 16px">
-                        This is the only name your Secret Santa sees. Your real
-                        name stays hidden until the gift exchange.
+                        Enter your PIN to see it. It stays hidden here so nobody
+                        glancing at your phone can read it.
                     </p>
-                    <button type="button" class="btn btn-secondary" @click="openSecretPopup">
-                        <VenetianMask :size="16" />
-                        <span>Change my secret name</span>
-                    </button>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px">
+                        <button type="button" class="btn btn-primary" @click="openShowPopup">
+                            <Eye :size="16" />
+                            <span>Show my secret name</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" @click="openSecretPopup">
+                            <VenetianMask :size="16" />
+                            <span>Change my secret name</span>
+                        </button>
+                    </div>
                 </template>
                 <template v-else>
                     <p class="dash-sub" style="margin: 10px 0 16px">
@@ -407,16 +505,88 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- Your secret name: pick one, or change the one you have. -->
+        <!-- Your secret name: pick one, or change the one you have. The
+             form deliberately starts blank: the current value is unknown
+             to this page by design, so there is nothing to prefill. -->
         <div v-if="secretPopupOpen" class="modal-backdrop" @click.self="closeSecretPopup">
             <div class="modal-card pop-in" role="dialog" aria-modal="true" aria-label="Your secret name">
-                <h3 class="modal-title">{{ mySecretName ? 'Change your secret name' : 'Pick your secret name' }}</h3>
-                <SecretNameForm :initial="mySecretName || ''" @saved="onSecretSaved" />
+                <h3 class="modal-title">{{ hasSecretName ? 'Change my secret name' : 'Pick my secret name' }}</h3>
+                <SecretNameForm @saved="onSecretSaved" />
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" @click="closeSecretPopup">
                         <span>Cancel</span>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Show my secret name: PIN check, then the value, in a popup
+             only. Closing it by any route wipes the PIN and the value. -->
+        <div v-if="showPopupOpen" class="modal-backdrop" @click.self="showBackdropClick">
+            <div class="modal-card pop-in" role="dialog" aria-modal="true" aria-label="Show my secret name">
+                <template v-if="showStep === 'pin'">
+                    <h3 class="modal-title">Show my secret name</h3>
+                    <p class="muted" style="margin: 0 0 18px; line-height: 1.55">
+                        Enter your PIN and we will show your secret name.
+                    </p>
+
+                    <p v-if="showPinError" class="error-text" style="margin-bottom: 14px">
+                        <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
+                        <span>{{ showPinError }}</span>
+                    </p>
+
+                    <form @submit.prevent="submitShowPin">
+                        <label class="field">
+                            <span class="field-label">Your 4-digit PIN</span>
+                            <input
+                                ref="showPinInput"
+                                :value="showPin"
+                                class="input mono pin-input"
+                                type="password"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                maxlength="4"
+                                autocomplete="off"
+                                placeholder="••••"
+                                :disabled="showChecking"
+                                @input="showPin = digitsOnly($event.target.value)"
+                            />
+                        </label>
+                        <div class="modal-actions">
+                            <button
+                                type="button"
+                                class="btn btn-secondary"
+                                :disabled="showChecking"
+                                @click="closeShowPopup"
+                            >
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary" :disabled="showChecking">
+                                <Eye :size="16" />
+                                <span>{{ showChecking ? 'Checking...' : 'Show my secret name' }}</span>
+                            </button>
+                        </div>
+                    </form>
+                </template>
+
+                <template v-else>
+                    <div style="text-align: center">
+                        <span class="section-label">
+                            <VenetianMask :size="12" style="vertical-align: -1px" />
+                            Your secret name
+                        </span>
+                        <p class="dash-value" style="font-size: 2rem; margin: 12px 0 8px">{{ shownSecretName }}</p>
+                        <p class="muted" style="margin: 0; line-height: 1.55">
+                            This is the only name your Secret Santa sees. It
+                            hides again as soon as you close this.
+                        </p>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-primary" @click="closeShowPopup">
+                            <span>Close</span>
+                        </button>
+                    </div>
+                </template>
             </div>
         </div>
     </GuestLayout>
@@ -468,6 +638,14 @@ onBeforeUnmount(() => {
     font-size: 1.3rem;
     letter-spacing: 0.5em;
     text-align: center;
+}
+
+/* The masked stand-in for the guest's own secret name on the card:
+   fixed bullets, spread out like a value, revealing nothing. */
+.secret-mask {
+    font-size: 1.5rem;
+    letter-spacing: 0.35em;
+    user-select: none;
 }
 
 .again-budget {

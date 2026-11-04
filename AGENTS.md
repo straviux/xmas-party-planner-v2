@@ -30,7 +30,11 @@ and best practices.
    responses carry the recipient's secret name (the guest's self-chosen
    codename, set via `guest_set_secret_name`), never their real name, so
    real identities stay hidden until the gift exchange itself; a
-   recipient who has not picked a secret name yet reveals as null.
+   recipient who has not picked a secret name yet reveals as null. A
+   guest's OWN secret name is under the same lock: it is never sent to
+   the guest home page (the page gets only an `ownHasSecretName` flag)
+   and is returned solely by `guest_secret_name_view`, after the guest
+   re-enters their PIN.
 3. The host is blind too: dashboards show locked/awaiting counts and names,
    never who got whom.
 4. Images are WebP only, never AVIF. Screenshots are converted to WebP on
@@ -45,6 +49,11 @@ and best practices.
    `secret_name_taken` 409). Public payloads carry only the
    `has_secret_name` flag, never the value; the host shape carries the
    value, and `host_status` counts `secret_names_set`.
+   `guest_secret_name_view` {pin} returns the session guest's own secret
+   name after PIN verification (same PIN failure codes as
+   `reveal_again`); a claimed guest who has not picked one yet gets
+   `secret_name_unset` 409, checked before the PIN. No failure response
+   from it ever carries the value.
 7. Testing is the owner's job on real devices: provide code-level checks
    (build, lint, `php artisan test`) and the acceptance checklist only.
    No browser automation or visual test servers.

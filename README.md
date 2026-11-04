@@ -141,6 +141,9 @@ Guest flow:
 - [ ] Reveal when your person has not picked a secret name yet: you get a
       "still choosing" note instead of a name, and "Show my recipient
       again" on your home page shows the secret name once they pick one.
+- [ ] On your home page your own secret name shows only as dots. "Show my
+      secret name" asks for your PIN and shows it inside the popup only;
+      closing the popup hides it again.
 - [ ] Sign out, enter the same name with a wrong PIN: plain error, nothing
       revealed. With the right PIN you go to your home page, not a reveal.
 - [ ] On your home page, use "Show my recipient again": a wrong PIN shows an

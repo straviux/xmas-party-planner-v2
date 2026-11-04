@@ -291,3 +291,13 @@ inside a 6s cycle, pixel-identical rest pose). The bubble pops in
 with a soft spring when it appears, then floats gently out of phase
 with the bob. Transform/opacity only; everything disabled under
 prefers-reduced-motion.
+
+Privacy follow-up (2026-11-04): a guest's OWN secret name is hidden
+on the Home page too. The page no longer receives the value at all
+(ownHasSecretName flag replaces the ownSecretName prop) and the card
+shows a masked readout. Viewing runs through a new PIN-gated action,
+guest_secret_name_view (codes: not_claimed, secret_name_unset,
+pin_required_create, pin_must_be_4_digits, pin_incorrect), displayed
+only inside the popup and wiped on close; the Change form starts
+blank by design. Suite: 106 tests / 2,518 assertions; the live E2E
+scans both Home pages for leaked values.

@@ -20,8 +20,10 @@ use Illuminate\Support\Str;
  * guest — and revealAgain(), the single named exception: the same guest,
  * in their own session, after PIN verification, and only once they have
  * already revealed. Even those responses carry only the recipient's
- * secret name, never their real name. The session stores guest_id + a
- * pin_verified flag only (D2), never the plain PIN.
+ * secret name, never their real name. A guest's OWN secret name is kept
+ * under the same lock: it is never sent to the guest home page, and only
+ * viewSecretName() returns it, after PIN verification. The session
+ * stores guest_id + a pin_verified flag only (D2), never the plain PIN.
  */
 class GuestEntryService
 {
@@ -376,6 +378,53 @@ class GuestEntryService
             'recipient' => $recipient === null ? null : Serializers::revealRecipient($recipient),
             'budget' => $guest->party?->budget,
         ];
+    }
+
+    /**
+     * View your own secret name, behind your PIN: the codename is never
+     * sent to the guest home page, so a guest who forgot what they picked
+     * proves their PIN here and gets the value back. Read-only; changes
+     * no state.
+     *
+     * Gates run before any PIN check: a session guest who has not claimed
+     * their name is not_claimed, and a claimed guest who has not picked a
+     * secret name yet is secret_name_unset. PIN failures then mirror
+     * revealAgain(): a guest with no PIN hash must create one first
+     * (pin_required_create), a missing or malformed PIN is
+     * pin_must_be_4_digits, and a wrong PIN is pin_incorrect. No failure
+     * response carries the secret name value: it is only read off the
+     * guest after every gate has passed.
+     *
+     * @return array{secret_name: string}
+     *
+     * @throws GuestEntryException
+     */
+    public function viewSecretName(Request $request): array
+    {
+        $guest = $this->sessionGuest($request);
+
+        if ($guest === null || ! $guest->claimed) {
+            throw GuestEntryException::make('not_claimed');
+        }
+
+        if (! is_string($guest->secret_name) || $guest->secret_name === '') {
+            throw GuestEntryException::make('secret_name_unset', 409);
+        }
+
+        if (empty($guest->pin_hash)) {
+            throw GuestEntryException::make('pin_required_create');
+        }
+
+        $pin = $this->stringInput($request->input('pin'));
+
+        if (! $this->isValidPinFormat($pin)) {
+            throw GuestEntryException::make('pin_must_be_4_digits');
+        }
+        if (! Hash::check($pin, $guest->pin_hash)) {
+            throw GuestEntryException::make('pin_incorrect');
+        }
+
+        return ['secret_name' => $guest->secret_name];
     }
 
     /**

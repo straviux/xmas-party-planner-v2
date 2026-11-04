@@ -77,9 +77,10 @@ class PageController extends Controller
         return Inertia::render('Guest/Home', [
             'party' => Serializers::partyPublic($party),
             'guest' => Serializers::publicGuest($guest),
-            // The guest's OWN secret name is theirs to see and edit, so it
-            // ships here (and only here) as a page prop.
-            'ownSecretName' => $guest->secret_name,
+            // Only the flag ships: the guest's OWN secret name value is
+            // never sent to this page. It comes back only from the
+            // guest_secret_name_view action, after PIN verification.
+            'ownHasSecretName' => is_string($guest->secret_name) && $guest->secret_name !== '',
             'counts' => [
                 'locked' => $party->guests()->where('claimed', true)->count(),
                 'total' => $party->guests()->count(),

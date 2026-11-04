@@ -344,7 +344,7 @@ test('the host sees secret names and counts them while the public list hides the
         ->and($listJson)->not->toContain('Snow Fox');
 });
 
-test('guest home receives the guest own secret name as a page prop', function () {
+test('guest home receives only the own-secret-name flag, never the value', function () {
     [, $guests] = secretNameDefaultParty();
     $ana = $guests['Ana Cruz'];
 
@@ -352,8 +352,133 @@ test('guest home receives the guest own secret name as a page prop', function ()
     $this->postJson('/api/guest_set_secret_name', ['secret_name' => 'ReindeerGames'])->assertOk();
     $this->postJson('/api/reveal')->assertOk();
 
+    $response = $this->get('/guest');
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('Guest/Home')
+        ->where('ownHasSecretName', true)
+        ->missing('ownSecretName')
+        ->where('guest.has_secret_name', true));
+
+    // The value appears nowhere in the whole page response: not in the
+    // Inertia props, not anywhere in the rendered shell.
+    expect($response->getContent())->not->toContain('ReindeerGames');
+});
+
+test('guest home flag is false when the guest has no secret name yet', function () {
+    [, $guests] = secretNameDefaultParty();
+    $ben = $guests['Ben Reyes'];
+
+    secretNameEnter($this, $ben);
+    $this->postJson('/api/reveal')->assertOk();
+
     $this->get('/guest')->assertInertia(fn (Assert $page) => $page
         ->component('Guest/Home')
-        ->where('ownSecretName', 'ReindeerGames')
-        ->where('guest.has_secret_name', true));
+        ->where('ownHasSecretName', false)
+        ->missing('ownSecretName')
+        ->where('guest.has_secret_name', false));
+});
+
+// ----------------------------------------------------------------------
+// Viewing your own secret name: PIN-gated, the value never ships otherwise
+// ----------------------------------------------------------------------
+
+test('viewing your own secret name with the correct PIN returns the value', function () {
+    [, $guests] = secretNameDefaultParty();
+    $ana = $guests['Ana Cruz'];
+
+    secretNameEnter($this, $ana);
+    $this->postJson('/api/guest_set_secret_name', ['secret_name' => 'ReindeerGames'])->assertOk();
+
+    $this->postJson('/api/guest_secret_name_view', ['pin' => '1234'])
+        ->assertOk()
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('secret_name', 'ReindeerGames');
+});
+
+test('viewing your own secret name with a wrong PIN is pin_incorrect and leaks nothing', function () {
+    [, $guests] = secretNameDefaultParty();
+    $ana = $guests['Ana Cruz'];
+
+    secretNameEnter($this, $ana);
+    $this->postJson('/api/guest_set_secret_name', ['secret_name' => 'ReindeerGames'])->assertOk();
+
+    $response = $this->postJson('/api/guest_secret_name_view', ['pin' => '9999']);
+    $response->assertStatus(422)
+        ->assertJsonPath('ok', false)
+        ->assertJsonPath('error', 'pin_incorrect')
+        ->assertJsonMissingPath('secret_name');
+
+    expect(json_encode($response->json()))->not->toContain('ReindeerGames');
+});
+
+test('viewing your own secret name before picking one is secret_name_unset', function () {
+    [, $guests] = secretNameDefaultParty();
+    $ana = $guests['Ana Cruz'];
+
+    secretNameEnter($this, $ana);
+
+    $this->postJson('/api/guest_secret_name_view', ['pin' => '1234'])
+        ->assertStatus(409)
+        ->assertJsonPath('ok', false)
+        ->assertJsonPath('error', 'secret_name_unset')
+        ->assertJsonMissingPath('secret_name');
+
+    // The unset gate runs before the PIN: even a malformed PIN reports unset.
+    $this->postJson('/api/guest_secret_name_view', ['pin' => '12'])
+        ->assertStatus(409)
+        ->assertJsonPath('error', 'secret_name_unset');
+});
+
+test('viewing your own secret name needs a claimed session guest', function () {
+    [, $guests] = secretNameDefaultParty();
+    $ana = $guests['Ana Cruz'];
+    $ana->update(['secret_name' => 'ReindeerGames']);
+
+    // No session at all.
+    $response = $this->postJson('/api/guest_secret_name_view', ['pin' => '1234']);
+    $response->assertStatus(422)
+        ->assertJsonPath('error', 'not_claimed');
+    expect(json_encode($response->json()))->not->toContain('ReindeerGames');
+
+    // A session pointing at a guest who never claimed their name.
+    $this->withSession(['guest_id' => $ana->id]);
+
+    $response = $this->postJson('/api/guest_secret_name_view', ['pin' => '1234']);
+    $response->assertStatus(422)
+        ->assertJsonPath('error', 'not_claimed');
+    expect(json_encode($response->json()))->not->toContain('ReindeerGames');
+});
+
+test('viewing your own secret name with a missing or malformed PIN is pin_must_be_4_digits', function () {
+    [, $guests] = secretNameDefaultParty();
+    $ana = $guests['Ana Cruz'];
+
+    secretNameEnter($this, $ana);
+    $this->postJson('/api/guest_set_secret_name', ['secret_name' => 'ReindeerGames'])->assertOk();
+
+    foreach ([[], ['pin' => ''], ['pin' => '12'], ['pin' => '12345'], ['pin' => 'abcd']] as $payload) {
+        $response = $this->postJson('/api/guest_secret_name_view', $payload);
+        $response->assertStatus(422)
+            ->assertJsonPath('error', 'pin_must_be_4_digits')
+            ->assertJsonMissingPath('secret_name');
+        expect(json_encode($response->json()))->not->toContain('ReindeerGames');
+    }
+});
+
+test('viewing your own secret name with no PIN hash is pin_required_create', function () {
+    [, $guests] = secretNameDefaultParty();
+    $cora = $guests['Cora Diaz'];
+    $cora->update([
+        'claimed' => true, 'claimed_at' => now(), 'pin_hash' => null,
+        'secret_name' => 'Silent Owl',
+    ]);
+
+    $this->withSession(['guest_id' => $cora->id]);
+
+    $response = $this->postJson('/api/guest_secret_name_view', ['pin' => '1234']);
+    $response->assertStatus(422)
+        ->assertJsonPath('error', 'pin_required_create')
+        ->assertJsonMissingPath('secret_name');
+
+    expect(json_encode($response->json()))->not->toContain('Silent Owl');
 });
