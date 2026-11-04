@@ -324,3 +324,10 @@ Ported faithfully and scaled by a single font-size knob on .scor
 own animations came with him (7s blink, ear and foot wiggles, hover
 head tilt); the speech bubble above him is unchanged. The demo's
 snow overlay was not ported.
+
+Adjustment (2026-11-04): Scor's greeting (head tilt, mouth open,
+body shift) no longer waits for hover or touch. It is a continuous
+6-second loop (rest, greet held briefly, settle, rest) built from
+four synchronised keyframe animations; the :hover rule and its CSS
+vars were removed entirely. Reduced-motion still freezes him at the
+resting pose.

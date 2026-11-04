@@ -666,8 +666,8 @@ button {
     left: 50%;
     height: 0.325em;
     width: 2.5em;
-    transform: translateX(-50%) translateY(var(--mouth-translate, 0));
-    transition: var(--mouth-transition, 0.2s) ease-in-out;
+    transform: translateX(-50%) translateY(0);
+    animation: scor-greet-mouth-lift 6s ease-in-out infinite;
 }
 
 .scor-mouth-line {
@@ -705,14 +705,14 @@ button {
     height: 1.25em;
     width: 96%;
     transform-origin: center top;
-    transform: scaleY(var(--mouth-scale, 0));
+    transform: scaleY(0);
     border-top-left-radius: 1px 10%;
     border-top-right-radius: 1px 10%;
     border-bottom-left-radius: 50% 90%;
     border-bottom-right-radius: 50% 90%;
     background-color: var(--scor-ink);
     overflow: hidden;
-    transition: var(--mouth-transition, 0.2s) ease-in-out;
+    animation: scor-greet-mouth 6s ease-in-out infinite;
 }
 
 .scor-mouth-inner::before,
@@ -930,8 +930,8 @@ button {
     height: 10.5em;
     width: 12em;
     transform-origin: center 8em;
-    transform: var(--head-transform, none);
-    transition: 0.7s cubic-bezier(0.3, 0, 0.3, 1);
+    transform: rotate(0deg);
+    animation: scor-greet-head 6s ease-in-out infinite;
 }
 
 /* Christmas dressing: the neck frills are green. */
@@ -1161,18 +1161,10 @@ button {
     left: 50%;
     height: 2.25em;
     width: 60%;
-    transform: var(--body-transform, translateX(-50%));
+    transform: translateX(-50%);
     border-radius: 100%;
     background-color: var(--scor-shadow);
-    transition: transform 0.7s cubic-bezier(0.3, 0, 0.3, 1);
-}
-
-.scor:hover {
-    --mouth-translate: -0.125em;
-    --mouth-scale: 1;
-    --mouth-transition: 0.2s 1s;
-    --body-transform: translateX(-40%) scaleX(1.1);
-    --head-transform: rotate(20deg);
+    animation: scor-greet-body 6s ease-in-out infinite;
 }
 
 /* --- Christmas dressing: Santa hat and beard --- */
@@ -1245,6 +1237,70 @@ button {
     95%,
     97% {
         transform: scaleY(0.08);
+    }
+}
+
+/* Scor's greeting loop: one shared 6s window (rest until 56%, the
+   greeting held 66% to 80%, settled again by 90%) so the head tilt,
+   the mouth opening and lift, and the body shift move together like
+   a little laugh, with no hover or touch needed. */
+@keyframes scor-greet-head {
+    0%,
+    56% {
+        transform: rotate(0deg);
+    }
+    66%,
+    80% {
+        transform: rotate(20deg);
+    }
+    90%,
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes scor-greet-mouth {
+    0%,
+    56% {
+        transform: scaleY(0);
+    }
+    66%,
+    80% {
+        transform: scaleY(1);
+    }
+    90%,
+    100% {
+        transform: scaleY(0);
+    }
+}
+
+@keyframes scor-greet-mouth-lift {
+    0%,
+    56% {
+        transform: translateX(-50%) translateY(0);
+    }
+    66%,
+    80% {
+        transform: translateX(-50%) translateY(-0.125em);
+    }
+    90%,
+    100% {
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes scor-greet-body {
+    0%,
+    56% {
+        transform: translateX(-50%);
+    }
+    66%,
+    80% {
+        transform: translateX(-40%) scaleX(1.1);
+    }
+    90%,
+    100% {
+        transform: translateX(-50%);
     }
 }
 
@@ -2265,6 +2321,10 @@ button.poll-option:hover:not(:disabled) {
     .scor-ear,
     .scor-ear-right-wrap,
     .scor-leg-foot,
+    .scor-head,
+    .scor-mouth,
+    .scor-mouth-inner,
+    .scor-body::before,
     .pop-in,
     .slide-in,
     .toast {
