@@ -409,3 +409,7 @@ appears as a burst when Scor is tapped (about 3.2 s, with her hop
 and bubble line) and as random showers on its own (every 14 to
 30 s, lasting 5 to 8 s), fading in and out; between showers the
 layer is not rendered at all.
+
+Message stays (2026-11-04): when a tap changes Scor's bubble to a
+pool line, it now STAYS on that line until the next tap picks
+another; the 2.8 s auto-revert to the page message is removed.

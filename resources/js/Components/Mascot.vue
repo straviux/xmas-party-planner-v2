@@ -27,16 +27,16 @@ const REACTION_LINES = [
 const scorRef = ref(null);
 const reactionLine = ref(null);
 const lastLineIndex = ref(-1);
-let revertTimer = null;
 
-// During a reaction the pool line wins; with no reaction and no prop
-// message there is simply no bubble. With no prop message a tap still
-// shows the pool line for the reaction window, then hides again.
+// Once a tap picks a pool line it STAYS as the bubble text until the
+// next tap picks another (owner's call, 2026-11-04); it never reverts
+// to the prop message on its own. Before the first tap the prop
+// message shows; with no prop message and no tap there is no bubble.
 const displayedMessage = computed(() => reactionLine.value ?? props.message);
 
 // The bubble's text types itself out, chat style, whenever the target
-// line changes: first mount, a reaction line, or the revert back to
-// the prop message. About 24ms per character, sped up on long lines
+// line changes: first mount or a new reaction line picked by a tap.
+// About 24ms per character, sped up on long lines
 // so even the longest finishes within roughly 700ms. Purely visual:
 // the whole mascot wrap is aria-hidden, so assistive tech never sees
 // the half-typed text at all.
@@ -162,20 +162,13 @@ function react() {
         el.classList.add('reacting');
     }
 
-    // A tap also bursts the snow, lasting just past the
-    // reaction window; it merges with any random shower in
-    // progress via the shared stop timestamp in startSnow().
+    // A tap also bursts the snow for a few seconds; it merges
+    // with any random shower in progress via the shared stop
+    // timestamp in startSnow().
     startSnow(3200);
-
-    window.clearTimeout(revertTimer);
-    revertTimer = window.setTimeout(() => {
-        reactionLine.value = null;
-        scorRef.value?.classList.remove('reacting');
-    }, 2800);
 }
 
 onBeforeUnmount(() => {
-    window.clearTimeout(revertTimer);
     window.clearInterval(typeTimer);
     window.clearTimeout(snowStopTimer);
     window.clearTimeout(snowCycleTimer);
