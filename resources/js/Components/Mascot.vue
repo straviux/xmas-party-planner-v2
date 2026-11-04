@@ -1,18 +1,77 @@
 <script setup>
+import { computed, onBeforeUnmount, ref } from 'vue';
 import scorHatUrl from '../../assets/scorHatData.js';
 
-defineProps({
+const props = defineProps({
     message: {
         type: String,
         default: '',
     },
 });
+
+// Tapping Scor swaps the bubble to a random festive line for a few
+// seconds and plays a little hop (the .reacting class in app.css).
+// Purely decorative: the wrap is aria-hidden and the prop message
+// always comes back once the reaction window ends.
+const REACTION_LINES = [
+    'Ho ho ho!',
+    'Have you been nice this year?',
+    'No peeking at the gifts!',
+    'Hot cocoa fixes everything.',
+    'Your Secret Santa is watching.',
+    'Make a wish, check it twice.',
+    'The elves are on a deadline.',
+    'Santa hats suit everyone.',
+];
+
+const scorRef = ref(null);
+const reactionLine = ref(null);
+const lastLineIndex = ref(-1);
+let revertTimer = null;
+
+// During a reaction the pool line wins; with no reaction and no prop
+// message there is simply no bubble. With no prop message a tap still
+// shows the pool line for the reaction window, then hides again.
+const displayedMessage = computed(() => reactionLine.value ?? props.message);
+
+function pickLine() {
+    let index = Math.floor(Math.random() * REACTION_LINES.length);
+    if (index === lastLineIndex.value) {
+        index = (index + 1) % REACTION_LINES.length;
+    }
+    lastLineIndex.value = index;
+    return REACTION_LINES[index];
+}
+
+function react() {
+    reactionLine.value = pickLine();
+
+    // Restart the one-shot hop even mid-reaction: drop the class,
+    // force a reflow so the browser forgets the running animation,
+    // then re-apply it.
+    const el = scorRef.value;
+    if (el) {
+        el.classList.remove('reacting');
+        void el.offsetWidth;
+        el.classList.add('reacting');
+    }
+
+    window.clearTimeout(revertTimer);
+    revertTimer = window.setTimeout(() => {
+        reactionLine.value = null;
+        scorRef.value?.classList.remove('reacting');
+    }, 2800);
+}
+
+onBeforeUnmount(() => {
+    window.clearTimeout(revertTimer);
+});
 </script>
 
 <template>
-    <div class="mascot-wrap" aria-hidden="true">
-        <div v-if="message" class="mascot-bubble">{{ message }}</div>
-        <div class="scor">
+    <div class="mascot-wrap" aria-hidden="true" @click="react">
+        <div v-if="displayedMessage" :key="displayedMessage" class="mascot-bubble">{{ displayedMessage }}</div>
+        <div ref="scorRef" class="scor">
             <div class="scor-head">
                 <img class="scor-hat-img" :src="scorHatUrl" alt="" />
                 <div class="scor-face">

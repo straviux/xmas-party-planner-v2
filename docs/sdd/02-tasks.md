@@ -361,3 +361,11 @@ freeze at the owner's call: production was verified serving the
 current build with all animations, and the stillness was the
 phone's reduce-motion setting meeting the gate. Scor now animates
 on every phone; all other motion still honours the setting.
+
+Tap round (2026-11-04): double-tap interference is disabled app
+wide (touch-action: manipulation on every interactive element plus
+a document touchend guard that swallows a second tap within
+300 ms, form fields exempt). Tapping Scor plays a 0.6 s hop and
+swaps her bubble to a random line from an 8-line pool for 2.8 s
+before reverting to the page message. The hat also moved slightly
+left (left offset -0.25em to -1em).

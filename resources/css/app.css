@@ -82,6 +82,19 @@ body {
     touch-action: manipulation;
 }
 
+/* Same guarantee per element, not just on the body: some scanner and
+   in-app webviews only honour touch-action on the tapped element
+   itself, so every control opts out of double-tap zoom individually. */
+button,
+a,
+input,
+select,
+textarea,
+[role="button"],
+.mascot-wrap {
+    touch-action: manipulation;
+}
+
 /* No text shadows anywhere in the UI (hard rule). */
 * {
     text-shadow: none !important;
@@ -484,6 +497,8 @@ button {
     align-items: center;
     gap: 14px;
     padding: 10px 0 4px;
+    /* The whole wrap is a tap target: Scor reacts when tapped. */
+    cursor: pointer;
 }
 
 .mascot-bubble {
@@ -564,6 +579,33 @@ button {
     font-size: 5.5px;
     padding-top: calc(var(--ear-size) + 2em);
     padding-bottom: 3em;
+}
+
+/* Tap reaction: a one-shot happy hop with squash and stretch.
+   Mascot.vue toggles .reacting on tap (and re-triggers it with a
+   reflow on re-tap). Part of the mascot's motion family, so it is
+   deliberately NOT in the reduced-motion freeze list, same as the
+   rest of Scor (owner's call, 2026-11-04). */
+.scor.reacting {
+    animation: scor-react 0.6s ease-in-out 1;
+}
+
+@keyframes scor-react {
+    0% {
+        transform: translateY(0) scale(1, 1);
+    }
+    30% {
+        transform: translateY(2px) scale(1.06, 0.92);
+    }
+    55% {
+        transform: translateY(-10px) scale(0.96, 1.05);
+    }
+    80% {
+        transform: translateY(-2px) scale(1.02, 0.99);
+    }
+    100% {
+        transform: translateY(0) scale(1, 1);
+    }
 }
 
 .scor::after {
@@ -1173,7 +1215,7 @@ button {
     position: absolute;
     z-index: 11;
     top: -4.6em;
-    left: -0.25em;
+    left: -1em;
     width: 12.5em;
     height: auto;
     transform: rotate(-4deg);

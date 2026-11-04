@@ -54,6 +54,32 @@ document.addEventListener(
     { passive: false },
 );
 
+// Double-tap guard: a second touchend landing within 300ms of the
+// previous one is swallowed, so double-tap zoom stays dead even in
+// scanner and in-app webviews that ignore the viewport meta and the
+// touch-action CSS above. Taps inside form fields are exempt (and do
+// not start the clock), so fast typing and PIN entry are never
+// blocked; single taps, drags (the reveal strip), and scrolling are
+// unaffected.
+let lastTouchEndAt = 0;
+
+document.addEventListener(
+    'touchend',
+    (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (target && target.closest('input, textarea, select, [contenteditable]')) {
+            return;
+        }
+
+        const now = Date.now();
+        if (now - lastTouchEndAt <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEndAt = now;
+    },
+    { passive: false },
+);
+
 createInertiaApp({
     title: (title) => (title ? `${title} · Secret Santa HQ` : 'Secret Santa HQ'),
     resolve: (name) => {
