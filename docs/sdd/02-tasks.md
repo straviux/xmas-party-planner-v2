@@ -343,3 +343,21 @@ The tab header shows the codename or the ??? placeholder; All wishes
 is unchanged, and the per-person page remains but is no longer
 linked from the board. Suite: 113 tests / 2,585 assertions; the live
 E2E checks each guest receives exactly their recipient's wishes.
+
+Hat swap (2026-11-04): Scor's CSS-drawn hat was replaced by the
+owner's supplied hat illustration (transparent PNG converted to
+WebP, resources/assets/scor-hat.webp, bundled by Vite). Placement:
+12.5em wide at top -4.6em / left -0.25em of the head, rotated -4deg,
+so the fur band crosses the forehead and the pom hangs at his left;
+it rides the head-tilt loop as a child of the head. Placement was
+set by geometry, pending the owner's screenshot verdict.
+
+Two follow-ups (2026-11-04): (1) the hat artwork ships embedded as a
+WebP data URI inside the Mascot chunk (resources/assets/
+scorHatData.js), because the delivery pipeline moves text files
+only; the binary master is kept outside the repo tree. (2) The
+mascot and its bubble are exempt from the prefers-reduced-motion
+freeze at the owner's call: production was verified serving the
+current build with all animations, and the stillness was the
+phone's reduce-motion setting meeting the gate. Scor now animates
+on every phone; all other motion still honours the setting.

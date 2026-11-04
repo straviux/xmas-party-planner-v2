@@ -1167,47 +1167,19 @@ button {
     animation: scor-greet-body 6s ease-in-out infinite;
 }
 
-/* --- Christmas dressing: Santa hat and beard --- */
+/* --- Christmas dressing: Santa hat (image) and beard --- */
 
-.scor-hat {
+.scor-hat-img {
     position: absolute;
-    z-index: 10;
-    top: -5em;
-    left: 2.25em;
-    width: 6.5em;
-    height: 5em;
-    transform: rotate(-10deg);
-    transform-origin: bottom center;
-}
-
-.scor-hat-cone {
-    position: absolute;
-    inset: 0;
-    background: var(--scor-red);
-    clip-path: polygon(0 100%, 62% 0, 100% 100%);
-}
-
-.scor-hat-brim {
-    position: absolute;
-    bottom: -0.55em;
-    left: -0.75em;
-    height: 1.1em;
-    width: 8em;
-    border-radius: 1em;
-    background: var(--scor-white);
-    box-shadow: 0 0.1em 0.2em rgba(0, 0, 0, 0.15);
-}
-
-.scor-hat-pom {
-    position: absolute;
-    top: -0.7em;
-    left: 62%;
-    height: 1.5em;
-    width: 1.5em;
-    transform: translateX(-50%);
-    border-radius: 100%;
-    background: var(--scor-white);
-    box-shadow: 0 0.1em 0.2em rgba(0, 0, 0, 0.15);
+    z-index: 11;
+    top: -4.6em;
+    left: -0.25em;
+    width: 12.5em;
+    height: auto;
+    transform: rotate(-4deg);
+    transform-origin: 50% 80%;
+    pointer-events: none;
+    user-select: none;
 }
 
 .scor-beard {
@@ -2316,15 +2288,10 @@ button.poll-option:hover:not(:disabled) {
         scroll-behavior: auto !important;
     }
 
-    .mascot-bubble,
-    .scor-eye,
-    .scor-ear,
-    .scor-ear-right-wrap,
-    .scor-leg-foot,
-    .scor-head,
-    .scor-mouth,
-    .scor-mouth-inner,
-    .scor-body::before,
+    /* The mascot and its speech bubble are deliberately NOT listed
+       here: the owner wants Scor animated on every phone, including
+       ones reporting reduced motion (2026-11-04). Everything else
+       still honours the setting. */
     .pop-in,
     .slide-in,
     .toast {

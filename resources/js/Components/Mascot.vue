@@ -1,4 +1,6 @@
 <script setup>
+import scorHatUrl from '../../assets/scorHatData.js';
+
 defineProps({
     message: {
         type: String,
@@ -12,7 +14,7 @@ defineProps({
         <div v-if="message" class="mascot-bubble">{{ message }}</div>
         <div class="scor">
             <div class="scor-head">
-                <div class="scor-hat"><div class="scor-hat-cone"></div><div class="scor-hat-brim"></div><div class="scor-hat-pom"></div></div>
+                <img class="scor-hat-img" :src="scorHatUrl" alt="" />
                 <div class="scor-face">
                     <div class="scor-eye scor-eye-left"></div>
                     <div class="scor-eye scor-eye-right"></div>
