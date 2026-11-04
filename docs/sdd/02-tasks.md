@@ -130,6 +130,16 @@ codes present, zero emojis, zero non-none text shadows, zero forbidden keys
 in any serializer output. Full suite 71 tests / 2,191 assertions passing,
 build passing, core guest-flow E2E re-verified on the final code. Remaining
 verification is the owner's real-device acceptance pass per Hard Rule 8.
+
+Completion round (2026-11-04, owner-requested): the Landing "Scan QR code"
+action was a plain link, not a scanner. It now opens a real camera scanner
+(getUserMedia + jsQR): accepts /join/{code} URLs, ?code= URLs, and bare
+codes; camera denial/absence and non-invite codes get plain inline states
+with a type-the-code fallback. Enter gained a "Scan QR code instead" entry
+running the same invite_check in place, and the invite auto-check now maps
+error codes properly (it previously labelled every failure as a wrong
+code). The camera path can only be tested over HTTPS, so it is verified on
+the deployed Hostinger site during the owner's acceptance pass.
 - Desktop guest reflow pass against the checklist (top nav, 1120px
   container, dashboard grid), reduced-motion audit, empty-state copy pass,
   toast coverage, inline-error pass.

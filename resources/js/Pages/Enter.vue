@@ -1,9 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ArrowLeft, Check, CircleAlert, KeyRound, Search, UserRound } from 'lucide-vue-next';
+import { ArrowLeft, Check, CircleAlert, KeyRound, QrCode, Search, UserRound } from 'lucide-vue-next';
 import GuestLayout from '../Components/GuestLayout.vue';
 import Mascot from '../Components/Mascot.vue';
+import QrScanner from '../Components/QrScanner.vue';
 import { post } from '../lib/api';
 import { toastError } from '../lib/toast';
 
@@ -97,23 +98,36 @@ async function checkInvite(code) {
     step.value = 'search';
 }
 
-async function submitInvite() {
+// One message mapping for every way a code arrives (typed, scanned, or
+// from a /join link), so a bad code always lands on the invite form with
+// the same plain-language error instead of a silent dead state.
+function inviteErrorFor(err) {
+    if (err && err.code === 'invite_incorrect') {
+        return 'That invite code does not match this party. Check the code and try again.';
+    }
+    if (err && err.code === 'not_set_up') {
+        return 'No party set up yet. The host needs to set it up first.';
+    }
+    return (err && err.message) || 'That code could not be checked. Please try again.';
+}
+
+async function runInviteCheck(code) {
     inviteError.value = '';
     busy.value = true;
     try {
-        await checkInvite(inviteCode.value.trim());
+        await checkInvite(code);
+        return true;
     } catch (err) {
-        if (err.code === 'invite_incorrect') {
-            inviteError.value =
-                'That invite code does not match this party. Check the code and try again.';
-        } else if (err.code === 'not_set_up') {
-            inviteError.value = 'No party set up yet. The host needs to set it up first.';
-        } else {
-            inviteError.value = err.message || 'That code could not be checked. Please try again.';
-        }
+        inviteError.value = inviteErrorFor(err);
+        step.value = 'invite';
+        return false;
     } finally {
         busy.value = false;
     }
+}
+
+async function submitInvite() {
+    await runInviteCheck(inviteCode.value.trim());
 }
 
 onMounted(async () => {
@@ -121,19 +135,23 @@ onMounted(async () => {
     const code = props.code || params.get('code') || '';
     if (code) {
         inviteCode.value = code;
-        busy.value = true;
-        try {
-            await checkInvite(code.trim());
-        } catch {
-            // Fall back to the invite form with the code filled in.
-            inviteError.value =
-                'That invite code does not match this party. Check the code and try again.';
-            step.value = 'invite';
-        } finally {
-            busy.value = false;
-        }
+        // On failure runInviteCheck leaves the guest on the invite form
+        // with the code filled in and the error showing.
+        await runInviteCheck(code.trim());
     }
 });
+
+/* ---------- QR scanner ---------- */
+
+const scannerOpen = ref(false);
+
+// The scanner hands over the extracted code; run it through the exact
+// same invite check as a typed code, right here, no navigation.
+async function onScanned(code) {
+    scannerOpen.value = false;
+    inviteCode.value = code;
+    await runInviteCheck(code);
+}
 
 function pick(guest) {
     selected.value = guest;
@@ -240,6 +258,13 @@ async function submitPin() {
                     <span>{{ busy ? 'Checking...' : 'Continue' }}</span>
                 </button>
             </form>
+
+            <div style="text-align: center; margin-top: 6px">
+                <button type="button" class="text-btn" @click="scannerOpen = true">
+                    <QrCode :size="13" style="vertical-align: -2px" />
+                    Scan QR code instead
+                </button>
+            </div>
         </div>
 
         <!-- Step: who are you? -->
@@ -399,6 +424,13 @@ async function submitPin() {
                 </button>
             </div>
         </div>
+
+        <QrScanner
+            v-if="scannerOpen"
+            @scanned="onScanned"
+            @close="scannerOpen = false"
+            @type-instead="scannerOpen = false"
+        />
     </GuestLayout>
 </template>
 
