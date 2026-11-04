@@ -394,3 +394,15 @@ test('a revealed guest goes to guest home and never back to reveal', function ()
     $this->get('/guest/wishlists')->assertOk();
     $this->get('/guest/vote')->assertOk();
 });
+
+test('the join link lands on entry with the code applied', function () {
+    slice2DefaultParty();
+
+    // A matching code (any letter case) redirects to entry carrying the
+    // code in the URL, so the entry page auto-checks it even when the
+    // session cookie does not survive the trip through a scanner app.
+    $this->get('/join/testcode')->assertRedirect('/enter?code=TESTCODE');
+
+    // A wrong code still lands on entry, without a code to auto-check.
+    $this->get('/join/WRONG99')->assertRedirect('/enter');
+});

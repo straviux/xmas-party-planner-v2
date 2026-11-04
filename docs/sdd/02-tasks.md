@@ -214,3 +214,14 @@ On tiles and in the quick view (own wishes only), the separate Delete
 button is replaced by a single gear icon-only button opening a small
 menu with Edit wish and Delete wish; Delete still goes through the
 confirmation popup. Suite: 87 tests / 2,295 assertions.
+
+Production fix (2026-11-04, from Arc's deployed pass): (1) the QR print
+sheet rendered the 420px QR SVG inside a fixed 340px box with no size
+constraint, so the code overflowed and printed over the link text;
+the sheet now scales the SVG to its box and uses margin 4 for a proper
+quiet zone. (2) /join/{code} stored the code only in the session before
+redirecting to /enter, and the entry page never read it back, so a
+dropped session cookie (scanner webviews) stranded guests at the start;
+join now redirects to /enter?code={code} (which the entry page
+auto-checks) and entry also receives the session code as a prop.
+Suite: 88 tests / 2,299 assertions.

@@ -44,6 +44,7 @@ class PageController extends Controller
 
         return Inertia::render('Enter', [
             'party' => Serializers::partyPublic($this->currentParty()),
+            'code' => $request->session()->get('invite_code'),
         ]);
     }
 
@@ -174,6 +175,12 @@ class PageController extends Controller
 
         if ($party !== null && strcasecmp($party->invite_code, $code) === 0) {
             $request->session()->put('invite_code', $party->invite_code);
+
+            // Carry the code in the URL too: the entry page auto-checks a
+            // ?code= arrival, so the guest lands inside the flow even if
+            // the session cookie does not survive the redirect (in-app
+            // browsers and QR scanner webviews are known to drop it).
+            return redirect()->route('enter', ['code' => $party->invite_code]);
         }
 
         return redirect()->route('enter');

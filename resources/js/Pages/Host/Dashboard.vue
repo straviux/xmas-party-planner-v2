@@ -325,7 +325,7 @@ async function printQr() {
     try {
         const svg = await QRCode.toString(link, {
             type: 'svg',
-            margin: 2,
+            margin: 4,
             width: 420,
             color: { dark: '#1c1b33', light: '#ffffff' },
         });
@@ -338,7 +338,7 @@ async function printQr() {
         win.document.write(`<!DOCTYPE html><html><head><title>Party invite QR</title>
             <style>body{font-family:Arial,sans-serif;text-align:center;padding:36px;color:#1c1b33}
             h1{font-size:26px;margin:0 0 6px}p{color:#444;line-height:1.5}
-            .qr{width:340px;height:340px;margin:22px auto}.code{font-family:monospace;font-size:18px;letter-spacing:2px}</style>
+            .qr{width:340px;margin:22px auto}.qr svg{width:100%;height:auto;display:block}.code{font-family:monospace;font-size:18px;letter-spacing:2px}</style>
             </head><body><h1>${name}</h1>
             <p>Scan this code with your phone camera to join the party.</p>
             <div class="qr">${svg}</div>
