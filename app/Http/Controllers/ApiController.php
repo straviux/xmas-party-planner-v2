@@ -4,7 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Guest;
 use App\Models\Party;
+use App\Models\Poll;
+use App\Models\WishlistItem;
+use App\Services\AdminException;
+use App\Services\AdminService;
 use App\Services\DrawService;
+use App\Services\GuestEntryException;
+use App\Services\GuestEntryService;
+use App\Services\PollException;
+use App\Services\PollService;
+use App\Services\WishlistException;
+use App\Services\WishlistService;
 use App\Support\Serializers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,10 +45,41 @@ class ApiController extends Controller
         'host_invite_regen' => 'hostInviteRegen',
         'invite_check' => 'inviteCheck',
         'list' => 'publicList',
+        'enter' => 'guestEnter',
+        'reveal' => 'guestReveal',
+        'guest_verify_pin' => 'guestVerifyPin',
+        'guest_set_pin' => 'guestSetPin',
+        'guest_logout' => 'guestLogout',
+        'wishlist_add' => 'wishlistAdd',
+        'wishlist_delete' => 'wishlistDelete',
+        'wishlist_reserve' => 'wishlistReserve',
+        'wishlist_list' => 'wishlistList',
+        'host_poll_create' => 'hostPollCreate',
+        'host_poll_update' => 'hostPollUpdate',
+        'host_poll_delete' => 'hostPollDelete',
+        'host_poll_toggle' => 'hostPollToggle',
+        'poll_get' => 'pollGet',
+        'poll_vote' => 'pollVote',
+        'reset_one' => 'resetOne',
+        'host_unclaim_all' => 'hostUnclaimAll',
+        'host_redraw' => 'hostRedraw',
+        'host_reset_pin' => 'hostResetPin',
+        'host_clear_wishlists' => 'hostClearWishlists',
+        'reset_all' => 'resetAll',
+        'host_change_password' => 'hostChangePassword',
     ];
 
     /** Actions reachable while signed out. Everything else requires the host session. */
-    private array $publicActions = ['host_login', 'invite_check', 'list'];
+    private array $publicActions = ['host_login', 'invite_check', 'list', 'wishlist_list', 'poll_get'];
+
+    /**
+     * Guest actions are gated by the guest session (guest_id + pin_verified),
+     * never by host auth: guests have no accounts (Hard Rule 1).
+     */
+    private array $guestActions = [
+        'enter', 'reveal', 'guest_verify_pin', 'guest_set_pin', 'guest_logout',
+        'wishlist_add', 'wishlist_delete', 'wishlist_reserve', 'poll_vote',
+    ];
 
     public function __invoke(Request $request, string $action, DrawService $draw): JsonResponse
     {
@@ -46,7 +87,9 @@ class ApiController extends Controller
             return $this->error('unknown_action', 404);
         }
 
-        if (! in_array($action, $this->publicActions, true) && ! Auth::check()) {
+        if (! in_array($action, $this->publicActions, true)
+            && ! in_array($action, $this->guestActions, true)
+            && ! Auth::check()) {
             return $this->error('forbidden', 403);
         }
 
@@ -323,6 +366,524 @@ class ApiController extends Controller
             'guests' => $party->guests()->orderBy('id')->get()
                 ->map(fn (Guest $guest) => Serializers::publicGuest($guest))->all(),
         ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Guest entry, PIN, and reveal (guest session, never host auth)
+    // ------------------------------------------------------------------
+
+    private function guestEnter(Request $request): JsonResponse
+    {
+        $entry = app(GuestEntryService::class);
+
+        $party = $this->currentParty();
+        if ($party === null) {
+            return $this->error('not_set_up', 422, [
+                'message' => 'No party has been set up yet.',
+            ]);
+        }
+
+        $guest = $this->findGuest($party, $request->input('guest_id'));
+        if ($guest === null) {
+            return $this->error('guest_not_found', 404);
+        }
+
+        try {
+            $result = $entry->enter($request, $guest);
+        } catch (GuestEntryException $e) {
+            return $this->guestError($e);
+        }
+
+        return $this->ok($result);
+    }
+
+    private function guestReveal(Request $request): JsonResponse
+    {
+        try {
+            $result = app(GuestEntryService::class)->reveal($request);
+        } catch (GuestEntryException $e) {
+            return $this->guestError($e);
+        }
+
+        return $this->ok($result);
+    }
+
+    private function guestVerifyPin(Request $request): JsonResponse
+    {
+        $entry = app(GuestEntryService::class);
+
+        $guest = $entry->sessionGuest($request);
+        if ($guest === null) {
+            return $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+        }
+
+        $pin = $request->input('pin');
+        $pin = is_string($pin) ? $pin : (is_int($pin) ? (string) $pin : null);
+
+        if (! $entry->isValidPinFormat($pin)) {
+            return $this->error('pin_must_be_4_digits', 422, [
+                'message' => 'Your PIN must be exactly 4 digits.',
+            ]);
+        }
+
+        if (! $entry->verifyPin($guest, $pin)) {
+            return $this->error('pin_incorrect', 422, [
+                'message' => 'That PIN does not match. Try again.',
+            ]);
+        }
+
+        return $this->ok();
+    }
+
+    private function guestSetPin(Request $request): JsonResponse
+    {
+        $entry = app(GuestEntryService::class);
+
+        $guest = $entry->sessionGuest($request);
+        if ($guest === null) {
+            return $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+        }
+
+        try {
+            $entry->setPin($request, $guest);
+        } catch (GuestEntryException $e) {
+            return $this->guestError($e);
+        }
+
+        return $this->ok();
+    }
+
+    private function guestLogout(Request $request): JsonResponse
+    {
+        // Clears the guest identity only: the name stays locked and the
+        // revealed flag stays set (spec). The invite code is kept so the
+        // guest can get back in from this device.
+        $request->session()->forget(['guest_id', 'pin_verified']);
+
+        return $this->ok();
+    }
+
+    private function guestError(GuestEntryException $e): JsonResponse
+    {
+        return $this->error($e->errorCode, $e->status, [
+            'message' => $e->getMessage(),
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Wishlists (guest session; items always belong to the session guest)
+    // ------------------------------------------------------------------
+
+    private function wishlistAdd(Request $request): JsonResponse
+    {
+        $guest = $this->sessionGuestOrError($request);
+        if ($guest instanceof JsonResponse) {
+            return $guest;
+        }
+
+        try {
+            // Only these fields are read. A guest_id in the payload is
+            // ignored on purpose: items always land on the session
+            // guest's own list (A7).
+            $item = app(WishlistService::class)->addItem($guest, [
+                'text' => $request->input('text'),
+                'link' => $request->input('link'),
+                'notes' => $request->input('notes'),
+                'image' => $request->input('image'),
+            ]);
+        } catch (WishlistException $e) {
+            return $this->wishlistError($e);
+        }
+
+        return $this->ok(['item' => Serializers::wishlistItem($item, (int) $guest->id)]);
+    }
+
+    private function wishlistDelete(Request $request): JsonResponse
+    {
+        $guest = $this->sessionGuestOrError($request);
+        if ($guest instanceof JsonResponse) {
+            return $guest;
+        }
+
+        $item = $this->findPartyItem($request->input('id'));
+        if ($item === null) {
+            return $this->error('wish_not_found', 404);
+        }
+
+        try {
+            app(WishlistService::class)->deleteItem($guest, $item);
+        } catch (WishlistException $e) {
+            return $this->wishlistError($e);
+        }
+
+        return $this->ok();
+    }
+
+    private function wishlistReserve(Request $request): JsonResponse
+    {
+        $guest = $this->sessionGuestOrError($request);
+        if ($guest instanceof JsonResponse) {
+            return $guest;
+        }
+
+        $item = $this->findPartyItem($request->input('id'));
+        if ($item === null) {
+            return $this->error('wish_not_found', 404);
+        }
+
+        try {
+            $state = app(WishlistService::class)->reserveToggle($guest, $item);
+        } catch (WishlistException $e) {
+            return $this->wishlistError($e);
+        }
+
+        return $this->ok($state);
+    }
+
+    /**
+     * The everyone's-wishlists board: a public read like `list`. The
+     * reserve state is shaped for the viewing guest when a guest session
+     * exists (reserved / reserved_by_me), and never exposes who reserved
+     * anything.
+     */
+    private function wishlistList(Request $request): JsonResponse
+    {
+        $party = $this->currentParty();
+
+        if ($party === null) {
+            return $this->ok(['party' => null, 'guests' => []]);
+        }
+
+        $viewer = app(GuestEntryService::class)->sessionGuest($request);
+        $viewerId = $viewer === null ? null : (int) $viewer->id;
+
+        $guests = $party->guests()
+            ->with(['wishlistItems' => fn ($query) => $query->latest('id')])
+            ->orderBy('id')
+            ->get();
+
+        return $this->ok([
+            'party' => Serializers::partyPublic($party),
+            'guests' => $guests->map(fn (Guest $guest) => [
+                ...Serializers::publicGuest($guest),
+                'wish_count' => $guest->wishlistItems->count(),
+                'items' => $guest->wishlistItems
+                    ->map(fn (WishlistItem $item) => Serializers::wishlistItem($item, $viewerId))
+                    ->values()
+                    ->all(),
+            ])->all(),
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Polls (host manages, guests vote; results are counts only)
+    // ------------------------------------------------------------------
+
+    private function hostPollCreate(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        try {
+            $poll = app(PollService::class)->create(
+                $party,
+                $request->input('question'),
+                $this->inputArray($request->input('options')),
+            );
+        } catch (PollException $e) {
+            return $this->pollError($e);
+        }
+
+        return $this->ok(['poll' => app(PollService::class)->shape($poll, null)]);
+    }
+
+    private function hostPollUpdate(Request $request): JsonResponse
+    {
+        $poll = $this->findPartyPoll($request->input('id'));
+        if ($poll === null) {
+            return $this->error('poll_not_found', 404);
+        }
+
+        try {
+            $poll = app(PollService::class)->update(
+                $poll,
+                $request->input('question'),
+                $this->inputArray($request->input('options')),
+            );
+        } catch (PollException $e) {
+            return $this->pollError($e);
+        }
+
+        return $this->ok(['poll' => app(PollService::class)->shape($poll, null)]);
+    }
+
+    private function hostPollDelete(Request $request): JsonResponse
+    {
+        $poll = $this->findPartyPoll($request->input('id'));
+        if ($poll === null) {
+            return $this->error('poll_not_found', 404);
+        }
+
+        app(PollService::class)->delete($poll);
+
+        return $this->ok();
+    }
+
+    private function hostPollToggle(Request $request): JsonResponse
+    {
+        $poll = $this->findPartyPoll($request->input('id'));
+        if ($poll === null) {
+            return $this->error('poll_not_found', 404);
+        }
+
+        $poll = app(PollService::class)->toggle($poll);
+
+        return $this->ok(['poll' => app(PollService::class)->shape($poll, null)]);
+    }
+
+    /**
+     * The guest poll view: a public read like `poll_get`'s siblings. A
+     * viewing guest session personalizes my_vote only; nothing in the
+     * payload identifies any voter.
+     */
+    private function pollGet(Request $request): JsonResponse
+    {
+        $party = $this->currentParty();
+
+        if ($party === null) {
+            return $this->ok(['polls' => []]);
+        }
+
+        $viewer = app(GuestEntryService::class)->sessionGuest($request);
+        $service = app(PollService::class);
+
+        $polls = $party->polls()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return $this->ok([
+            'polls' => $polls->map(fn (Poll $poll) => $service->shape($poll, $viewer))->all(),
+        ]);
+    }
+
+    private function pollVote(Request $request): JsonResponse
+    {
+        $guest = $this->sessionGuestOrError($request);
+        if ($guest instanceof JsonResponse) {
+            return $guest;
+        }
+
+        $poll = $this->findPartyPoll($request->input('poll_id'));
+        if ($poll === null) {
+            return $this->error('poll_not_found', 404);
+        }
+
+        try {
+            $shape = app(PollService::class)->vote($guest, $poll, $request->input('option_id'));
+        } catch (PollException $e) {
+            return $this->pollError($e);
+        }
+
+        return $this->ok(['poll' => $shape]);
+    }
+
+    // ------------------------------------------------------------------
+    // Host admin controls (each scoped to exactly what its name says)
+    // ------------------------------------------------------------------
+
+    private function resetOne(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        $guest = $this->findGuest($party, $this->guestIdInput($request));
+        if ($guest === null) {
+            return $this->error('guest_not_found', 404);
+        }
+
+        // Claimed + revealed only: the PIN, the recipient mapping, the
+        // wishlist, and the guest's votes are untouched.
+        $guest = app(AdminService::class)->resetOne($guest);
+
+        return $this->ok(['guest' => Serializers::hostGuest($guest)]);
+    }
+
+    private function hostUnclaimAll(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        // Claims only: no redraw, no PIN changes, nothing deleted.
+        $unclaimed = app(AdminService::class)->unclaimAll($party);
+
+        return $this->ok(['unclaimed' => $unclaimed]);
+    }
+
+    private function hostRedraw(Request $request, DrawService $draw): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        try {
+            app(AdminService::class)->redraw($party, $draw);
+        } catch (\DomainException $e) {
+            // DrawService refuses while any name is claimed; map it exactly
+            // like the guest-management lock (409 guests_locked, plain
+            // locked message).
+            if ($e->getMessage() === 'guests_locked') {
+                return $this->error('guests_locked', 409, [
+                    'message' => DrawService::LOCKED_MESSAGE,
+                ]);
+            }
+
+            throw $e;
+        }
+
+        // No recipient data in the response: the host stays blind.
+        return $this->ok();
+    }
+
+    private function hostResetPin(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        $guest = $this->findGuest($party, $this->guestIdInput($request));
+        if ($guest === null) {
+            return $this->error('guest_not_found', 404);
+        }
+
+        // The PIN hash only: claimed status, recipient, wishlist, and
+        // votes are untouched, even when the guest is claimed.
+        $guest = app(AdminService::class)->resetPin($guest);
+
+        return $this->ok(['guest' => Serializers::hostGuest($guest)]);
+    }
+
+    private function hostClearWishlists(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        $deleted = app(AdminService::class)->clearWishlists($party);
+
+        return $this->ok(['deleted' => $deleted]);
+    }
+
+    private function resetAll(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        // Deletes the party row; the cascades clear guests, wishlist
+        // items, polls, options, and votes with it.
+        app(AdminService::class)->resetAll($party);
+
+        return $this->ok(['exists' => false]);
+    }
+
+    private function hostChangePassword(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $string = fn (mixed $value): ?string => is_string($value)
+            ? $value
+            : (is_int($value) ? (string) $value : null);
+
+        try {
+            app(AdminService::class)->changePassword(
+                $user,
+                $string($request->input('current_password')),
+                $string($request->input('new_password')),
+                $string($request->input('new_password_confirmation')),
+            );
+        } catch (AdminException $e) {
+            return $this->error($e->errorCode, $e->status, [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        // The host stays signed in with the new password.
+        return $this->ok();
+    }
+
+    /** Admin actions name the guest as guest_id (id is accepted too). */
+    private function guestIdInput(Request $request): mixed
+    {
+        return $request->input('guest_id', $request->input('id'));
+    }
+
+    private function pollError(PollException $e): JsonResponse
+    {
+        return $this->error($e->errorCode, $e->status, [
+            'message' => $e->getMessage(),
+        ]);
+    }
+
+    /** A poll counts only when it belongs to the current party. */
+    private function findPartyPoll(mixed $id): ?Poll
+    {
+        $party = $this->currentParty();
+        if ($party === null || ! is_numeric($id)) {
+            return null;
+        }
+
+        return $party->polls()->whereKey((int) $id)->first();
+    }
+
+    /** @return array<int, mixed> */
+    private function inputArray(mixed $value): array
+    {
+        return is_array($value) ? array_values($value) : [];
+    }
+
+    private function wishlistError(WishlistException $e): JsonResponse
+    {
+        return $this->error($e->errorCode, $e->status, [
+            'message' => $e->getMessage(),
+        ]);
+    }
+
+    private function sessionGuestOrError(Request $request): Guest|JsonResponse
+    {
+        return app(GuestEntryService::class)->sessionGuest($request)
+            ?? $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+    }
+
+    /** An item counts only when its owner belongs to the current party. */
+    private function findPartyItem(mixed $id): ?WishlistItem
+    {
+        $party = $this->currentParty();
+        if ($party === null || ! is_numeric($id)) {
+            return null;
+        }
+
+        return WishlistItem::query()
+            ->whereKey((int) $id)
+            ->whereHas('guest', fn ($query) => $query->where('party_id', $party->id))
+            ->first();
     }
 
     // ------------------------------------------------------------------

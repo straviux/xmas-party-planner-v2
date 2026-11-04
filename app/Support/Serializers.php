@@ -74,8 +74,12 @@ class Serializers
 
     /**
      * Poll shape (spec): id, question, open, total,
-     * options [{id, text, votes}], my_vote. Counts and percentages only in
-     * the UI; never voter names or voter IDs.
+     * options [{id, text, votes}], my_vote, winners. Counts and percentages
+     * only in the UI; never voter names or voter IDs.
+     *
+     * winners lists the option ids tied at the highest vote count, but
+     * only once the poll is closed and at least one vote exists (A9);
+     * it is empty while the poll is open.
      *
      * @param  int|null  $myVoteOptionId  poll_option_id the viewing guest voted for, if any.
      */
@@ -91,13 +95,25 @@ class Serializers
             'votes' => (int) ($option->votes_count ?? $option->votes()->count()),
         ])->values()->all();
 
+        $total = array_sum(array_column($shapedOptions, 'votes'));
+
+        $winners = [];
+        if (! (bool) $poll->open && $total > 0) {
+            $max = max(array_column($shapedOptions, 'votes'));
+            $winners = array_values(array_map(
+                fn ($option) => $option['id'],
+                array_filter($shapedOptions, fn ($option) => $option['votes'] === $max),
+            ));
+        }
+
         return [
             'id' => $poll->id,
             'question' => $poll->question,
             'open' => (bool) $poll->open,
-            'total' => array_sum(array_column($shapedOptions, 'votes')),
+            'total' => $total,
             'options' => $shapedOptions,
             'my_vote' => $myVoteOptionId,
+            'winners' => $winners,
         ];
     }
 

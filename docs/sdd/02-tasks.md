@@ -30,6 +30,13 @@ prepared (97 files, ~718 KB).
   open `/` signed out and confirm no party data leaks.
 
 ## Slice 2 — Entry / PIN / reveal
+Status: DONE 2026-11-04 (36 tests, 1,535 assertions, all passing; frontend
+build passes; live end-to-end run against a real server verified: host setup,
+guest enter with PIN creation, /guest redirecting to /reveal before the tear,
+reveal returning a non-self recipient with budget exactly once, second reveal
+409 already_claimed with no recipient data, /reveal redirecting to /guest
+afterwards, reveal after logout returning not_claimed). One new error code:
+pin_mismatch (create-PIN confirmation mismatch).
 - Guest search (A13 fuzzy matching), results tap-only (no free-typed names),
   "Is this you?" confirm.
 - `enter`: one transaction — lock name, create PIN (two 4-digit fields, must
@@ -49,6 +56,13 @@ prepared (97 files, ~718 KB).
 - Test: full checklist "Guest flow" items 1–7 on a real phone.
 
 ## Slice 3 — Wishlists (shopping-app layout)
+Status: DONE 2026-11-04 (49 tests, 1,664 assertions; build passes; live E2E
+verified: text/link/image kinds, PNG upload stored as a WebP data URL, bare
+links normalised to https, own-item reserve refused, anonymous reserve with
+reserved/reserved_by_me only, conflict for a second reserver, toggle
+unreserve, non-owner delete forbidden, owner delete works). New error codes:
+wish_empty, image_too_large, image_invalid, cannot_reserve_own,
+already_reserved, wish_not_found.
 - `wishlist_add` (text/link/notes/image; kind derived; 10 MB client limit,
   14M-char server cap; WebP conversion per A12; broken image hides itself),
   `wishlist_delete`, `wishlist_list` board.
@@ -67,6 +81,11 @@ prepared (97 files, ~718 KB).
 - Test: checklist wishlist + reserve items, in Chrome and LibreWolf.
 
 ## Slice 4 — Polls
+Status: DONE 2026-11-04 (61 tests, 1,824 assertions; build passes; live E2E
+verified: create validation, vote, change of vote keeping the total at 1,
+per-guest my_vote, close refusing votes with poll_closed, winner reported on
+the closed poll, reopen, delete). New error codes: poll_question_required,
+poll_needs_options, poll_not_found, option_not_found, poll_closed.
 - Host actions A1: `host_poll_create`, `host_poll_update`,
   `host_poll_delete`, `host_poll_toggle`.
 - `poll_get` (counts + `my_vote`), `poll_vote` (upsert on UNIQUE key,
@@ -78,6 +97,13 @@ prepared (97 files, ~718 KB).
   confirm no voter names anywhere in responses.
 
 ## Slice 5 — Host admin (full)
+Status: DONE 2026-11-04 (71 tests, 2,191 assertions; build passes; live E2E
+verified: redraw blocked while claimed, unclaim all leaving the draw mapping
+byte-identical at the DB level, redraw after unclaim producing a derangement,
+reset one, reset PIN with re-entry creating a new PIN, clear wishlists count,
+change password with old-password login refused, reset everything leaving
+zero rows in all six tables). New error codes: password_incorrect,
+password_too_short, password_mismatch, password_same.
 - Sidebar layout (260px, teal, non-collapsible), header per page.
 - Dashboard: 4 stat cards, locked progress, Party panel (Copy/Regen invite,
   QR Print per A5), Claimed table with per-guest Reset, Quick actions,
@@ -94,6 +120,26 @@ prepared (97 files, ~718 KB).
   changed password.
 
 ## Slice 6 — Final polish + README
+Status: DONE 2026-11-04. Build complete: all six slices shipped. Polish
+audit fixed the desktop top-nav centre button clipping, gave Guest Home a
+real 3-column desktop grid, closed two reduced-motion gaps and two touch
+targets under the minimums, and removed em dashes from host empty states.
+Favicon added. Final README rewritten (run, deploy, host and guest guides,
+phone test checklist). Automated sweep: all 32 API actions and 29 error
+codes present, zero emojis, zero non-none text shadows, zero forbidden keys
+in any serializer output. Full suite 71 tests / 2,191 assertions passing,
+build passing, core guest-flow E2E re-verified on the final code. Remaining
+verification is the owner's real-device acceptance pass per Hard Rule 8.
+
+Completion round (2026-11-04, owner-requested): the Landing "Scan QR code"
+action was a plain link, not a scanner. It now opens a real camera scanner
+(getUserMedia + jsQR): accepts /join/{code} URLs, ?code= URLs, and bare
+codes; camera denial/absence and non-invite codes get plain inline states
+with a type-the-code fallback. Enter gained a "Scan QR code instead" entry
+running the same invite_check in place, and the invite auto-check now maps
+error codes properly (it previously labelled every failure as a wrong
+code). The camera path can only be tested over HTTPS, so it is verified on
+the deployed Hostinger site during the owner's acceptance pass.
 - Desktop guest reflow pass against the checklist (top nav, 1120px
   container, dashboard grid), reduced-motion audit, empty-state copy pass,
   toast coverage, inline-error pass.

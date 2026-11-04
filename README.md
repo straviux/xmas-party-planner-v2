@@ -1,27 +1,24 @@
-# Secret Santa HQ — Christmas Party Planner
+# Secret Santa HQ: Christmas Party Planner
 
 A Christmas party app with three pillars: a Secret Santa gift exchange with a
 blind, once-only reveal, shared wishlists with anonymous reservations, and
 host-run voting polls. Guests never create accounts: the party invite code,
 their name, and a self-created 4-digit PIN are all they need.
 
-Built spec-first. The spec and the SDD pack live in `docs/sdd/` and are the
-source of truth for behaviour and design.
-
-**Build status:** Slice 1 of 6 (setup + draw) is complete. Slices: (1) setup +
-draw, (2) entry/PIN/reveal, (3) wishlist, (4) polls, (5) host admin,
-(6) polish + final README.
+Built spec-first. The spec and the design/build notes live in `docs/sdd/` and
+are the source of truth for behaviour and design.
 
 ## Stack
 
 - Laravel 13, PHP 8.3+, Inertia 3 + Vue 3, Vite 8
-- MariaDB / MySQL in production (SQLite only for tests)
+- MariaDB / MySQL in production (SQLite only for the test suite)
 - Plain CSS with the spec's design tokens (no Tailwind), Lucide icons
+- Guest screenshots are stored as WebP (converted on upload, never AVIF)
 
 ## Run it locally
 
-Requirements: PHP 8.3+ with GD (WebP support), Composer, Node 20+, and a
-MySQL/MariaDB database (or SQLite for a quick look).
+Requirements: PHP 8.3+ with GD (WebP support required), Composer, Node 20+,
+and a MySQL/MariaDB database (or SQLite for a quick look).
 
 ```bash
 composer install
@@ -36,49 +33,127 @@ php artisan serve
 
 The seeder creates the first host user from `ADMIN_USERNAME` /
 `ADMIN_PASSWORD` in `.env` (defaults `host` / `changeme`). Re-running the
-seeder never resets a password you have changed. **Change the seeded password
-immediately after your first sign-in** (host dashboard, Admin controls; the
-change-password control itself arrives in Slice 5, until then set a strong
-`ADMIN_PASSWORD` before seeding).
+seeder never resets a password you have changed. Change the seeded password
+right after your first sign-in, from the host dashboard's Admin controls.
 
 ## How it works, in plain language
 
 For the host:
 
-1. Sign in at `/host` with the seeded username and password.
+1. Sign in at `/host` with your username and password.
 2. Open **Party settings**, name the party, set the date and gift budget, and
-   type the guest list (one name per line). Saving runs the Secret Santa draw
-   automatically: everyone gets someone, nobody gets themselves.
+   type the guest list (one name per line; nicknames, aliases, and an
+   optional preset PIN can be added per guest later on the Guests page).
+   Saving runs the Secret Santa draw automatically: everyone gets someone,
+   nobody gets themselves.
 3. From the dashboard, copy the invite link (or print the QR code) and share
    it with your guests.
 4. Adding, editing, or removing guests re-runs the draw automatically, but
-   only until the first guest locks their name. After that, guest changes are
-   blocked until claims are reset from the dashboard.
+   only until the first guest locks their name. After that, guest changes
+   are blocked until claims are reset.
+5. Create polls on the Polls page (for example, voting on a party theme).
+   Guests can change their vote until you close the poll.
+6. The dashboard's Admin controls and Danger zone handle the fixes: reset
+   one guest, reset a forgotten PIN, unclaim all names (this does not
+   redraw), redraw recipients, clear wishlists, or delete the whole party.
+   Each button explains exactly what it does and does not touch. You can
+   never see who got whom, and neither can anyone else.
 
-For guests (full flow lands in Slice 2):
+For guests:
 
-1. Open the invite link or tap "I'm a guest" on the home page.
-2. Find your name, confirm "that's me", and create a 4-digit PIN.
-3. Tear the strip on the reveal page to see who you are buying for. It is
-   shown exactly once. Not even the host can see who got whom.
+1. Open the invite link, or tap "I'm a guest" on the home page and type the
+   invite code.
+2. Search for your name (nicknames and aliases work, and a small typo is
+   fine), tap your name, and confirm it is you.
+3. Create a 4-digit PIN you will remember. This locks your name to you.
+4. Tear the strip on the reveal page to see who you are buying for, plus the
+   gift budget. It is shown exactly once, so write it down.
+5. Add your own wishlist under Gifts (text, a shop link, notes, and a photo
+   if you like). Browse everyone's wishlists from the Wishlists tab and
+   reserve a wish so nobody else buys the same gift; nobody can see it was
+   you who reserved it.
+6. Vote in the host's polls under Vote. You can change your vote until the
+   host closes a poll.
+
+Signing out never unlocks a name. If you forget your PIN, ask the host to
+reset it from the Guests page; you will create a new one on your next visit,
+and your claim, wishlist, and votes stay exactly as they were.
 
 ## Deployment
 
-Document only, the owner deploys:
+The owner deploys; this app ships with instructions only.
 
 - Point the web server's document root at the app's `public/` folder.
-- `.env`: `APP_ENV=production`, `APP_DEBUG=false`, a real `APP_KEY`,
-  `APP_URL` set to the deployed origin, and your MariaDB credentials.
-- Run `composer install --no-dev`, `npm run build`,
-  `php artisan migrate --seed`.
-- Make sure `storage/` and `bootstrap/cache/` are writable.
+- `.env`: `APP_ENV=production`, `APP_DEBUG=false`, a real `APP_KEY`
+  (`php artisan key:generate`), `APP_URL` set to the deployed origin, your
+  MariaDB credentials, and `ADMIN_USERNAME` / `ADMIN_PASSWORD` set to the
+  first host login you want.
+- Run `composer install --no-dev --optimize-autoloader`, `npm ci`,
+  `npm run build`, then `php artisan migrate --seed`.
+- Make sure `storage/` and `bootstrap/cache/` are writable by the web
+  server user.
+- PHP needs the GD extension with WebP support, or guests cannot upload
+  wishlist screenshots.
+- Sessions use the default file driver; on shared hosting make sure the
+  session path in `storage/framework/sessions` persists.
 
 ## Checks
 
 ```bash
-php artisan test   # code-level checks (draw, API contract, secrecy scan)
+php artisan test   # draw, entry/reveal secrecy, wishlist, polls, admin scope
 npm run build      # frontend build
 ```
 
-Device acceptance is done by the owner using the checklist in
-`docs/sdd/SPEC-source.md`.
+The suite includes secrecy scans: no API response may contain recipient
+mappings, PIN hashes, or reserver identities, outside the single reveal
+response.
+
+## What to test on your phone (and once on desktop)
+
+Guest flow:
+
+- [ ] Open the invite link: the home page loads with one obvious main button.
+- [ ] Search by nickname and by alias; misspell a longer name by one letter.
+      Tapping a result asks "Is this you?" before anything locks.
+- [ ] Create a PIN (two fields, must match): your name locks, no recipient
+      is shown, and you land on the reveal page.
+- [ ] Refresh before tearing: you are back on the reveal page, name hidden.
+- [ ] Tear: your person pops in once, with the budget and a button to their
+      wishlist. Write it down.
+- [ ] Sign out, enter the same name with a wrong PIN: plain error, nothing
+      revealed. With the right PIN you go to your home page, not a reveal.
+- [ ] Add wishlist items: text only, a link, and a photo. The photo shows as
+      a square tile in a shop-style grid, also in LibreWolf.
+- [ ] In the grid, try search, the filter chips, and sorting: instant.
+      Tap a photo for the big view, close it, and confirm you kept your
+      scroll position.
+- [ ] As a second guest, reserve one of the first guest's wishes. As the
+      first guest it must only say Reserved, never who reserved it. Only
+      the reserver can undo it, and nobody can reserve their own wishes.
+- [ ] Vote in a poll, change your vote, and after the host closes it,
+      confirm voting is refused and the winner is shown.
+
+Host flow (desktop):
+
+- [ ] While signed out, every host page shows only the sign-in form.
+- [ ] Sign in, change the seeded password from Admin controls, sign out,
+      and sign back in with the new password.
+- [ ] Create a party with the guest list; the dashboard shows counts and
+      no recipient information anywhere.
+- [ ] Add a guest while nobody has locked a name: it just works. Lock a
+      name as a guest, then try adding a guest again: a clear refusal.
+- [ ] Forget a PIN on purpose: Guests page, Reset PIN; the guest creates a
+      new PIN next visit and loses nothing.
+- [ ] Unclaim all, check the subtitle matched what happened (no redraw, no
+      PINs cleared), then Redraw and confirm it works now.
+- [ ] Reset everything on a throwaway party and confirm the dashboard
+      returns to the clean setup state.
+
+Layout:
+
+- [ ] On the phone the dock stays at the bottom and never covers content;
+      main buttons are comfortably tall.
+- [ ] On desktop the guest pages widen, navigation moves to a top bar with
+      the same five stops, and the wishlist grid goes to four columns.
+- [ ] If your system is set to reduce motion, the mascot and animations
+      stay still.

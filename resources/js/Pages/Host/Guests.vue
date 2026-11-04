@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import { CircleAlert, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-vue-next';
+import { CircleAlert, KeyRound, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-vue-next';
+import ConfirmModal from '../../Components/ConfirmModal.vue';
 import HostLayout from '../../Components/HostLayout.vue';
 import SignInGate from './SignInGate.vue';
 import { post } from '../../lib/api';
@@ -30,6 +31,24 @@ const editingId = ref(null);
 const formError = ref('');
 const busy = ref(false);
 const removeId = ref(null);
+const pinResetTarget = ref(null);
+const pinBusy = ref(false);
+
+async function resetPin(guest) {
+    pinBusy.value = true;
+    bannerError.value = '';
+    try {
+        await post('host_reset_pin', { guest_id: guest.id });
+        toastSuccess(`${guest.display}'s PIN has been cleared`);
+        pinResetTarget.value = null;
+        await load();
+    } catch (err) {
+        pinResetTarget.value = null;
+        showActionError(err, 'That PIN could not be reset.');
+    } finally {
+        pinBusy.value = false;
+    }
+}
 
 function aliasesList(guest) {
     if (Array.isArray(guest.aliases)) return guest.aliases;
@@ -183,7 +202,7 @@ async function removeGuest(guest) {
             <Users :size="40" />
             <h2 class="empty-state-title">No party yet</h2>
             <p class="empty-state-text">
-                Create your party in Party settings first — you can add the whole
+                Create your party in Party settings first. You can add the whole
                 guest list there in one go.
             </p>
         </section>
@@ -286,6 +305,20 @@ async function removeGuest(guest) {
                                         <Pencil :size="14" />
                                         <span>Edit</span>
                                     </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-secondary btn-sm"
+                                        :disabled="!guest.pin_set || busy"
+                                        :title="
+                                            guest.pin_set
+                                                ? `Clear the PIN for ${guest.display} so they can make a new one`
+                                                : 'This guest has no PIN set, so there is nothing to reset'
+                                        "
+                                        @click="pinResetTarget = guest"
+                                    >
+                                        <KeyRound :size="14" />
+                                        <span>Reset PIN</span>
+                                    </button>
                                     <button type="button" class="btn btn-secondary btn-sm" @click="removeId = guest.id">
                                         <Trash2 :size="14" />
                                         <span>Remove</span>
@@ -296,9 +329,19 @@ async function removeGuest(guest) {
                     </tbody>
                 </table>
                 <p v-else class="muted" style="margin: 12px 0 2px">
-                    {{ search ? 'No guests match that search.' : 'No guests yet — add your first guest above.' }}
+                    {{ search ? 'No guests match that search.' : 'No guests yet, add your first guest above.' }}
                 </p>
             </section>
         </template>
+
+        <ConfirmModal
+            v-if="pinResetTarget"
+            :title="`Reset PIN for ${pinResetTarget.display}?`"
+            :body="`This clears only the PIN for ${pinResetTarget.display}. Their claim, their wishlist, and their votes are untouched. The next time they enter, they will create a new PIN.`"
+            confirm-label="Reset PIN"
+            :busy="pinBusy"
+            @confirm="resetPin(pinResetTarget)"
+            @cancel="pinResetTarget = null"
+        />
     </HostLayout>
 </template>
