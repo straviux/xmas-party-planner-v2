@@ -612,9 +612,13 @@ button {
 .scor-snow {
     position: absolute;
     top: -8px;
-    right: -56px;
+    /* No horizontal bleed: the layer once stretched 56px past the
+       mascot on both sides, which overflowed the screen on phones
+       (owner report, 2026-11-04). It now matches the wrap's width
+       exactly and only bleeds a little vertically. */
+    right: 0;
     bottom: -6px;
-    left: -56px;
+    left: 0;
     z-index: 0;
     overflow: hidden;
     pointer-events: none;

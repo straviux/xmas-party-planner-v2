@@ -450,3 +450,8 @@ at the 16px anti-zoom size on purpose.
 Tile settings to the right (2026-11-04): on your own wish tiles
 the gear (settings) button now sits at the right end of the tile
 footer, opposite the shop-link button.
+
+Snow overflow fixed (2026-11-04): the snow layer no longer
+stretches past the mascot's sides; it matches the wrap's width
+exactly (small vertical bleed only), so showers can no longer
+push the page sideways on phones.
