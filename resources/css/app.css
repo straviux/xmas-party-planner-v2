@@ -501,6 +501,37 @@ button {
     padding: 14px 20px;
     border-radius: 20px;
     box-shadow: 7px 7px 0 rgba(1, 183, 197, 0.55);
+    /* Pop in from the tail (bottom centre, toward the mascot's head),
+       then idle-float on the standalone translate property so the two
+       animations never fight over transform. The ::after tail is part
+       of this element, so it rides along and stays attached. The float
+       runs at a negative delay so it sits mid-cycle, out of phase with
+       the mascot's bob. */
+    transform-origin: 50% 100%;
+    animation:
+        mascot-bubble-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        mascot-bubble-float 3.2s ease-in-out -1.6s infinite;
+}
+
+@keyframes mascot-bubble-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(6px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes mascot-bubble-float {
+    0%,
+    100% {
+        translate: 0 0;
+    }
+    50% {
+        translate: 0 -2px;
+    }
 }
 
 .mascot-bubble::after {
@@ -518,7 +549,7 @@ button {
     position: relative;
     width: 132px;
     height: 148px;
-    animation: mascot-float 4.5s ease-in-out infinite;
+    animation: mascot-float 3.2s ease-in-out infinite;
 }
 
 .mascot-body {
@@ -551,6 +582,22 @@ button {
     height: 15px;
     border-radius: 999px;
     background: #221c46;
+    transform-origin: center;
+    animation: mascot-blink 4.6s ease-in-out infinite;
+}
+
+@keyframes mascot-blink {
+    0%,
+    91%,
+    100% {
+        transform: scaleY(1);
+    }
+    94% {
+        transform: scaleY(0.1);
+    }
+    97% {
+        transform: scaleY(1);
+    }
 }
 
 .mascot-eye.left {
@@ -620,6 +667,19 @@ button {
     height: 24px;
     border-radius: 999px;
     background: #fdfbf5;
+    /* Pendulum sway around the point where the pom meets the hat. */
+    transform-origin: 50% 100%;
+    animation: mascot-pom-sway 3.2s ease-in-out infinite;
+}
+
+@keyframes mascot-pom-sway {
+    0%,
+    100% {
+        transform: rotate(-6deg);
+    }
+    50% {
+        transform: rotate(6deg);
+    }
 }
 
 .mascot-arm {
@@ -639,9 +699,15 @@ button {
 
 .mascot-arm.right {
     right: 2px;
-    transform-origin: bottom center;
-    transform: rotate(-32deg);
-    animation: mascot-wave 2.4s ease-in-out infinite;
+    /* The wave pivots at the shoulder: the arm's top inner corner,
+       where it disappears behind the body. Moving the origin there
+       from the old bottom-center pivot would shift the resting pose,
+       so the constant translate below compensates exactly (verified
+       against the old rotate(-32deg) about bottom center): at rest
+       the arm renders pixel-identical to before. */
+    transform-origin: top left;
+    transform: translate(-20.74px, 11.68px) rotate(-32deg);
+    animation: mascot-wave 6s ease-in-out infinite;
 }
 
 @keyframes mascot-float {
@@ -650,17 +716,27 @@ button {
         transform: translateY(0);
     }
     50% {
-        transform: translateY(-8px);
+        transform: translateY(-3px);
     }
 }
 
 @keyframes mascot-wave {
+    /* Three quick swings in the first 1.2s of the 6s cycle, then the
+       arm rests at its natural -32deg for the remainder. Every frame
+       carries the same compensating translate as the base rule. */
     0%,
+    20%,
     100% {
-        transform: rotate(-32deg);
+        transform: translate(-20.74px, 11.68px) rotate(-32deg);
     }
-    50% {
-        transform: rotate(-58deg);
+    5% {
+        transform: translate(-20.74px, 11.68px) rotate(-54deg);
+    }
+    10% {
+        transform: translate(-20.74px, 11.68px) rotate(-16deg);
+    }
+    15% {
+        transform: translate(-20.74px, 11.68px) rotate(-48deg);
     }
 }
 
@@ -1678,6 +1754,9 @@ button.poll-option:hover:not(:disabled) {
 
     .mascot,
     .mascot-arm.right,
+    .mascot-eye,
+    .mascot-hat-pom,
+    .mascot-bubble,
     .pop-in,
     .slide-in,
     .toast {

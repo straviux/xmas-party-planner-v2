@@ -283,3 +283,11 @@ choosing" state; Show my recipient again displays it once picked.
 Hosts see secret names and a secret_names_set count. Production note:
 this adds a migration (guests.secret_name) to run on deploy. Suite:
 99 tests / 2,446 assertions; live E2E verified all three reveal cases.
+
+Polish (2026-11-04): mascot and speech bubble animated. The mascot
+now blinks (4.6s cycle), its hat pom sways, the idle bob softened to
+3.2s / 3px, and the right-arm wave became occasional (three swings
+inside a 6s cycle, pixel-identical rest pose). The bubble pops in
+with a soft spring when it appears, then floats gently out of phase
+with the bob. Transform/opacity only; everything disabled under
+prefers-reduced-motion.
