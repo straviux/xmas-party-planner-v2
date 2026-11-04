@@ -2005,9 +2005,9 @@ button {
 }
 
 .sort-select {
-    min-height: 32px;
-    padding: 5px 10px;
-    border-radius: 10px;
+    min-height: 26px;
+    padding: 3px 8px;
+    border-radius: 8px;
     margin-left: auto;
     width: auto;
 }
@@ -2524,8 +2524,8 @@ button.poll-option:hover:not(:disabled) {
     }
 
     .sort-select {
-        min-height: 30px;
-        padding: 4px 8px;
+        min-height: 26px;
+        padding: 3px 8px;
     }
 }
 

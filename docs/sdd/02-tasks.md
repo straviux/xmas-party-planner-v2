@@ -464,3 +464,6 @@ like My wishes it now goes from Scor straight to the board card
 Sort aligned with the filters (2026-11-04): the sort select now
 shares the filter chips' row (chips left, sort at the right end
 of the same line) instead of sitting on its own line above them.
+
+Sort select shrunk again (2026-11-04): 26px tall at all sizes
+with tighter padding and radius, at the owner's request.
