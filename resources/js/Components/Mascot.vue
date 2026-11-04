@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import scorHatUrl from '../../assets/scorHatData.js';
 
 const props = defineProps({
@@ -34,6 +34,40 @@ let revertTimer = null;
 // shows the pool line for the reaction window, then hides again.
 const displayedMessage = computed(() => reactionLine.value ?? props.message);
 
+// The bubble's text types itself out, chat style, whenever the target
+// line changes: first mount, a reaction line, or the revert back to
+// the prop message. About 24ms per character, sped up on long lines
+// so even the longest finishes within roughly 700ms. Purely visual:
+// the whole mascot wrap is aria-hidden, so assistive tech never sees
+// the half-typed text at all.
+const typedText = ref('');
+let typeTimer = null;
+
+function startTyping(text) {
+    window.clearInterval(typeTimer);
+    typeTimer = null;
+    typedText.value = '';
+
+    if (!text) {
+        return;
+    }
+
+    // Array.from keeps multi-byte characters whole.
+    const chars = Array.from(text);
+    const interval = Math.max(1, Math.min(24, Math.floor(700 / chars.length)));
+    let count = 0;
+    typeTimer = window.setInterval(() => {
+        count += 1;
+        typedText.value = chars.slice(0, count).join('');
+        if (count >= chars.length) {
+            window.clearInterval(typeTimer);
+            typeTimer = null;
+        }
+    }, interval);
+}
+
+watch(displayedMessage, (text) => startTyping(text), { immediate: true });
+
 function pickLine() {
     let index = Math.floor(Math.random() * REACTION_LINES.length);
     if (index === lastLineIndex.value) {
@@ -65,12 +99,13 @@ function react() {
 
 onBeforeUnmount(() => {
     window.clearTimeout(revertTimer);
+    window.clearInterval(typeTimer);
 });
 </script>
 
 <template>
     <div class="mascot-wrap" aria-hidden="true" @click="react">
-        <div v-if="displayedMessage" :key="displayedMessage" class="mascot-bubble">{{ displayedMessage }}</div>
+        <div v-if="displayedMessage" :key="displayedMessage" class="mascot-bubble">{{ typedText }}</div>
         <div ref="scorRef" class="scor">
             <div class="scor-head">
                 <img class="scor-hat-img" :src="scorHatUrl" alt="" />

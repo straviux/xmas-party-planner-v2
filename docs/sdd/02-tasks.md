@@ -391,3 +391,8 @@ own card below). The Gifts section is renamed "My wishes"
 everywhere guests see it: dock label, page title, hero eyebrow,
 Home card button, and related labels. The route stays
 /guest/gifts under the hood.
+
+Scor's bubble now types its message out character by character
+(2026-11-04), chat style, on first show, on tap-reaction swaps,
+and on revert; long lines speed up so typing never runs past
+about 700 ms.
