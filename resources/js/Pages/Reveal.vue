@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CircleAlert, Gift, House, LogOut, PenLine, TriangleAlert } from 'lucide-vue-next';
+import { CircleAlert, Gift, Hourglass, House, LogOut, PenLine, TriangleAlert } from 'lucide-vue-next';
 import GuestLayout from '../Components/GuestLayout.vue';
 import RevealStrip from '../Components/RevealStrip.vue';
 import { post } from '../lib/api';
@@ -18,7 +18,10 @@ const props = defineProps({
     },
 });
 
-// phase: idle -> tearing (committed, strip sliding open) -> done | back to idle on a retryable error
+// phase: idle -> tearing (committed, strip sliding open) -> done
+//             -> waiting (revealed, but the recipient has no secret name
+//                yet, so there is nothing to slide open) | back to idle
+//                on a retryable error
 const phase = ref('idle');
 const recipient = ref(null);
 const budget = ref(null);
@@ -48,10 +51,20 @@ async function tear() {
     }
 
     if (body) {
-        recipient.value = body.recipient || null;
         budget.value = body.budget ?? props.party?.budget ?? null;
-        // The strip sees `recipient` arrive and runs the slow completion
-        // slide; onStripDone flips phase to 'done' once it finishes.
+        const revealed = body.recipient || null;
+        if (revealed && revealed.secret_name) {
+            recipient.value = revealed;
+            // The strip sees `recipient` arrive and runs the slow
+            // completion slide; onStripDone flips phase to 'done' once
+            // it finishes.
+        } else {
+            // The reveal itself is done, but the recipient has not
+            // picked a secret name yet: there is no name to hide under
+            // the strip, so the page switches to the waiting state and
+            // the strip never receives a recipient.
+            phase.value = 'waiting';
+        }
         return;
     }
 
@@ -60,7 +73,7 @@ async function tear() {
     phase.value = 'idle';
     if (!failure) return;
     if (failure.code === 'already_claimed') {
-        errorText.value = 'You have already revealed your person. Head to your home page.';
+        errorText.value = 'You have already revealed your recipient. Head to your home page.';
         errorAction.value = 'home';
     } else if (failure.code === 'not_claimed') {
         toastError('Enter your name and PIN first, then come back to reveal.');
@@ -94,25 +107,29 @@ async function signOut() {
     <GuestLayout>
         <div class="card slide-in">
             <span class="section-label">Secret Santa reveal</span>
-            <h1 class="card-title">Your person is hidden here</h1>
+            <h1 class="card-title">Your recipient is hidden here</h1>
             <p class="card-subtitle" style="margin-bottom: 8px">
-                Hi {{ guest?.display }}. When you are ready, slide the strip below.
-                Your person is shown exactly once, so make sure nobody is looking
-                over your shoulder.
+                Hi {{ guest?.display }}. When you are ready, slide the strip below
+                to see the secret name of the person you are buying for. Make
+                sure nobody is looking over your shoulder.
             </p>
 
-            <!-- Slide-to-reveal control: the name lives inside the strip,
-                 under its sliding cover (see RevealStrip). -->
-            <RevealStrip
-                :recipient="recipient"
-                :fail-signal="failSignal"
-                @commit="tear"
-                @done="onStripDone"
-            />
+            <!-- Slide-to-reveal control: the secret name lives inside the
+                 strip, under its sliding cover (see RevealStrip). Hidden
+                 entirely in the waiting state, where the recipient has
+                 no secret name to uncover yet. -->
+            <template v-if="phase !== 'waiting'">
+                <RevealStrip
+                    :recipient="recipient"
+                    :fail-signal="failSignal"
+                    @commit="tear"
+                    @done="onStripDone"
+                />
 
-            <p v-if="phase === 'idle'" class="muted small" style="margin: 10px 0 0; text-align: center">
-                Drag the strip across, or tap it, and your person's name appears inside the strip.
-            </p>
+                <p v-if="phase === 'idle'" class="muted small" style="margin: 10px 0 0; text-align: center">
+                    Drag the strip across, or tap it, and their secret name appears inside the strip.
+                </p>
+            </template>
 
             <p v-if="errorText" class="error-text" style="margin-top: 18px">
                 <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
@@ -123,7 +140,36 @@ async function signOut() {
                 <span>Go to my home</span>
             </Link>
 
-            <!-- After the reveal: budget, warning, next steps -->
+            <!-- Revealed, but the recipient has no secret name yet:
+                 nothing to show until they pick one. -->
+            <div v-if="phase === 'waiting'" class="pop-in" style="margin-top: 24px">
+                <div class="result-card">
+                    <Hourglass :size="30" style="color: var(--text-tertiary)" />
+                    <h2 class="waiting-title">Your recipient is still choosing</h2>
+                    <p class="muted" style="margin: 0; line-height: 1.55">
+                        Your person has not picked their secret name yet. Check
+                        again later from your home page, under Show my
+                        recipient again.
+                    </p>
+                </div>
+
+                <div v-if="budget" class="result-card">
+                    <p class="result-budget">
+                        <Gift :size="17" style="vertical-align: -3px" />
+                        Gift budget: <strong>{{ budget }}</strong>
+                    </p>
+                </div>
+
+                <Link href="/guest" class="btn btn-primary btn-block">
+                    <House :size="18" />
+                    <span>Go to my home</span>
+                </Link>
+            </div>
+
+            <!-- After the reveal: budget, warning, next steps. There is
+                 deliberately no wishlist link here: wishlists sit under
+                 real names, and following one would connect this secret
+                 name to a real person. -->
             <div v-if="phase === 'done' && recipient" class="pop-in" style="margin-top: 24px">
                 <div v-if="budget" class="result-card">
                     <p class="result-budget">
@@ -136,16 +182,13 @@ async function signOut() {
                     <TriangleAlert :size="19" style="flex: none; margin-top: 1px" />
                     <span>
                         <strong>Write this down now.</strong>
-                        You will not be shown this again.
+                        You can also check it again from your home page, under
+                        Show my recipient again.
                     </span>
                 </p>
 
                 <div class="stack">
-                    <Link href="/guest/wishlists" class="btn btn-primary btn-block">
-                        <Gift :size="18" />
-                        <span>See their wishlist</span>
-                    </Link>
-                    <Link href="/guest" class="btn btn-secondary btn-block">
+                    <Link href="/guest" class="btn btn-primary btn-block">
                         <House :size="18" />
                         <span>Go to my home</span>
                     </Link>
@@ -162,7 +205,7 @@ async function signOut() {
 
         <p class="muted small" style="text-align: center; margin-top: 18px">
             <PenLine :size="14" style="vertical-align: -2px" />
-            Tip: jot the name down somewhere private before you leave this page.
+            Tip: jot the secret name down somewhere private before you leave this page.
         </p>
     </GuestLayout>
 </template>
@@ -180,6 +223,12 @@ async function signOut() {
 .result-budget {
     color: var(--text-secondary);
     margin: 0;
+}
+
+.waiting-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 10px 0 8px;
 }
 
 .warning-card {

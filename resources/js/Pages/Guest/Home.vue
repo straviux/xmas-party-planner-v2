@@ -1,12 +1,13 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CalendarDays, CircleAlert, Eye, Gift, LockKeyhole, LogOut, Wallet } from 'lucide-vue-next';
+import { CalendarDays, CircleAlert, Eye, Gift, Hourglass, LockKeyhole, LogOut, VenetianMask, Wallet } from 'lucide-vue-next';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import Mascot from '../../Components/Mascot.vue';
 import RevealStrip from '../../Components/RevealStrip.vue';
+import SecretNameForm from '../../Components/SecretNameForm.vue';
 import { post } from '../../lib/api';
-import { toastError } from '../../lib/toast';
+import { toastError, toastSuccess } from '../../lib/toast';
 
 const props = defineProps({
     party: {
@@ -20,6 +21,13 @@ const props = defineProps({
     counts: {
         type: Object,
         default: () => ({ locked: 0, total: 0, wishes: 0 }),
+    },
+    // The viewer's OWN secret name (or null). This is the one place a
+    // secret name value is ever a page prop: your own codename is yours
+    // to see and change; everyone else's stays server-side.
+    ownSecretName: {
+        type: String,
+        default: null,
     },
 });
 
@@ -51,11 +59,32 @@ async function signOut() {
     }
 }
 
+/* ---------- Your secret name ---------- */
+
+// Local copy of the viewer's own secret name so a save updates the card
+// in place, with no page reload.
+const mySecretName = ref(props.ownSecretName || null);
+const secretPopupOpen = ref(false);
+
+function openSecretPopup() {
+    secretPopupOpen.value = true;
+}
+
+function closeSecretPopup() {
+    secretPopupOpen.value = false;
+}
+
+function onSecretSaved(name) {
+    mySecretName.value = name;
+    secretPopupOpen.value = false;
+    toastSuccess('Your secret name is saved.');
+}
+
 /* ---------- Show my recipient again (reveal_again) ---------- */
 
-// The popup is the only place the recipient name ever appears on this
-// page: it lives in this local state, which closePopup() wipes, and the
-// dashboard itself never renders it.
+// The popup is the only place the recipient's secret name ever appears
+// on this page: it lives in this local state, which closePopup() wipes,
+// and the dashboard itself never renders it.
 const popupOpen = ref(false);
 const popupStep = ref('pin'); // 'pin' | 'result'
 const pin = ref('');
@@ -147,8 +176,12 @@ async function submitPin() {
 }
 
 function onKeydown(event) {
-    if (event.key === 'Escape' && popupOpen.value && !checking.value) {
+    if (event.key !== 'Escape') return;
+    if (popupOpen.value && !checking.value) {
         closePopup();
+    }
+    if (secretPopupOpen.value) {
+        closeSecretPopup();
     }
 }
 
@@ -188,13 +221,42 @@ onBeforeUnmount(() => {
                     Your Secret Santa
                 </span>
                 <p class="dash-sub" style="margin: 10px 0 16px">
-                    You already revealed who you are buying for. If the name
-                    slipped your mind, enter your PIN to see it again.
+                    You already revealed who you are buying for. If their secret
+                    name slipped your mind, enter your PIN to see it again.
                 </p>
                 <button type="button" class="btn btn-primary" @click="openPopup">
                     <Eye :size="16" />
                     <span>Show my recipient again</span>
                 </button>
+            </div>
+
+            <div class="card dash-span">
+                <span class="section-label">
+                    <VenetianMask :size="12" style="vertical-align: -1px" />
+                    Your secret name
+                </span>
+                <template v-if="mySecretName">
+                    <p class="dash-value" style="font-size: 1.5rem">{{ mySecretName }}</p>
+                    <p class="dash-sub" style="margin-bottom: 16px">
+                        This is the only name your Secret Santa sees. Your real
+                        name stays hidden until the gift exchange.
+                    </p>
+                    <button type="button" class="btn btn-secondary" @click="openSecretPopup">
+                        <VenetianMask :size="16" />
+                        <span>Change my secret name</span>
+                    </button>
+                </template>
+                <template v-else>
+                    <p class="dash-sub" style="margin: 10px 0 16px">
+                        You have not picked your secret name yet. It is the only
+                        name your Secret Santa will see, so pick one before
+                        they reveal.
+                    </p>
+                    <button type="button" class="btn btn-primary" @click="openSecretPopup">
+                        <VenetianMask :size="16" />
+                        <span>Pick my secret name</span>
+                    </button>
+                </template>
             </div>
 
             <div class="card">
@@ -244,15 +306,15 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- Show my recipient again: PIN check, then the name, in a popup only.
-             The name is never rendered on the dashboard itself. -->
+        <!-- Show my recipient again: PIN check, then the secret name, in a
+             popup only. The name is never rendered on the dashboard itself. -->
         <div v-if="popupOpen" class="modal-backdrop" @click.self="backdropClick">
             <div class="modal-card pop-in" role="dialog" aria-modal="true" aria-label="Show my recipient again">
                 <template v-if="popupStep === 'pin'">
                     <h3 class="modal-title">Show my recipient again</h3>
                     <p class="muted" style="margin: 0 0 18px; line-height: 1.55">
-                        Enter your 4-digit PIN and we will show you who you are
-                        buying for.
+                        Enter your 4-digit PIN and we will show you the secret
+                        name of the person you are buying for.
                     </p>
 
                     <p v-if="pinError" class="error-text" style="margin-bottom: 14px">
@@ -294,9 +356,34 @@ onBeforeUnmount(() => {
                     </form>
                 </template>
 
+                <template v-else-if="againRecipient && !againRecipient.secret_name">
+                    <!-- The recipient has not picked a secret name yet, so
+                         there is nothing to slide open. -->
+                    <div style="text-align: center">
+                        <Hourglass :size="30" style="color: var(--text-tertiary)" />
+                        <h3 class="modal-title" style="margin-top: 10px">Your recipient is still choosing</h3>
+                        <p class="muted" style="margin: 0; line-height: 1.55">
+                            Your person has not picked their secret name yet.
+                            Check again later from your home page, under Show
+                            my recipient again.
+                        </p>
+                    </div>
+                    <p v-if="againBudget" class="again-budget" style="text-align: center">
+                        <Gift :size="17" style="vertical-align: -3px" />
+                        Gift budget: <strong>{{ againBudget }}</strong>
+                    </p>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-primary" @click="closePopup">
+                            <span>Close</span>
+                        </button>
+                    </div>
+                </template>
+
                 <template v-else-if="againRecipient">
-                    <!-- The name is already fetched at this point; the strip
-                         is a pure presentation reveal, slid by the guest. -->
+                    <!-- The secret name is already fetched at this point;
+                         the strip is a pure presentation reveal, slid by
+                         the guest. No wishlist link: wishlists sit under
+                         real names and would give the game away. -->
                     <RevealStrip
                         :recipient="againRecipient"
                         :fail-signal="againReset"
@@ -312,20 +399,24 @@ onBeforeUnmount(() => {
                         </p>
                     </template>
                     <div class="modal-actions">
-                        <Link
-                            v-if="stripDone"
-                            href="/guest/wishlists"
-                            class="btn btn-secondary"
-                            @click="closePopup"
-                        >
-                            <Gift :size="16" />
-                            <span>See their wishlist</span>
-                        </Link>
                         <button type="button" class="btn btn-primary" @click="closePopup">
                             <span>Close</span>
                         </button>
                     </div>
                 </template>
+            </div>
+        </div>
+
+        <!-- Your secret name: pick one, or change the one you have. -->
+        <div v-if="secretPopupOpen" class="modal-backdrop" @click.self="closeSecretPopup">
+            <div class="modal-card pop-in" role="dialog" aria-modal="true" aria-label="Your secret name">
+                <h3 class="modal-title">{{ mySecretName ? 'Change your secret name' : 'Pick your secret name' }}</h3>
+                <SecretNameForm :initial="mySecretName || ''" @saved="onSecretSaved" />
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" @click="closeSecretPopup">
+                        <span>Cancel</span>
+                    </button>
+                </div>
             </div>
         </div>
     </GuestLayout>

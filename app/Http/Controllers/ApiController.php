@@ -50,6 +50,7 @@ class ApiController extends Controller
         'reveal_again' => 'guestRevealAgain',
         'guest_verify_pin' => 'guestVerifyPin',
         'guest_set_pin' => 'guestSetPin',
+        'guest_set_secret_name' => 'guestSetSecretName',
         'guest_logout' => 'guestLogout',
         'wishlist_add' => 'wishlistAdd',
         'wishlist_update' => 'wishlistUpdate',
@@ -78,7 +79,8 @@ class ApiController extends Controller
      * never by host auth: guests have no accounts (Hard Rule 1).
      */
     private array $guestActions = [
-        'enter', 'reveal', 'reveal_again', 'guest_verify_pin', 'guest_set_pin', 'guest_logout',
+        'enter', 'reveal', 'reveal_again', 'guest_verify_pin', 'guest_set_pin',
+        'guest_set_secret_name', 'guest_logout',
         'wishlist_add', 'wishlist_update', 'wishlist_delete', 'poll_vote',
     ];
 
@@ -138,7 +140,7 @@ class ApiController extends Controller
                 'exists' => false,
                 'party' => null,
                 'guests' => [],
-                'counts' => ['guests' => 0, 'locked' => 0, 'awaiting' => 0, 'polls' => 0],
+                'counts' => ['guests' => 0, 'locked' => 0, 'awaiting' => 0, 'secret_names_set' => 0, 'polls' => 0],
             ]);
         }
 
@@ -153,6 +155,9 @@ class ApiController extends Controller
                 'guests' => $guests->count(),
                 'locked' => $locked,
                 'awaiting' => $guests->count() - $locked,
+                'secret_names_set' => $guests
+                    ->filter(fn (Guest $guest) => is_string($guest->secret_name) && $guest->secret_name !== '')
+                    ->count(),
                 'polls' => $party->polls()->count(),
             ],
         ]);
@@ -467,6 +472,17 @@ class ApiController extends Controller
         }
 
         return $this->ok();
+    }
+
+    private function guestSetSecretName(Request $request): JsonResponse
+    {
+        try {
+            $result = app(GuestEntryService::class)->setSecretName($request);
+        } catch (GuestEntryException $e) {
+            return $this->guestError($e);
+        }
+
+        return $this->ok($result);
     }
 
     private function guestLogout(Request $request): JsonResponse

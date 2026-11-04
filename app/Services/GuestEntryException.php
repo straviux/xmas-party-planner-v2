@@ -20,6 +20,8 @@ class GuestEntryException extends DomainException
         'pin_mismatch' => 'The two PINs do not match.',
         'pin_already_set' => 'A PIN is already set for this name.',
         'not_claimed' => 'Find and confirm your name first.',
+        'secret_name_invalid' => 'Your secret name must be between 2 and 30 characters.',
+        'secret_name_taken' => 'That secret name is already taken. Pick another one.',
         'already_claimed' => 'This name has already revealed its recipient.',
         'not_revealed' => 'You have not revealed your person yet.',
     ];

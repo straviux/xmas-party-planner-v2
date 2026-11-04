@@ -26,7 +26,11 @@ and best practices.
    The only responses that ever carry a recipient are the single reveal
    and `reveal_again`, the one named exception: it returns a guest's own
    recipient to that same guest, in their own session, only after PIN
-   verification, and only when they have already revealed.
+   verification, and only when they have already revealed. Reveal
+   responses carry the recipient's secret name (the guest's self-chosen
+   codename, set via `guest_set_secret_name`), never their real name, so
+   real identities stay hidden until the gift exchange itself; a
+   recipient who has not picked a secret name yet reveals as null.
 3. The host is blind too: dashboards show locked/awaiting counts and names,
    never who got whom.
 4. Images are WebP only, never AVIF. Screenshots are converted to WebP on
@@ -34,7 +38,13 @@ and best practices.
 5. Guests changes (add/edit/remove) are blocked once any name is claimed;
    the draw is a derangement and re-runs automatically while unclaimed.
 6. API is a single dispatch route, `POST /api/{action}`; action names and
-   error codes are a stable contract, do not rename them.
+   error codes are a stable contract, do not rename them. Guest secrets:
+   `guest_set_secret_name` {secret_name} lets a claimed guest set their
+   codename (trimmed, 2 to 30 characters, unique per party compared
+   case-insensitively; errors `secret_name_invalid` 422 and
+   `secret_name_taken` 409). Public payloads carry only the
+   `has_secret_name` flag, never the value; the host shape carries the
+   value, and `host_status` counts `secret_names_set`.
 7. Testing is the owner's job on real devices: provide code-level checks
    (build, lint, `php artisan test`) and the acceptance checklist only.
    No browser automation or visual test servers.

@@ -5,6 +5,7 @@ import { ArrowLeft, Check, CircleAlert, KeyRound, QrCode, Search, UserRound } fr
 import GuestLayout from '../Components/GuestLayout.vue';
 import Mascot from '../Components/Mascot.vue';
 import QrScanner from '../Components/QrScanner.vue';
+import SecretNameForm from '../Components/SecretNameForm.vue';
 import { post } from '../lib/api';
 import { toastError } from '../lib/toast';
 
@@ -15,9 +16,12 @@ const props = defineProps({
     },
 });
 
-// Steps: invite -> search -> confirm -> pin
+// Steps: invite -> search -> confirm -> pin -> secret (only when the
+// guest has no secret name yet; guests who picked one skip it entirely)
 const step = ref('invite');
 const busy = ref(false);
+// Where the flow continues once the secret name step is done.
+const pendingDestination = ref('/reveal');
 
 // Invite
 const inviteCode = ref('');
@@ -219,12 +223,27 @@ async function submitPin() {
             pin: enteredPin,
             ...(createMode ? { pin_confirmation: enteredConfirmation } : {}),
         });
-        router.visit(body.revealed ? '/guest' : '/reveal');
+        const destination = body.revealed ? '/guest' : '/reveal';
+        // A guest with no secret name yet picks one before moving on:
+        // it is the only name their Secret Santa will ever see. The flag
+        // rides on the public guest shape (the list pick, or the enter
+        // response when it carries the guest).
+        const enteredGuest = body.guest || selected.value;
+        if (enteredGuest && enteredGuest.has_secret_name === false) {
+            pendingDestination.value = destination;
+            step.value = 'secret';
+            return;
+        }
+        router.visit(destination);
     } catch (err) {
         pinError.value = PIN_MESSAGES[err.code] || err.message || 'Something went wrong. Please try again.';
     } finally {
         busy.value = false;
     }
+}
+
+function onSecretSaved() {
+    router.visit(pendingDestination.value || '/reveal');
 }
 </script>
 
@@ -431,6 +450,13 @@ async function submitPin() {
                     Back to the name list
                 </button>
             </div>
+        </div>
+
+        <!-- Step: pick a secret name (only guests who have none yet) -->
+        <div v-else-if="step === 'secret'" class="card slide-in">
+            <span class="section-label">Guest entry</span>
+            <h1 class="card-title" style="margin-bottom: 14px">Pick your secret name</h1>
+            <SecretNameForm @saved="onSecretSaved" />
         </div>
 
         <QrScanner

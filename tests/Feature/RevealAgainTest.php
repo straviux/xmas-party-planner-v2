@@ -73,8 +73,10 @@ test('reveal_again with the correct PIN returns the same recipient as the reveal
     $response->assertOk()
         ->assertJsonPath('ok', true)
         ->assertJsonPath('recipient.id', $recipientId)
-        ->assertJsonPath('recipient.display', $revealed->json('recipient.display'))
-        ->assertJsonPath('recipient.nickname', $revealed->json('recipient.nickname'))
+        // Same secret-name shape as the reveal: no real-name keys at all.
+        ->assertJsonPath('recipient.secret_name', $revealed->json('recipient.secret_name'))
+        ->assertJsonMissingPath('recipient.display')
+        ->assertJsonMissingPath('recipient.nickname')
         ->assertJsonPath('budget', $party->budget);
 
     // It stays available: asking again returns the same recipient.

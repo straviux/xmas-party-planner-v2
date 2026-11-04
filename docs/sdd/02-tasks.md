@@ -269,3 +269,17 @@ and the host main column got the same treatment. Quick view and reels
 save/restore the shell's scroll position via lib/scroller.js, and the
 shells carry Inertia's scroll-region attribute so navigation resets
 and restores scroll as before.
+
+Feature (2026-11-04): secret names. Every guest must pick a secret
+name at entry (new step after the PIN; unique per party, 2-30 chars,
+guest_set_secret_name with secret_name_invalid / secret_name_taken).
+Reveals now display ONLY the recipient's secret name: revealRecipient
+returns {id, secret_name}, the real display/nickname are gone from
+reveal and reveal_again payloads (tests scan for the real name
+strings), and the "See their wishlist" link was removed from reveal
+results because wishlists sit under real names. A recipient who has
+not picked one yet reveals as secret_name null with a "still
+choosing" state; Show my recipient again displays it once picked.
+Hosts see secret names and a secret_names_set count. Production note:
+this adds a migration (guests.secret_name) to run on deploy. Suite:
+99 tests / 2,446 assertions; live E2E verified all three reveal cases.

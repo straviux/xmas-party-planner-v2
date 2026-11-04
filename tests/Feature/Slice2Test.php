@@ -259,9 +259,19 @@ test('reveal returns the recipient and budget exactly once', function () {
     $response->assertOk()
         ->assertJsonPath('ok', true)
         ->assertJsonPath('recipient.id', $recipient->id)
-        ->assertJsonPath('recipient.display', $recipient->display)
-        ->assertJsonPath('recipient.nickname', $recipient->nickname)
+        // The recipient is carried by secret name only (null here: the
+        // fixture guests never picked one). Their real name must not
+        // appear anywhere in the response.
+        ->assertJsonPath('recipient.secret_name', null)
+        ->assertJsonMissingPath('recipient.display')
+        ->assertJsonMissingPath('recipient.nickname')
         ->assertJsonPath('budget', $party->budget);
+
+    $revealJson = json_encode($response->json());
+    expect($revealJson)->not->toContain($recipient->display);
+    if ($recipient->nickname !== null) {
+        expect($revealJson)->not->toContain($recipient->nickname);
+    }
 
     expect($ana->fresh()->revealed)->toBeTrue();
 

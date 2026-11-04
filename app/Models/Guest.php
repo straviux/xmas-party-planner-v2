@@ -12,6 +12,7 @@ class Guest extends Model
         'party_id',
         'display',
         'nickname',
+        'secret_name',
         'aliases',
         'pin_hash',
         'recipient_id',

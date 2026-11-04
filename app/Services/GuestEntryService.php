@@ -12,15 +12,16 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * Guest entry, PIN handling, and the once-only reveal.
+ * Guest entry, PIN handling, secret names, and the once-only reveal.
  *
  * Secrecy contract (Hard Rule 4): nothing in this service ever returns,
  * stores in the session, or logs a recipient, except reveal() — the
  * response that carries a recipient on first reveal, only once per
  * guest — and revealAgain(), the single named exception: the same guest,
  * in their own session, after PIN verification, and only once they have
- * already revealed. The session stores guest_id + a pin_verified flag
- * only (D2), never the plain PIN.
+ * already revealed. Even those responses carry only the recipient's
+ * secret name, never their real name. The session stores guest_id + a
+ * pin_verified flag only (D2), never the plain PIN.
  */
 class GuestEntryService
 {
@@ -229,13 +230,63 @@ class GuestEntryService
     }
 
     /**
+     * Set (or change) the session guest's secret name: the codename their
+     * Secret Santa sees at reveal time instead of their real name.
+     *
+     * The guest must have claimed their name first. The name is trimmed,
+     * must be 2 to 30 characters, and must be unique within the party
+     * under a case-insensitive comparison (re-setting your own current
+     * value, in any letter case, is always fine). The trimmed value is
+     * stored as typed, display case preserved.
+     *
+     * @return array{secret_name: string}
+     *
+     * @throws GuestEntryException
+     */
+    public function setSecretName(Request $request): array
+    {
+        $guest = $this->sessionGuest($request);
+
+        if ($guest === null || ! $guest->claimed) {
+            throw GuestEntryException::make('not_claimed');
+        }
+
+        $name = trim($this->stringInput($request->input('secret_name')) ?? '');
+        $length = mb_strlen($name);
+        if ($length < 2 || $length > 30) {
+            throw GuestEntryException::make('secret_name_invalid');
+        }
+
+        return DB::transaction(function () use ($guest, $name) {
+            $guest = Guest::query()->whereKey($guest->id)->lockForUpdate()->firstOrFail();
+
+            $taken = $guest->party->guests()
+                ->whereKeyNot($guest->id)
+                ->get(['secret_name'])
+                ->contains(fn (Guest $other) => is_string($other->secret_name)
+                    && mb_strtolower(trim($other->secret_name)) === mb_strtolower($name));
+
+            if ($taken) {
+                throw GuestEntryException::make('secret_name_taken', 409);
+            }
+
+            $guest->secret_name = $name;
+            $guest->save();
+
+            return ['secret_name' => $name];
+        });
+    }
+
+    /**
      * The single reveal. D1: there is no second PIN prompt; the endpoint
      * checks the session's pin_verified flag, set when the PIN was verified
      * or created at entry. Sets `revealed` in a locked transaction and
      * returns the recipient exactly once; a second attempt gets
-     * already_claimed with no recipient data.
+     * already_claimed with no recipient data. The recipient is carried as
+     * their secret name only (or null when they have not picked one);
+     * their real name never appears in this response.
      *
-     * @return array{recipient: array{id: int, display: string, nickname: ?string}|null, budget: ?string}
+     * @return array{recipient: array{id: int, secret_name: ?string}|null, budget: ?string}
      *
      * @throws GuestEntryException
      */
@@ -287,7 +338,7 @@ class GuestEntryService
      * pin_must_be_4_digits, and a guest with no PIN hash at all must
      * create one first (pin_required_create).
      *
-     * @return array{recipient: array{id: int, display: string, nickname: ?string}|null, budget: ?string}
+     * @return array{recipient: array{id: int, secret_name: ?string}|null, budget: ?string}
      *
      * @throws GuestEntryException
      */

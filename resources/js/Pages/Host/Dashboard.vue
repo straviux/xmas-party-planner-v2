@@ -71,11 +71,15 @@ async function runConfirm() {
 const party = computed(() => (status.value && status.value.exists ? status.value.party : null));
 const guests = computed(() => (status.value && status.value.guests) || []);
 const counts = computed(
-    () => (status.value && status.value.counts) || { guests: 0, locked: 0, awaiting: 0, polls: 0 },
+    () => (status.value && status.value.counts) || { guests: 0, locked: 0, awaiting: 0, polls: 0, secret_names_set: 0 },
 );
 const lockedPercent = computed(() => {
     if (!counts.value.guests) return 0;
     return Math.round((counts.value.locked / counts.value.guests) * 100);
+});
+const secretPercent = computed(() => {
+    if (!counts.value.guests) return 0;
+    return Math.round(((counts.value.secret_names_set || 0) / counts.value.guests) * 100);
 });
 
 function guestStatus(guest) {
@@ -419,6 +423,13 @@ async function printQr() {
                 </p>
                 <div class="progress-track">
                     <div class="progress-fill" :style="{ width: `${lockedPercent}%` }"></div>
+                </div>
+                <p class="muted small" style="margin: 14px 0 10px">
+                    Secret names: {{ counts.secret_names_set || 0 }} of {{ counts.guests }} guests
+                    have picked one ({{ secretPercent }}%).
+                </p>
+                <div class="progress-track">
+                    <div class="progress-fill" :style="{ width: `${secretPercent}%` }"></div>
                 </div>
             </section>
 

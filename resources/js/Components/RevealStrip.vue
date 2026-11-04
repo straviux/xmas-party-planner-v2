@@ -12,7 +12,9 @@ import { ArrowRight, Gift } from 'lucide-vue-next';
 //
 // Contract:
 // - recipient (prop): null shows the wrapped placeholder under the cover;
-//   { display, nickname } shows the "You are buying for" name layer.
+//   { secret_name } shows the "You are buying for" layer with the
+//   recipient's SECRET name. Real names never reach this component: the
+//   secret name is all a Secret Santa gets to see.
 // - While `recipient` is null, a commit emits `commit` and the strip
 //   HOLDS the cover at its release position (state "awaiting") until the
 //   parent either sets `recipient` (the slow completion slide runs, then
@@ -191,9 +193,7 @@ function onKeyCommit() {
         <span class="tear-under">
             <template v-if="recipient">
                 <span class="tear-under-label">You are buying for</span>
-                <span class="tear-under-name">
-                    {{ recipient.display }}<span v-if="recipient.nickname" class="tear-under-nick"> “{{ recipient.nickname }}”</span>
-                </span>
+                <span class="tear-under-name">{{ recipient.secret_name }}</span>
             </template>
             <template v-else>
                 <Gift :size="26" class="tear-under-icon" />
@@ -265,12 +265,6 @@ function onKeyCommit() {
     line-height: 1.15;
     color: var(--text-primary, #ffffff);
     white-space: nowrap;
-}
-
-.tear-under-nick {
-    font-size: 1.02rem;
-    font-weight: 600;
-    color: var(--text-secondary);
 }
 
 .tear-under-icon {

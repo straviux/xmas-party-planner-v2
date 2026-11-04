@@ -18,7 +18,10 @@ class Serializers
 {
     /**
      * Public guest shape (spec): id, display, nickname, aliases, claimed,
-     * needs_pin, revealed. Never recipient_id or pin_hash.
+     * needs_pin, revealed, has_secret_name. Never recipient_id or pin_hash.
+     * The secret name's VALUE never ships in this shape either: only the
+     * has_secret_name flag, so guests can be nudged to pick one without
+     * anyone's codename leaking into the public list.
      */
     public static function publicGuest(Guest $guest): array
     {
@@ -30,18 +33,22 @@ class Serializers
             'claimed' => (bool) $guest->claimed,
             'needs_pin' => empty($guest->pin_hash),
             'revealed' => (bool) $guest->revealed,
+            'has_secret_name' => is_string($guest->secret_name) && $guest->secret_name !== '',
         ];
     }
 
     /**
-     * Host guest shape: the public shape plus pin_set and a plain status.
-     * The host is blind to recipients too, so still no recipient data.
+     * Host guest shape: the public shape plus pin_set, the guest's secret
+     * name (the host hands out nudges and checks coverage, so the value
+     * itself is visible here), and a plain status. The host is blind to
+     * recipients too, so still no recipient data.
      */
     public static function hostGuest(Guest $guest): array
     {
         return [
             ...self::publicGuest($guest),
             'pin_set' => ! empty($guest->pin_hash),
+            'secret_name' => $guest->secret_name,
             'status' => $guest->claimed ? 'locked' : 'awaiting',
         ];
     }
@@ -118,18 +125,22 @@ class Serializers
     }
 
     /**
-     * Reveal recipient shape: id, display, nickname.
+     * Reveal recipient shape: id, secret_name.
      *
      * This is the ONLY shape that ever carries a recipient. It is used
      * solely by the `reveal` response and the `reveal_again` response,
-     * both scoped to the session guest's own recipient.
+     * both scoped to the session guest's own recipient. It carries the
+     * recipient's secret name (their self-chosen codename), or null when
+     * they have not picked one yet: the recipient's REAL name must never
+     * appear here, so identities stay hidden until the gift exchange.
      */
     public static function revealRecipient(Guest $recipient): array
     {
         return [
             'id' => (int) $recipient->id,
-            'display' => $recipient->display,
-            'nickname' => $recipient->nickname,
+            'secret_name' => is_string($recipient->secret_name) && $recipient->secret_name !== ''
+                ? $recipient->secret_name
+                : null,
         ];
     }
 

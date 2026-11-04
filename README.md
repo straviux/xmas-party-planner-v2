@@ -66,16 +66,21 @@ For guests:
 2. Search for your name (nicknames and aliases work, and a small typo is
    fine), tap your name, and confirm it is you.
 3. Create a 4-digit PIN you will remember. This locks your name to you.
-4. Slide the strip on the reveal page to see who you are buying for, plus
-   the gift budget. Write it down; if you forget, your home page can show
-   it again after you re-enter your PIN.
-5. Add your own wishlist under Gifts (text, a shop link, notes, and a photo
+4. Pick a secret name. It is the only name your Secret Santa will see;
+   your real name stays hidden until the gift exchange itself. Secret
+   names are unique at the party, so grab yours early.
+5. Slide the strip on the reveal page to see the secret name of the
+   person you are buying for, plus the gift budget. Write it down; if
+   you forget, your home page can show it again after you re-enter your
+   PIN. If your person has not picked a secret name yet, the reveal
+   says so, and "Show my recipient again" will show it once they do.
+6. Add your own wishlist under Gifts (text, a shop link, notes, and a photo
    if you like). To change or remove one of your wishes later, use the
    gear button on it and choose Edit wish or Delete wish. Browse everyone's wishlists from the Wishlists tab, by
    person or all together, and swipe through them in the full-screen
    viewer. Wishlists are for posting and browsing only; there is no
    reserving.
-6. Vote in the host's polls under Vote. You can change your vote until the
+7. Vote in the host's polls under Vote. You can change your vote until the
    host closes a poll.
 
 Signing out never unlocks a name. If you forget your PIN, ask the host to
@@ -126,11 +131,16 @@ Guest flow:
 - [ ] Create a PIN (two fields, must match): your name locks, no recipient
       is shown, and you land on the reveal page.
 - [ ] Refresh before tearing: you are back on the reveal page, name hidden.
+- [ ] After the PIN step you are asked for a secret name before you can
+      go on. A name another guest already took is refused.
 - [ ] Slide the strip (drag it, or tap it): the cover slides away slowly and
-      your person's name is uncovered inside the strip itself, shown exactly
-      once, with the budget and a button to their wishlist below. Dragging
-      the strip partway and letting go must spring it back without revealing
-      anything. Write the name down.
+      your person's SECRET name is uncovered inside the strip itself, shown
+      exactly once, with the budget below. Their real name appears nowhere.
+      Dragging the strip partway and letting go must spring it back without
+      revealing anything. Write the secret name down.
+- [ ] Reveal when your person has not picked a secret name yet: you get a
+      "still choosing" note instead of a name, and "Show my recipient
+      again" on your home page shows the secret name once they pick one.
 - [ ] Sign out, enter the same name with a wrong PIN: plain error, nothing
       revealed. With the right PIN you go to your home page, not a reveal.
 - [ ] On your home page, use "Show my recipient again": a wrong PIN shows an
