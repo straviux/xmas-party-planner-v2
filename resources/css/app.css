@@ -1954,10 +1954,6 @@ button {
 }
 
 /* The sort select gets its own right-aligned row above the search bar. */
-.sort-row {
-    display: flex;
-    justify-content: flex-end;
-}
 
 .wish-search {
     position: relative;

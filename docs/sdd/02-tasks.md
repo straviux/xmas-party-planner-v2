@@ -460,3 +460,7 @@ Board hero card removed (2026-11-04): the Wishlists page no
 longer shows the "What is everyone wishing for?" header card;
 like My wishes it now goes from Scor straight to the board card
 (toggle, states, grids).
+
+Sort aligned with the filters (2026-11-04): the sort select now
+shares the filter chips' row (chips left, sort at the right end
+of the same line) instead of sitting on its own line above them.

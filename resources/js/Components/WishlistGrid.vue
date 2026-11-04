@@ -110,14 +110,6 @@ function confirmDelete() {
 <template>
     <div>
         <div class="wish-controls">
-            <div class="sort-row">
-                <select v-model="sort" class="select sort-select" aria-label="Sort wishes">
-                    <option value="newest">Newest</option>
-                    <option value="oldest">Oldest</option>
-                    <option value="az">A-Z</option>
-                    <option value="za">Z-A</option>
-                </select>
-            </div>
             <div class="chip-row">
                 <button
                     v-for="chip in FILTERS"
@@ -129,6 +121,12 @@ function confirmDelete() {
                 >
                     {{ chip.label }}
                 </button>
+                <select v-model="sort" class="select sort-select" aria-label="Sort wishes">
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="az">A-Z</option>
+                    <option value="za">Z-A</option>
+                </select>
             </div>
             <label class="wish-search">
                 <Search :size="18" />
