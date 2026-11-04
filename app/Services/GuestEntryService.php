@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Guest;
 use App\Models\Party;
+use App\Support\Serializers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -14,9 +15,11 @@ use Illuminate\Support\Str;
  * Guest entry, PIN handling, and the once-only reveal.
  *
  * Secrecy contract (Hard Rule 4): nothing in this service ever returns,
- * stores in the session, or logs a recipient, except reveal() — which is
- * the single response in the whole app that may carry a recipient, and
- * only once per guest. The session stores guest_id + a pin_verified flag
+ * stores in the session, or logs a recipient, except reveal() — the
+ * response that carries a recipient on first reveal, only once per
+ * guest — and revealAgain(), the single named exception: the same guest,
+ * in their own session, after PIN verification, and only once they have
+ * already revealed. The session stores guest_id + a pin_verified flag
  * only (D2), never the plain PIN.
  */
 class GuestEntryService
@@ -261,14 +264,67 @@ class GuestEntryService
             $recipient = $guest->recipient;
 
             return [
-                'recipient' => $recipient === null ? null : [
-                    'id' => (int) $recipient->id,
-                    'display' => $recipient->display,
-                    'nickname' => $recipient->nickname,
-                ],
+                'recipient' => $recipient === null ? null : Serializers::revealRecipient($recipient),
                 'budget' => $guest->party?->budget,
             ];
         });
+    }
+
+    /**
+     * Reveal again with a PIN (owner-directed exception to the once-only
+     * rule): a guest who has already revealed can see their recipient
+     * again by proving their PIN, so a name that was not written down is
+     * not lost. The first reveal stays once-only; this is read-only and
+     * changes no state.
+     *
+     * The recipient is derived strictly from the session guest's own
+     * recipient_id, so this can only ever return that guest's recipient.
+     * Every failure response is built before the recipient is loaded into
+     * the payload, so a wrong PIN never carries recipient data.
+     *
+     * PIN failures mirror the entry flow's conventions: an absent PIN or
+     * a wrong PIN against a set hash is pin_incorrect, a malformed PIN is
+     * pin_must_be_4_digits, and a guest with no PIN hash at all must
+     * create one first (pin_required_create).
+     *
+     * @return array{recipient: array{id: int, display: string, nickname: ?string}|null, budget: ?string}
+     *
+     * @throws GuestEntryException
+     */
+    public function revealAgain(Request $request): array
+    {
+        $guest = $this->sessionGuest($request);
+
+        if ($guest === null || ! $guest->claimed) {
+            throw GuestEntryException::make('not_claimed');
+        }
+
+        if (! $guest->revealed) {
+            throw GuestEntryException::make('not_revealed', 409);
+        }
+
+        if (empty($guest->pin_hash)) {
+            throw GuestEntryException::make('pin_required_create');
+        }
+
+        $pin = $this->stringInput($request->input('pin'));
+
+        if ($pin === null || $pin === '') {
+            throw GuestEntryException::make('pin_incorrect');
+        }
+        if (! $this->isValidPinFormat($pin)) {
+            throw GuestEntryException::make('pin_must_be_4_digits');
+        }
+        if (! Hash::check($pin, $guest->pin_hash)) {
+            throw GuestEntryException::make('pin_incorrect');
+        }
+
+        $recipient = $guest->recipient;
+
+        return [
+            'recipient' => $recipient === null ? null : Serializers::revealRecipient($recipient),
+            'budget' => $guest->party?->budget,
+        ];
     }
 
     /**

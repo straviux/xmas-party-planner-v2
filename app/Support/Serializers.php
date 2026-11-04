@@ -118,6 +118,22 @@ class Serializers
     }
 
     /**
+     * Reveal recipient shape: id, display, nickname.
+     *
+     * This is the ONLY shape that ever carries a recipient. It is used
+     * solely by the `reveal` response and the `reveal_again` response,
+     * both scoped to the session guest's own recipient.
+     */
+    public static function revealRecipient(Guest $recipient): array
+    {
+        return [
+            'id' => (int) $recipient->id,
+            'display' => $recipient->display,
+            'nickname' => $recipient->nickname,
+        ];
+    }
+
+    /**
      * Wishlist board item shape (spec): id, text, link, notes, kind, image,
      * reserved, reserved_by_me. Never reserved_by_id.
      */

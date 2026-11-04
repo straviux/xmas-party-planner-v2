@@ -21,6 +21,7 @@ class GuestEntryException extends DomainException
         'pin_already_set' => 'A PIN is already set for this name.',
         'not_claimed' => 'Find and confirm your name first.',
         'already_claimed' => 'This name has already revealed its recipient.',
+        'not_revealed' => 'You have not revealed your person yet.',
     ];
 
     public function __construct(

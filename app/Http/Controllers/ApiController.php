@@ -47,6 +47,7 @@ class ApiController extends Controller
         'list' => 'publicList',
         'enter' => 'guestEnter',
         'reveal' => 'guestReveal',
+        'reveal_again' => 'guestRevealAgain',
         'guest_verify_pin' => 'guestVerifyPin',
         'guest_set_pin' => 'guestSetPin',
         'guest_logout' => 'guestLogout',
@@ -77,7 +78,7 @@ class ApiController extends Controller
      * never by host auth: guests have no accounts (Hard Rule 1).
      */
     private array $guestActions = [
-        'enter', 'reveal', 'guest_verify_pin', 'guest_set_pin', 'guest_logout',
+        'enter', 'reveal', 'reveal_again', 'guest_verify_pin', 'guest_set_pin', 'guest_logout',
         'wishlist_add', 'wishlist_delete', 'wishlist_reserve', 'poll_vote',
     ];
 
@@ -401,6 +402,17 @@ class ApiController extends Controller
     {
         try {
             $result = app(GuestEntryService::class)->reveal($request);
+        } catch (GuestEntryException $e) {
+            return $this->guestError($e);
+        }
+
+        return $this->ok($result);
+    }
+
+    private function guestRevealAgain(Request $request): JsonResponse
+    {
+        try {
+            $result = app(GuestEntryService::class)->revealAgain($request);
         } catch (GuestEntryException $e) {
             return $this->guestError($e);
         }

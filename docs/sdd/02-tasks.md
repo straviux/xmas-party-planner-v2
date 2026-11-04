@@ -164,3 +164,13 @@ commits the once-only reveal, and the cover then slides away slowly
 the page in the reveal response, so pre-commit dragging can never show
 or burn it. Keyboard Enter/Space still commits; reduced motion shortens
 the completion slide.
+
+Owner feature (2026-11-04): reveal again using PIN. New API action
+reveal_again (33rd action): the session guest, only if already revealed,
+re-enters their PIN and gets their own recipient back (new error code
+not_revealed for claimed-but-not-revealed). Guest Home carries a "See my
+person again" card with a PIN popup; the name renders only inside the
+popup and is cleared on close. First reveal stays once-only. AGENTS.md
+hard rule 2 now names reveal_again as the single exception to the
+reveal-only recipient rule. Suite: 80 tests / 2,251 assertions, live E2E
+verified (wrong PIN leaks nothing, repeatable, per-guest isolation).

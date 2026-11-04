@@ -23,7 +23,10 @@ and best practices.
 2. Recipient mappings never leak: `recipient_id`, `pin_hash`, and
    `reserved_by_id` must never appear in any API response, host view, log,
    or session. All responses are built through `App\Support\Serializers`.
-   The only response that ever carries a recipient is the single reveal.
+   The only responses that ever carry a recipient are the single reveal
+   and `reveal_again`, the one named exception: it returns a guest's own
+   recipient to that same guest, in their own session, only after PIN
+   verification, and only when they have already revealed.
 3. The host is blind too: dashboards show locked/awaiting counts and names,
    never who got whom.
 4. Images are WebP only, never AVIF. Screenshots are converted to WebP on
