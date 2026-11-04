@@ -435,3 +435,7 @@ all removed at the owner's call), so the page goes from Scor
 straight to the grid controls. The board's All-wishes empty state
 also lost its Add a wish button; the dock centre star is now the
 way to add a wish.
+
+Toolbar order (2026-11-04): in the shared wishlist grid the
+filter chips (All / With photos / Text only) now sit above the
+search bar; the order is sort (right), chips, search.

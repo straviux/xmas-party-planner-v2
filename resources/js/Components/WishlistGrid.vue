@@ -116,17 +116,6 @@ function confirmDelete() {
                     <option value="az">A–Z</option>
                 </select>
             </div>
-            <label class="wish-search">
-                <Search :size="18" />
-                <input
-                    v-model="query"
-                    class="input"
-                    type="text"
-                    autocomplete="off"
-                    placeholder="Search wishes"
-                    aria-label="Search wishes"
-                />
-            </label>
             <div class="chip-row">
                 <button
                     v-for="chip in FILTERS"
@@ -139,6 +128,17 @@ function confirmDelete() {
                     {{ chip.label }}
                 </button>
             </div>
+            <label class="wish-search">
+                <Search :size="18" />
+                <input
+                    v-model="query"
+                    class="input"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="Search wishes"
+                    aria-label="Search wishes"
+                />
+            </label>
         </div>
 
         <div v-if="visibleItems.length" class="wish-grid">
