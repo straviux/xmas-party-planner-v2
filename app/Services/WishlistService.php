@@ -4,20 +4,10 @@ namespace App\Services;
 
 use App\Models\Guest;
 use App\Models\WishlistItem;
-use Illuminate\Support\Facades\DB;
 
 /**
- * Wishlist adds, deletes, and the anonymous reserve.
- *
- * Reserve semantics: wishlist_reserve is a TOGGLE for the guest calling
- * it. If the item is unreserved, the caller reserves it; if the caller is
- * the one who reserved it, toggling clears their reservation; if someone
- * else holds it, the call fails with already_reserved and nothing changes.
- * A guest can never reserve their own item (cannot_reserve_own).
- *
- * Anonymity (spec): the reserver's identity exists only in the
- * reserved_by_id column, which no serializer exposes. Responses carry
- * `reserved` / `reserved_by_me` booleans computed for the viewer.
+ * Wishlist adds and deletes. Wishlists are posting only: guests post what
+ * they want, and there is no reserving or claiming of items.
  *
  * Images (Hard Rule 7): uploads arrive as base64 and are always converted
  * to WebP on save (max side 1600px, quality 85, alpha preserved) and
@@ -74,42 +64,6 @@ class WishlistService
             'kind' => $kind,
             'image' => $image,
         ]);
-    }
-
-    /**
-     * Toggle the caller's reservation on an item, inside a transaction
-     * with a row lock so two devices racing on the same item cannot both
-     * reserve it.
-     *
-     * @return array{reserved: bool, reserved_by_me: bool} state for the caller
-     *
-     * @throws WishlistException
-     */
-    public function reserveToggle(Guest $actor, WishlistItem $item): array
-    {
-        return DB::transaction(function () use ($actor, $item) {
-            $item = WishlistItem::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
-
-            if ((int) $item->guest_id === (int) $actor->id) {
-                throw WishlistException::make('cannot_reserve_own');
-            }
-
-            if ($item->reserved_by_id === null) {
-                $item->reserved_by_id = $actor->id;
-                $item->save();
-
-                return ['reserved' => true, 'reserved_by_me' => true];
-            }
-
-            if ((int) $item->reserved_by_id === (int) $actor->id) {
-                $item->reserved_by_id = null;
-                $item->save();
-
-                return ['reserved' => false, 'reserved_by_me' => false];
-            }
-
-            throw WishlistException::make('already_reserved', 409);
-        });
     }
 
     /**

@@ -44,7 +44,7 @@ if (! function_exists('slice5Fixture')) {
      * One rich party, built entirely through the real actions:
      *  - host creates the party and adds Ana, Ben, and Cora (draw runs);
      *  - all three enter with PIN 1234, and Ana reveals her recipient;
-     *  - Ana adds two wishlist items and Ben reserves the first one;
+     *  - Ana adds two wishlist items;
      *  - a poll exists, with Ana voting option 1 and Ben option 2.
      *
      * @return array{party: Party, guests: array<string, Guest>, items: array<int, int>, poll: array}
@@ -82,11 +82,6 @@ if (! function_exists('slice5Fixture')) {
             $response->assertOk();
             $items[] = (int) $response->json('item.id');
         }
-
-        // Ben reserves Ana's first item.
-        slice5Enter($test, $guests['Ben Reyes']);
-        $test->postJson('/api/wishlist_reserve', ['id' => $items[0]])
-            ->assertOk()->assertJsonPath('reserved', true);
 
         // One poll; Ana votes the first option, Ben the second.
         $poll = $test->postJson('/api/host_poll_create', [

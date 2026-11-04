@@ -1,14 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import {
-    Bookmark,
-    BookmarkCheck,
-    Check,
-    ChevronLeft,
-    ChevronRight,
-    ExternalLink,
-    X,
-} from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-vue-next';
 
 const props = defineProps({
     items: {
@@ -19,13 +11,9 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
-    busy: {
-        type: Boolean,
-        default: false,
-    },
 });
 
-const emit = defineEmits(['close', 'reserve']);
+const emit = defineEmits(['close']);
 
 const currentIndex = ref(0);
 const dragOffset = ref(0);
@@ -58,44 +46,6 @@ const ownerInitial = computed(() => ownerName.value.trim().charAt(0).toUpperCase
 const showImage = computed(
     () => Boolean(currentItem.value?.image) && brokenImageId.value !== currentItem.value?.id,
 );
-
-const stateLine = computed(() => {
-    const item = currentItem.value;
-    if (!item) return '';
-    if (item.mine) return 'This is your wish.';
-    if (item.reserved_by_me) {
-        return 'You reserved this wish. Nobody else can see that it was you.';
-    }
-    if (item.reserved) return 'This wish is already reserved by someone.';
-    return 'This wish is available.';
-});
-
-const reserveAction = computed(() => {
-    const item = currentItem.value;
-    if (!item || item.mine) return null;
-    if (item.reserved_by_me) {
-        return {
-            label: 'Reserved by you, tap to undo',
-            className: 'btn btn-secondary reel-action',
-            icon: BookmarkCheck,
-            disabled: props.busy,
-        };
-    }
-    if (item.reserved) {
-        return {
-            label: 'Reserved',
-            className: 'btn btn-secondary reel-action',
-            icon: Bookmark,
-            disabled: true,
-        };
-    }
-    return {
-        label: 'Reserve this wish',
-        className: 'btn btn-primary reel-action',
-        icon: Bookmark,
-        disabled: props.busy,
-    };
-});
 
 const slideClass = computed(() => ({
     dragging: dragging.value,
@@ -293,20 +243,9 @@ onBeforeUnmount(() => {
                 <p v-if="currentItem.notes" class="reel-notes">{{ currentItem.notes }}</p>
             </main>
 
-            <footer class="reel-footer">
-                <p
-                    class="reel-state"
-                    :class="currentItem.reserved ? 'reserved' : 'available'"
-                    aria-live="polite"
-                >
-                    <Check v-if="!currentItem.reserved" :size="18" />
-                    <BookmarkCheck v-else :size="18" />
-                    <span>{{ stateLine }}</span>
-                </p>
-
+            <footer v-if="currentItem.link" class="reel-footer">
                 <div class="reel-actions">
                     <a
-                        v-if="currentItem.link"
                         class="btn btn-secondary reel-action"
                         :href="currentItem.link"
                         target="_blank"
@@ -315,16 +254,6 @@ onBeforeUnmount(() => {
                         <ExternalLink :size="18" />
                         <span>Open link</span>
                     </a>
-                    <button
-                        v-if="reserveAction"
-                        type="button"
-                        :class="reserveAction.className"
-                        :disabled="reserveAction.disabled"
-                        @click="emit('reserve', currentItem)"
-                    >
-                        <component :is="reserveAction.icon" :size="18" />
-                        <span>{{ reserveAction.label }}</span>
-                    </button>
                 </div>
             </footer>
         </article>
@@ -521,26 +450,6 @@ onBeforeUnmount(() => {
 .reel-footer {
     width: min(100%, 560px);
     margin: 0 auto;
-}
-
-.reel-state {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 8px;
-    margin: 0 0 16px;
-    color: var(--text-secondary);
-    line-height: 1.45;
-    text-align: left;
-}
-
-.reel-state svg {
-    flex: none;
-    margin-top: 2px;
-}
-
-.reel-state.available svg {
-    color: var(--success);
 }
 
 .reel-actions {

@@ -7,7 +7,7 @@
  *
  * On success the parsed body is returned (payloads carry `ok: true`).
  * On an error payload an Error is thrown with `.code` set to the server's
- * preserved error code (e.g. `invite_incorrect`, `guests_locked`) and
+ * error code (e.g. `invite_incorrect`, `guests_locked`) and
  * `.status` set to the HTTP status.
  */
 

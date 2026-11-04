@@ -53,7 +53,6 @@ class ApiController extends Controller
         'guest_logout' => 'guestLogout',
         'wishlist_add' => 'wishlistAdd',
         'wishlist_delete' => 'wishlistDelete',
-        'wishlist_reserve' => 'wishlistReserve',
         'wishlist_list' => 'wishlistList',
         'host_poll_create' => 'hostPollCreate',
         'host_poll_update' => 'hostPollUpdate',
@@ -79,7 +78,7 @@ class ApiController extends Controller
      */
     private array $guestActions = [
         'enter', 'reveal', 'reveal_again', 'guest_verify_pin', 'guest_set_pin', 'guest_logout',
-        'wishlist_add', 'wishlist_delete', 'wishlist_reserve', 'poll_vote',
+        'wishlist_add', 'wishlist_delete', 'poll_vote',
     ];
 
     public function __invoke(Request $request, string $action, DrawService $draw): JsonResponse
@@ -511,7 +510,7 @@ class ApiController extends Controller
             return $this->wishlistError($e);
         }
 
-        return $this->ok(['item' => Serializers::wishlistItem($item, (int) $guest->id)]);
+        return $this->ok(['item' => Serializers::wishlistItem($item)]);
     }
 
     private function wishlistDelete(Request $request): JsonResponse
@@ -535,32 +534,9 @@ class ApiController extends Controller
         return $this->ok();
     }
 
-    private function wishlistReserve(Request $request): JsonResponse
-    {
-        $guest = $this->sessionGuestOrError($request);
-        if ($guest instanceof JsonResponse) {
-            return $guest;
-        }
-
-        $item = $this->findPartyItem($request->input('id'));
-        if ($item === null) {
-            return $this->error('wish_not_found', 404);
-        }
-
-        try {
-            $state = app(WishlistService::class)->reserveToggle($guest, $item);
-        } catch (WishlistException $e) {
-            return $this->wishlistError($e);
-        }
-
-        return $this->ok($state);
-    }
-
     /**
-     * The everyone's-wishlists board: a public read like `list`. The
-     * reserve state is shaped for the viewing guest when a guest session
-     * exists (reserved / reserved_by_me), and never exposes who reserved
-     * anything.
+     * The everyone's-wishlists board: a public read like `list`. Wishlists
+     * are posting only, so items carry no per-viewer state.
      */
     private function wishlistList(Request $request): JsonResponse
     {
@@ -569,9 +545,6 @@ class ApiController extends Controller
         if ($party === null) {
             return $this->ok(['party' => null, 'guests' => []]);
         }
-
-        $viewer = app(GuestEntryService::class)->sessionGuest($request);
-        $viewerId = $viewer === null ? null : (int) $viewer->id;
 
         $guests = $party->guests()
             ->with(['wishlistItems' => fn ($query) => $query->latest('id')])
@@ -584,7 +557,7 @@ class ApiController extends Controller
                 ...Serializers::publicGuest($guest),
                 'wish_count' => $guest->wishlistItems->count(),
                 'items' => $guest->wishlistItems
-                    ->map(fn (WishlistItem $item) => Serializers::wishlistItem($item, $viewerId))
+                    ->map(fn (WishlistItem $item) => Serializers::wishlistItem($item))
                     ->values()
                     ->all(),
             ])->all(),

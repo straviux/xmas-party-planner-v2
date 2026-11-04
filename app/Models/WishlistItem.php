@@ -25,13 +25,4 @@ class WishlistItem extends Model
     {
         return $this->belongsTo(Guest::class);
     }
-
-    /**
-     * Server-side only: the reserver's identity is never exposed; responses
-     * carry `reserved` / `reserved_by_me` booleans instead (spec).
-     */
-    public function reservedBy(): BelongsTo
-    {
-        return $this->belongsTo(Guest::class, 'reserved_by_id');
-    }
 }

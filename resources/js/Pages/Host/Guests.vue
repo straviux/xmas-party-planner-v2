@@ -391,7 +391,7 @@ async function removeGuest(guest) {
         <ConfirmModal
             v-if="removeTarget"
             :title="`Remove ${removeTarget.display}?`"
-            :body="`This removes ${removeTarget.display} from the party and deletes their wishlist items. Votes they cast are removed too. Any wish they had reserved becomes available again, and the draw is re-done for the remaining guests.`"
+            :body="`This removes ${removeTarget.display} from the party and deletes their wishlist items. Votes they cast are removed too, and the draw is re-done for the remaining guests.`"
             confirm-label="Remove guest"
             danger
             :busy="busy"

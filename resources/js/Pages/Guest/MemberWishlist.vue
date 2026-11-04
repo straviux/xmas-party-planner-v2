@@ -56,46 +56,6 @@ async function loadList() {
 
 onMounted(loadList);
 
-const RESERVE_ERRORS = {
-    already_reserved: 'Someone else has already reserved this wish.',
-    cannot_reserve_own: 'You cannot reserve your own wish.',
-    not_claimed: 'You need to enter the party before you can reserve a wish.',
-    wish_not_found: 'That wish is not there anymore.',
-};
-
-function applyReserveResult(item, body) {
-    const entry = memberEntry.value;
-    if (!entry || !entry.items) return;
-    const index = entry.items.findIndex((candidate) => String(candidate.id) === String(item.id));
-    if (index !== -1) {
-        entry.items[index] = {
-            ...entry.items[index],
-            reserved: Boolean(body.reserved),
-            reserved_by_me: Boolean(body.reserved_by_me),
-        };
-    }
-}
-
-async function toggleReserve(item) {
-    if (busyId.value) return;
-    busyId.value = item.id;
-    try {
-        const body = await post('wishlist_reserve', { id: item.id });
-        applyReserveResult(item, body);
-        toastSuccess(body.reserved_by_me ? 'Wish reserved' : 'Reservation removed');
-    } catch (err) {
-        toastError(
-            RESERVE_ERRORS[err.code] ||
-                err.message ||
-                'That reservation could not be changed. Please try again.',
-        );
-        // Keep the grid honest if someone else changed the state first.
-        await loadList();
-    } finally {
-        busyId.value = null;
-    }
-}
-
 async function deleteItem(item) {
     if (busyId.value) return;
     busyId.value = item.id;
@@ -165,8 +125,7 @@ async function confirmDeleteWish() {
                 <template v-else>No wishes yet</template>
             </p>
             <p v-if="!isMine" class="card-subtitle" style="margin-top: 8px">
-                See something you would like to get them? Tap Reserve, and it is
-                quietly marked so nobody buys it twice. Nobody will see it was you.
+                Browse the wishes they posted and open one to see its details.
             </p>
         </div>
 
@@ -193,7 +152,6 @@ async function confirmDeleteWish() {
                 :items="items"
                 :mode="mode"
                 :busy-id="busyId"
-                @reserve="toggleReserve"
                 @delete="deleteItem"
                 @open="openQuickView"
             />
@@ -204,7 +162,6 @@ async function confirmDeleteWish() {
             :mode="mode"
             :busy="busyId !== null"
             @close="selectedId = null"
-            @reserve="toggleReserve"
             @delete="requestDelete"
         />
 

@@ -1,7 +1,7 @@
 # Secret Santa HQ: Christmas Party Planner
 
 A Christmas party app with three pillars: a Secret Santa gift exchange with a
-blind, once-only reveal, shared wishlists with anonymous reservations, and
+blind, once-only reveal, shared wishlists, and
 host-run voting polls. Guests never create accounts: the party invite code,
 their name, and a self-created 4-digit PIN are all they need.
 
@@ -66,12 +66,14 @@ For guests:
 2. Search for your name (nicknames and aliases work, and a small typo is
    fine), tap your name, and confirm it is you.
 3. Create a 4-digit PIN you will remember. This locks your name to you.
-4. Tear the strip on the reveal page to see who you are buying for, plus the
-   gift budget. It is shown exactly once, so write it down.
+4. Slide the strip on the reveal page to see who you are buying for, plus
+   the gift budget. Write it down; if you forget, your home page can show
+   it again after you re-enter your PIN.
 5. Add your own wishlist under Gifts (text, a shop link, notes, and a photo
-   if you like). Browse everyone's wishlists from the Wishlists tab and
-   reserve a wish so nobody else buys the same gift; nobody can see it was
-   you who reserved it.
+   if you like). Browse everyone's wishlists from the Wishlists tab, by
+   person or all together, and swipe through them in the full-screen
+   viewer. Wishlists are for posting and browsing only; there is no
+   reserving.
 6. Vote in the host's polls under Vote. You can change your vote until the
    host closes a poll.
 
@@ -110,8 +112,8 @@ npm run build      # frontend build
 ```
 
 The suite includes secrecy scans: no API response may contain recipient
-mappings, PIN hashes, or reserver identities, outside the single reveal
-response.
+mappings or PIN hashes, outside the reveal responses (the one-time reveal
+and the PIN-gated reveal-again, both only ever to the guest themselves).
 
 ## What to test on your phone (and once on desktop)
 
@@ -138,9 +140,6 @@ Guest flow:
 - [ ] In the grid, try search, the filter chips, and sorting: instant.
       Tap a photo for the big view, close it, and confirm you kept your
       scroll position.
-- [ ] As a second guest, reserve one of the first guest's wishes. As the
-      first guest it must only say Reserved, never who reserved it. Only
-      the reserver can undo it, and nobody can reserve their own wishes.
 - [ ] Vote in a poll, change your vote, and after the host closes it,
       confirm voting is refused and the winner is shown.
 

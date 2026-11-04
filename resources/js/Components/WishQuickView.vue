@@ -1,13 +1,13 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { Bookmark, BookmarkCheck, Check, ExternalLink, Trash2, X } from 'lucide-vue-next';
+import { Check, ExternalLink, Trash2, X } from 'lucide-vue-next';
 
 const props = defineProps({
     item: {
         type: Object,
         default: null,
     },
-    // 'mine' shows Delete; 'member' shows Reserve actions.
+    // 'mine' shows Delete; other modes are for viewing the wish.
     mode: {
         type: String,
         default: 'member',
@@ -18,7 +18,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close', 'reserve', 'delete']);
+const emit = defineEmits(['close', 'delete']);
 
 const closeButton = ref(null);
 const broken = ref(false);
@@ -38,11 +38,9 @@ const showImage = computed(() => Boolean(props.item?.image) && !broken.value);
 
 const stateLine = computed(() => {
     if (!props.item) return '';
-    // Combined views flag the viewer's own items; they are never reservable.
+    // Combined views flag the viewer's own items.
     if (props.item.mine) return 'This is your wish.';
-    if (props.item.reserved_by_me) return 'You reserved this wish. Nobody else can see that it was you.';
-    if (props.item.reserved) return 'This wish is already reserved by someone.';
-    return 'This wish is available.';
+    return '';
 });
 
 const action = computed(() => {
@@ -59,28 +57,7 @@ const action = computed(() => {
             disabled: props.busy,
         };
     }
-    if (item.reserved_by_me) {
-        return {
-            label: 'Reserved by you, tap to undo',
-            className: 'btn btn-secondary',
-            icon: BookmarkCheck,
-            disabled: props.busy,
-        };
-    }
-    if (item.reserved) {
-        return {
-            label: 'Reserved',
-            className: 'btn btn-secondary',
-            icon: Bookmark,
-            disabled: true,
-        };
-    }
-    return {
-        label: 'Reserve this wish',
-        className: 'btn btn-primary',
-        icon: Bookmark,
-        disabled: props.busy,
-    };
+    return null;
 });
 
 function lockScroll() {
@@ -115,13 +92,9 @@ watch(
 );
 
 function handleAction() {
-    if (!props.item) return;
-    if (props.mode === 'mine') {
-        // Parents gate this with a confirmation popup before deleting.
-        emit('delete', props.item);
-        return;
-    }
-    emit('reserve', props.item);
+    if (!props.item || props.mode !== 'mine') return;
+    // Parents gate this with a confirmation popup before deleting.
+    emit('delete', props.item);
 }
 
 function onKeydown(event) {
@@ -165,13 +138,12 @@ onBeforeUnmount(() => {
                     Wished by {{ item.owner.display }}<span v-if="item.owner.nickname"> “{{ item.owner.nickname }}”</span>
                 </p>
 
-                <p class="qv-state" :class="item.reserved ? 'reserved' : 'available'">
-                    <Check v-if="!item.reserved" :size="17" />
-                    <BookmarkCheck v-else :size="17" />
+                <p v-if="stateLine" class="qv-state">
+                    <Check :size="17" />
                     <span>{{ stateLine }}</span>
                 </p>
 
-                <div class="qv-actions">
+                <div v-if="item.link || action" class="qv-actions">
                     <a
                         v-if="item.link"
                         class="btn btn-secondary"

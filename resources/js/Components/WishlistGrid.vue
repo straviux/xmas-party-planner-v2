@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Bookmark, BookmarkCheck, ExternalLink, Search, Trash2 } from 'lucide-vue-next';
+import { ExternalLink, Search, Trash2 } from 'lucide-vue-next';
 import ConfirmModal from './ConfirmModal.vue';
 import { normalizeText } from '../lib/normalize';
 
@@ -9,19 +9,19 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    // 'mine' shows Delete actions; 'member' shows Reserve actions.
+    // 'mine' shows Delete actions; other modes are for browsing wishes.
     mode: {
         type: String,
         default: 'member',
     },
-    // Id of the item currently being reserved/deleted, if any.
+    // Id of the item currently being deleted, if any.
     busyId: {
         type: [Number, String],
         default: null,
     },
 });
 
-const emit = defineEmits(['reserve', 'delete', 'open']);
+const emit = defineEmits(['delete', 'open']);
 
 const query = ref('');
 const filter = ref('all');
@@ -33,8 +33,6 @@ const FILTERS = [
     { value: 'all', label: 'All' },
     { value: 'photos', label: 'With photos' },
     { value: 'text', label: 'Text only' },
-    { value: 'available', label: 'Available' },
-    { value: 'reserved', label: 'Reserved' },
 ];
 
 function hasImage(item) {
@@ -70,10 +68,6 @@ const visibleItems = computed(() => {
                 return item.kind === 'image' && hasImage(item);
             case 'text':
                 return item.kind !== 'image' || !hasImage(item);
-            case 'available':
-                return !item.reserved;
-            case 'reserved':
-                return Boolean(item.reserved);
             default:
                 return true;
         }
@@ -100,45 +94,17 @@ const visibleItems = computed(() => {
     return filtered.map(({ item }) => item);
 });
 
-function actionState(item) {
-    if (props.mode === 'mine') {
-        return {
-            label: 'Delete',
-            className: 'btn btn-secondary',
-            icon: Trash2,
-            disabled: props.busyId === item.id,
-        };
-    }
-    if (item.reserved_by_me) {
-        return {
-            label: 'Reserved by you, tap to undo',
-            className: 'btn btn-secondary',
-            icon: BookmarkCheck,
-            disabled: props.busyId === item.id,
-        };
-    }
-    if (item.reserved) {
-        return {
-            label: 'Reserved',
-            className: 'btn btn-secondary',
-            icon: Bookmark,
-            disabled: true,
-        };
-    }
+function deleteActionState(item) {
     return {
-        label: 'Reserve',
-        className: 'btn btn-primary',
-        icon: Bookmark,
+        label: 'Delete',
+        className: 'btn btn-secondary',
+        icon: Trash2,
         disabled: props.busyId === item.id,
     };
 }
 
 function handleAction(item) {
-    if (props.mode === 'mine') {
-        deleteTarget.value = item;
-        return;
-    }
-    emit('reserve', item);
+    deleteTarget.value = item;
 }
 
 function confirmDelete() {
@@ -185,23 +151,19 @@ function confirmDelete() {
             <article v-for="item in visibleItems" :key="item.id" class="wish-tile">
                 <div v-if="hasImage(item)" class="wish-tile-media" @click="emit('open', item, visibleItems)">
                     <img :src="item.image" :alt="displayName(item)" loading="lazy" @error="markBroken(item)" />
-                    <span v-if="item.reserved" class="wish-badge on-image">Reserved</span>
                 </div>
                 <div class="wish-tile-body">
                     <div
                         :class="{ 'wish-open-area': !hasImage(item) }"
                         @click="!hasImage(item) && emit('open', item, visibleItems)"
                     >
-                        <span v-if="item.reserved && !hasImage(item)" class="wish-badge" style="margin-bottom: 8px">
-                            Reserved
-                        </span>
                         <p class="wish-name clamp-2">{{ displayName(item) }}</p>
                         <p v-if="item.notes" class="wish-notes clamp-3">{{ item.notes }}</p>
                         <p v-if="item.owner" class="wish-owner">
                             by {{ item.owner.display }}<span v-if="item.owner.nickname"> “{{ item.owner.nickname }}”</span>
                         </p>
                     </div>
-                    <div class="wish-tile-actions">
+                    <div v-if="item.link || item.mine || props.mode === 'mine'" class="wish-tile-actions">
                         <a
                             v-if="item.link"
                             class="icon-btn"
@@ -215,14 +177,14 @@ function confirmDelete() {
                         </a>
                         <span v-if="item.mine" class="wish-mine-chip">Your wish</span>
                         <button
-                            v-else
+                            v-else-if="props.mode === 'mine'"
                             type="button"
-                            :class="actionState(item).className"
-                            :disabled="actionState(item).disabled"
+                            :class="deleteActionState(item).className"
+                            :disabled="deleteActionState(item).disabled"
                             @click="handleAction(item)"
                         >
-                            <component :is="actionState(item).icon" :size="17" />
-                            <span>{{ actionState(item).label }}</span>
+                            <component :is="deleteActionState(item).icon" :size="17" />
+                            <span>{{ deleteActionState(item).label }}</span>
                         </button>
                     </div>
                 </div>

@@ -195,3 +195,13 @@ button. Tapping a wish in All wishes opens a reels-style full-screen
 viewer: one wish at a time, slide left/right (drag with spring-back,
 arrows and keyboard on desktop, no wraparound), wisher header, counter,
 reserve in place. By person browsing keeps the quick-view popup.
+
+Owner removal (2026-11-04): the wishlist reserve (claim) feature is
+removed entirely. Wishlists are posting only. The wishlist_reserve action
+is gone (unknown_action now), payloads no longer carry reserved or
+reserved_by_me, the Reserved badge/buttons and the Available/Reserved
+filter chips are removed from grid, quick view, and reels, and the
+already_reserved / cannot_reserve_own codes are deleted. The
+reserved_by_id column stays in the schema, dormant and still never
+exposed (a test proves even a populated legacy value surfaces nothing).
+Suite: 81 tests / 2,203 assertions.

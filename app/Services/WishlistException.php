@@ -18,8 +18,6 @@ class WishlistException extends DomainException
         'wish_empty' => 'Add some text, a link, or a screenshot first.',
         'image_too_large' => 'That image is too large. Try a smaller screenshot.',
         'image_invalid' => 'That image could not be read. Try a PNG, JPEG, GIF, or WebP image.',
-        'cannot_reserve_own' => 'You cannot reserve your own wish.',
-        'already_reserved' => 'That wish has already been reserved by someone else.',
         'forbidden' => 'You can only change your own wishlist.',
     ];
 

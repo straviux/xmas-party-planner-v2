@@ -8,7 +8,7 @@ import WishQuickView from '../../Components/WishQuickView.vue';
 import WishReels from '../../Components/WishReels.vue';
 import { post } from '../../lib/api';
 import { normalizeText } from '../../lib/normalize';
-import { toastError, toastSuccess } from '../../lib/toast';
+import { toastError } from '../../lib/toast';
 
 const props = defineProps({
     party: {
@@ -27,7 +27,6 @@ const members = ref([]);
 const query = ref('');
 // 'people' is the original member list; 'all' is the combined wishes grid.
 const view = ref('all');
-const busyId = ref(null);
 const selectedId = ref(null);
 const reelsOpen = ref(false);
 const reelsSequence = ref([]);
@@ -92,56 +91,13 @@ const selectedItem = computed(
 
 // The reels keep the exact sequence the guest saw in the filtered and
 // sorted grid, while each entry is resolved back to the live combined
-// item so a reserve made inside the viewer updates in place.
+// item so the viewer always reflects the latest posted wish details.
 const reelsItems = computed(() =>
     reelsSequence.value.map(
         (snapshot) =>
             allItems.value.find((item) => String(item.id) === String(snapshot.id)) || snapshot,
     ),
 );
-
-const RESERVE_ERRORS = {
-    already_reserved: 'Someone else has already reserved this wish.',
-    cannot_reserve_own: 'You cannot reserve your own wish.',
-    not_claimed: 'You need to enter the party before you can reserve a wish.',
-    wish_not_found: 'That wish is not there anymore.',
-    forbidden: 'That wish cannot be reserved.',
-};
-
-function applyReserveResult(item, body) {
-    for (const entry of members.value) {
-        if (!entry.items) continue;
-        const index = entry.items.findIndex((candidate) => String(candidate.id) === String(item.id));
-        if (index !== -1) {
-            entry.items[index] = {
-                ...entry.items[index],
-                reserved: Boolean(body.reserved),
-                reserved_by_me: Boolean(body.reserved_by_me),
-            };
-            return;
-        }
-    }
-}
-
-async function toggleReserve(item) {
-    if (busyId.value) return;
-    busyId.value = item.id;
-    try {
-        const body = await post('wishlist_reserve', { id: item.id });
-        applyReserveResult(item, body);
-        toastSuccess(body.reserved_by_me ? 'Wish reserved' : 'Reservation removed');
-    } catch (err) {
-        toastError(
-            RESERVE_ERRORS[err.code] ||
-                err.message ||
-                'That reservation could not be changed. Please try again.',
-        );
-        // Keep the grid honest if someone else changed the state first.
-        await loadBoard();
-    } finally {
-        busyId.value = null;
-    }
-}
 
 function openQuickView(item) {
     selectedId.value = item.id;
@@ -186,9 +142,8 @@ function openMember(member) {
             <span class="section-label">Wishlists</span>
             <h1 class="card-title">Everyone's wishlists</h1>
             <p class="card-subtitle" style="margin-bottom: 20px">
-                Find a person to see what they are wishing for. If a wish is
-                marked Reserved, someone is already on it, and it stays
-                anonymous.
+                Find a person to see what they are wishing for, or browse
+                every posted wish in one place.
             </p>
 
             <p v-if="loading" class="muted">Loading wishlists...</p>
@@ -295,8 +250,6 @@ function openMember(member) {
                         <WishlistGrid
                             :items="allItems"
                             mode="member"
-                            :busy-id="busyId"
-                            @reserve="toggleReserve"
                             @open="openReels"
                         />
                     </template>
@@ -317,18 +270,14 @@ function openMember(member) {
                 <WishQuickView
                     :item="selectedItem"
                     mode="member"
-                    :busy="busyId !== null"
                     @close="selectedId = null"
-                    @reserve="toggleReserve"
                 />
 
                 <WishReels
                     v-if="reelsOpen"
                     :items="reelsItems"
                     :start-index="reelsStartIndex"
-                    :busy="busyId !== null"
                     @close="closeReels"
-                    @reserve="toggleReserve"
                 />
             </template>
         </div>

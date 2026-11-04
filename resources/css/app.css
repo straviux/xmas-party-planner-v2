@@ -1246,28 +1246,6 @@ button {
     object-fit: cover;
 }
 
-.wish-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 11px;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    background: rgba(31, 29, 71, 0.88);
-    color: #f3b8ff;
-    border: 1px solid rgba(196, 39, 251, 0.6);
-}
-
-.wish-badge.on-image {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 2;
-}
-
 .wish-tile-body {
     padding: 14px;
 }
@@ -1378,16 +1356,9 @@ button {
     align-items: center;
     gap: 8px;
     margin: 16px 0 0;
+    color: var(--success);
     font-weight: 700;
     font-size: 0.92rem;
-}
-
-.qv-state.available {
-    color: var(--success);
-}
-
-.qv-state.reserved {
-    color: #f3b8ff;
 }
 
 .qv-actions {

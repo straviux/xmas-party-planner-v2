@@ -53,11 +53,6 @@ class Guest extends Model
         return $this->hasMany(WishlistItem::class);
     }
 
-    public function reservedItems(): HasMany
-    {
-        return $this->hasMany(WishlistItem::class, 'reserved_by_id');
-    }
-
     public function votes(): HasMany
     {
         return $this->hasMany(Vote::class);

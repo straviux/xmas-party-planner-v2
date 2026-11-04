@@ -103,8 +103,8 @@ test('wishlist_add derives kind from what is present and normalizes bare links',
 
     $text = slice3Add($this, ['text' => 'A good book']);
     expect($text['kind'])->toBe('text')
-        ->and($text['reserved'])->toBeFalse()
-        ->and($text['reserved_by_me'])->toBeFalse();
+        ->and(array_keys($text))->not->toContain('reserved')
+        ->and(array_keys($text))->not->toContain('reserved_by_me');
 
     $link = slice3Add($this, ['link' => 'example.com/headphones']);
     expect($link['kind'])->toBe('link')
@@ -141,9 +141,6 @@ test('wishlist actions need a guest session', function () {
         ->assertStatus(422)
         ->assertJsonPath('error', 'not_claimed');
     $this->postJson('/api/wishlist_delete', ['id' => 1])
-        ->assertStatus(422)
-        ->assertJsonPath('error', 'not_claimed');
-    $this->postJson('/api/wishlist_reserve', ['id' => 1])
         ->assertStatus(422)
         ->assertJsonPath('error', 'not_claimed');
 });
@@ -258,64 +255,46 @@ test('only the owner can delete an item', function () {
 });
 
 // ----------------------------------------------------------------------
-// Anonymous reserve (toggle)
+// Posting only: there is no reserve feature
 // ----------------------------------------------------------------------
 
-test('reserve is anonymous, conflicts, cannot be your own, and toggles off', function () {
+test('wishlist_reserve is gone and answers unknown_action like any unregistered action', function () {
+    [, $guests] = slice3Party();
+    slice3Enter($this, $guests['Ana Cruz']);
+    $item = slice3Add($this, ['text' => 'Ana wish']);
+
+    $this->postJson('/api/wishlist_reserve', ['id' => $item['id']])
+        ->assertStatus(404)
+        ->assertJsonPath('error', 'unknown_action');
+});
+
+test('wishlist payloads carry no reserve state, even over a populated dormant column', function () {
     [, $guests] = slice3Party();
     $ana = $guests['Ana Cruz'];
     $ben = $guests['Ben Reyes'];
-    $cora = $guests['Cora Diaz'];
 
     slice3Enter($this, $ana);
     $item = slice3Add($this, ['text' => 'Ana wish']);
 
-    // Ben reserves it.
+    // Legacy rows can still carry a reserver in the dormant reserved_by_id
+    // column; that must never surface as reserve state (or at all).
+    WishlistItem::findOrFail($item['id'])->update(['reserved_by_id' => $ben->id]);
+
     $this->postJson('/api/guest_logout')->assertOk();
     slice3Enter($this, $ben);
-    $this->postJson('/api/wishlist_reserve', ['id' => $item['id']])
-        ->assertOk()
-        ->assertJsonPath('reserved', true)
-        ->assertJsonPath('reserved_by_me', true);
-
-    // Cora sees Reserved, never who, and cannot take it.
-    $this->postJson('/api/guest_logout')->assertOk();
-    slice3Enter($this, $cora);
     $board = $this->postJson('/api/wishlist_list')->assertOk();
+
     $anaBoard = collect($board->json('guests'))->firstWhere('id', $ana->id);
-    expect($anaBoard['items'][0]['reserved'])->toBeTrue()
-        ->and($anaBoard['items'][0]['reserved_by_me'])->toBeFalse();
+    expect(array_keys($anaBoard['items'][0]))
+        ->not->toContain('reserved')
+        ->not->toContain('reserved_by_me');
 
     $keys = slice3KeysRecursive($board->json());
-    expect($keys)->not->toContain('reserved_by_id')
+    expect($keys)->not->toContain('reserved')
+        ->and($keys)->not->toContain('reserved_by_me')
+        ->and($keys)->not->toContain('reserved_by_id')
         ->and($keys)->not->toContain('recipient_id')
         ->and($keys)->not->toContain('pin_hash');
-
-    $this->postJson('/api/wishlist_reserve', ['id' => $item['id']])
-        ->assertStatus(409)
-        ->assertJsonPath('error', 'already_reserved');
-
-    // Ana cannot reserve her own wish.
-    $this->postJson('/api/guest_logout')->assertOk();
-    slice3Enter($this, $ana);
-    $this->postJson('/api/wishlist_reserve', ['id' => $item['id']])
-        ->assertStatus(422)
-        ->assertJsonPath('error', 'cannot_reserve_own');
-
-    // Ben toggles his reservation off; now Cora can reserve it.
-    $this->postJson('/api/guest_logout')->assertOk();
-    slice3Enter($this, $ben);
-    $this->postJson('/api/wishlist_reserve', ['id' => $item['id']])
-        ->assertOk()
-        ->assertJsonPath('reserved', false)
-        ->assertJsonPath('reserved_by_me', false);
-
-    $this->postJson('/api/guest_logout')->assertOk();
-    slice3Enter($this, $cora);
-    $this->postJson('/api/wishlist_reserve', ['id' => $item['id']])
-        ->assertOk()
-        ->assertJsonPath('reserved', true)
-        ->assertJsonPath('reserved_by_me', true);
 });
 
 // ----------------------------------------------------------------------

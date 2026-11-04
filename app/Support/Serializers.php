@@ -134,10 +134,11 @@ class Serializers
     }
 
     /**
-     * Wishlist board item shape (spec): id, text, link, notes, kind, image,
-     * reserved, reserved_by_me. Never reserved_by_id.
+     * Wishlist board item shape (spec): id, text, link, notes, kind, image.
+     * Wishlists are posting only, so there is no reserve state. Never
+     * reserved_by_id.
      */
-    public static function wishlistItem(WishlistItem $item, ?int $viewerGuestId = null): array
+    public static function wishlistItem(WishlistItem $item): array
     {
         return [
             'id' => $item->id,
@@ -146,10 +147,6 @@ class Serializers
             'notes' => $item->notes,
             'kind' => $item->kind,
             'image' => $item->image,
-            'reserved' => $item->reserved_by_id !== null,
-            'reserved_by_me' => $viewerGuestId !== null
-                && $item->reserved_by_id !== null
-                && (int) $item->reserved_by_id === $viewerGuestId,
         ];
     }
 }
