@@ -472,3 +472,8 @@ Board card container removed (2026-11-04): the Wishlists page's
 toggle, states, and grids now sit directly on the page
 background with no card wrapping them, matching the flat layout
 of the My wishes page.
+
+Recipient header hidden on the board (2026-11-04): the My
+recipient mode no longer shows the "You are buying for" name
+block; the reveal flow is where the recipient's secret name
+belongs. The tab keeps the budget line, wish count, and grid.

@@ -258,24 +258,6 @@ onMounted(() => {
                     </div>
 
                     <template v-else>
-                        <div class="recipient-head">
-                            <p class="buying-for">
-                                <span class="buying-for-label">You are buying for</span>
-                                <span v-if="recipient?.secret_name" class="buying-for-name">
-                                    {{ recipient.secret_name }}
-                                </span>
-                                <span
-                                    v-else
-                                    class="buying-for-placeholder"
-                                    role="img"
-                                    aria-label="Secret name not picked yet"
-                                >???</span>
-                            </p>
-                            <p v-if="!recipient?.secret_name" class="muted" style="margin: 6px 0 0">
-                                Your recipient has not picked a secret name yet.
-                            </p>
-                        </div>
-
                         <p v-if="recipientBudget" class="muted counts-line" style="margin: 0 0 4px">
                             Gift budget: <strong>{{ recipientBudget }}</strong>
                         </p>
@@ -378,49 +360,6 @@ onMounted(() => {
 .view-toggle-btn.active {
     background: rgba(196, 39, 251, 0.18);
     color: #f3b8ff;
-}
-
-.recipient-head {
-    margin-bottom: 14px;
-}
-
-/* The "You are buying for" header, in the same shape as the reveal
-   result: the label matches RevealStrip's under-layer label, the secret
-   name sits at the revealed name's type scale, and the placeholder for
-   a recipient who has not picked one yet is the reveal waiting state's
-   muted italic ??? so it can never be mistaken for an actual name. */
-.buying-for {
-    margin: 0;
-}
-
-.buying-for-label {
-    display: block;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--accent, #c427fb);
-}
-
-.buying-for-name {
-    display: block;
-    font-size: 1.38rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
-    color: var(--text-primary);
-    margin-top: 2px;
-}
-
-.buying-for-placeholder {
-    display: block;
-    font-size: 1.38rem;
-    font-weight: 800;
-    font-style: italic;
-    letter-spacing: 0.04em;
-    line-height: 1.15;
-    color: var(--text-tertiary);
-    margin-top: 2px;
 }
 
 /* Phone size pass: the My recipient / All wishes toggle reads smaller. */
