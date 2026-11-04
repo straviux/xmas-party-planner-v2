@@ -254,3 +254,8 @@ on mobile so they never cover the nav.
 
 Owner tweak (2026-11-04): the dock centre button loses its "Add wish"
 text label (aria-label kept) and shrinks from 56px to 48px.
+
+Overscroll fix (2026-11-04): overscroll-behavior none on html/body
+plus a document touch guard in app.js that swallows swipes past a
+scroller edge (page or inner scroller judged by its own edges), so
+mobile pages no longer rubber-band or chain at the top/bottom.

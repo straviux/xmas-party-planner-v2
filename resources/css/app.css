@@ -55,6 +55,10 @@ html,
 body {
     margin: 0;
     padding: 0;
+    /* No scroll chaining or pull-to-refresh past the page edges; the
+       matching touch guard in app.js covers the iOS rubber-band, which
+       ignores this property for the root scroller. */
+    overscroll-behavior: none;
 }
 
 body {
