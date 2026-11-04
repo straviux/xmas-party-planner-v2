@@ -413,3 +413,7 @@ layer is not rendered at all.
 Message stays (2026-11-04): when a tap changes Scor's bubble to a
 pool line, it now STAYS on that line until the next tap picks
 another; the 2.8 s auto-revert to the page message is removed.
+
+Bubble float strengthened (2026-11-04): the chatbox float was
+only 2px, effectively invisible on a phone. It now bobs a
+consistent 8px with a slight sway on a 3.6 s loop.
