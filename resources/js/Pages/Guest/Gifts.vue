@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import { Gift, Plus } from 'lucide-vue-next';
+import { Gift } from 'lucide-vue-next';
 import ConfirmModal from '../../Components/ConfirmModal.vue';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import Mascot from '../../Components/Mascot.vue';
@@ -168,33 +168,11 @@ function openQuickView(item) {
         </div>
 
         <template v-else>
-            <!-- Header card: mascot, title, explainer, add form. -->
-            <div class="card slide-in">
-                <Mascot message="What would make you smile?" />
-                <div style="text-align: center; margin-top: 10px">
-                    <span class="section-label">My wishes</span>
-                    <h1 class="card-title">What are you wishing for?</h1>
-                    <p class="card-subtitle" style="max-width: 520px; margin: 0 auto">
-                        Add the gifts you would love to receive. Everyone at the party
-                        can see your list, and your Secret Santa will thank you for
-                        the hints.
-                    </p>
-                    <button
-                        type="button"
-                        class="btn btn-primary"
-                        style="margin-top: 18px"
-                        @click="openAddForm"
-                    >
-                        <Plus :size="18" />
-                        <span>Add a wish</span>
-                    </button>
-                </div>
+            <!-- Scor stands on the page background, outside any card. -->
+            <Mascot message="What would make you smile?" />
 
-
-            </div>
-
-            <!-- Wishes live below the header card, in the shopping grid. -->
-            <div style="margin-top: 22px">
+            <!-- Wishes live below, in the shopping grid. -->
+            <div class="slide-in" style="margin-top: 10px">
                 <p v-if="loading" class="muted">Loading your wishes...</p>
 
                 <div v-else-if="myItems.length === 0" class="card">

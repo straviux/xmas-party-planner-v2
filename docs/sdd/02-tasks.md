@@ -426,3 +426,12 @@ lower one smaller (14px over 8px), each on its own float timing
 No tilt (2026-11-04): the chatbox float is a straight vertical
 bob; the slight rotation sway added with the stronger float is
 removed at the owner's call.
+
+Scor outside the cards (2026-11-04): on the Wishlists board the
+mascot now stands outside/above the hero card (Landing, Enter,
+and Home already had her outside). On My wishes the hero card is
+gone entirely (its eyebrow, headline, copy, and Add a wish button
+all removed at the owner's call), so the page goes from Scor
+straight to the grid controls. The board's All-wishes empty state
+also lost its Add a wish button; the dock centre star is now the
+way to add a wish.

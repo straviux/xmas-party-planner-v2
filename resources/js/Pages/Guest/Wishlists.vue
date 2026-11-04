@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Gift, ListChecks, Plus } from 'lucide-vue-next';
+import { Gift, ListChecks } from 'lucide-vue-next';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import Mascot from '../../Components/Mascot.vue';
 import WishlistGrid from '../../Components/WishlistGrid.vue';
@@ -177,10 +177,12 @@ onMounted(() => {
 <template>
     <Head title="Everyone's wishlists" />
     <GuestLayout dock wide>
-        <!-- Header card: mascot, title, explainer (same hero as the Gifts page). -->
-        <div class="card slide-in">
-            <Mascot message="Hunting for gift ideas?" />
-            <div style="text-align: center; margin-top: 10px">
+        <!-- Scor stands on the page background, outside any card. -->
+        <Mascot message="Hunting for gift ideas?" />
+
+        <!-- Header card: title and explainer. -->
+        <div class="card slide-in" style="margin-top: 10px">
+            <div style="text-align: center">
                 <span class="section-label">Wishlists</span>
                 <h1 class="card-title">What is everyone wishing for?</h1>
                 <p class="card-subtitle" style="max-width: 520px; margin: 0 auto">
@@ -337,10 +339,6 @@ onMounted(() => {
                             Nobody has added a wish yet. Be the first to add one,
                             so your Secret Santa knows where to start.
                         </p>
-                        <Link href="/guest/gifts?add=1" class="btn btn-primary" style="margin-top: 16px">
-                            <Plus :size="18" />
-                            <span>Add a wish</span>
-                        </Link>
                     </div>
                 </template>
 
