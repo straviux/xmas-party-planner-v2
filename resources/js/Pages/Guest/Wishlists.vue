@@ -26,7 +26,7 @@ const boardParty = ref(undefined);
 const members = ref([]);
 const query = ref('');
 // 'people' is the original member list; 'all' is the combined wishes grid.
-const view = ref('people');
+const view = ref('all');
 const busyId = ref(null);
 const selectedId = ref(null);
 const reelsOpen = ref(false);
@@ -216,18 +216,18 @@ function openMember(member) {
                     <button
                         type="button"
                         class="view-toggle-btn"
-                        :class="{ active: view === 'people' }"
-                        @click="view = 'people'"
-                    >
-                        By person
-                    </button>
-                    <button
-                        type="button"
-                        class="view-toggle-btn"
                         :class="{ active: view === 'all' }"
                         @click="view = 'all'"
                     >
                         All wishes
+                    </button>
+                    <button
+                        type="button"
+                        class="view-toggle-btn"
+                        :class="{ active: view === 'people' }"
+                        @click="view = 'people'"
+                    >
+                        By person
                     </button>
                 </div>
 
