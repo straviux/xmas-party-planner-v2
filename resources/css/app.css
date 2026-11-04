@@ -68,6 +68,8 @@ body {
     background-attachment: fixed;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    /* No double-tap zoom delay/gesture on controls (zoom is disabled). */
+    touch-action: manipulation;
 }
 
 /* No text shadows anywhere in the UI (hard rule). */
@@ -87,6 +89,7 @@ button {
 
 .guest-shell {
     min-height: 100vh;
+    min-height: 100dvh;
     width: 100%;
 }
 
@@ -274,7 +277,8 @@ button {
     background: var(--input-bg);
     color: #ffffff;
     font-family: inherit;
-    font-size: 0.95rem;
+    /* 16px minimum: anything smaller makes iOS auto-zoom on focus. */
+    font-size: 1rem;
     outline: none;
 }
 
@@ -706,6 +710,7 @@ button {
 .host-shell {
     display: flex;
     min-height: 100vh;
+    min-height: 100dvh;
     background: var(--host-bg);
 }
 
@@ -716,6 +721,7 @@ button {
     z-index: 50;
     width: 260px;
     height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     background: var(--host-sidebar);
@@ -978,11 +984,16 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 16px;
 }
 
 .modal-card {
     width: min(94vw, 460px);
+    /* Tall forms scroll inside the card on phones, so the title and the
+       action buttons can never be pushed off-screen by browser chrome. */
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     background: #262a49;
     border: 1px solid var(--card-border);
     border-radius: 22px;
@@ -1636,5 +1647,17 @@ button.poll-option:hover:not(:disabled) {
 
     .wish-tile:hover {
         transform: none;
+    }
+}
+
+/* iOS focus auto-zoom guard: below 16px, Safari zooms the page in when a
+   field gains focus and never zooms back out. Forcing every form control
+   to 16px on small screens keeps the layout exactly where the guest left
+   it (page zoom is disabled in the viewport meta as well). */
+@media (max-width: 1023.98px) {
+    input:not(.pin-input),
+    textarea,
+    select {
+        font-size: 16px !important;
     }
 }

@@ -286,7 +286,9 @@ onBeforeUnmount(() => {
     z-index: 150;
     overflow-x: hidden;
     overflow-y: auto;
-    background: rgba(10, 10, 25, 0.96);
+    /* Fully opaque: the page underneath must never bleed through, the
+       viewer reads as its own full screen, edge to edge. */
+    background: #0a0a19;
     color: var(--text-primary);
     touch-action: pan-y;
     overscroll-behavior: contain;
@@ -403,6 +405,10 @@ onBeforeUnmount(() => {
 }
 
 .reel-media {
+    /* The visual fills the slide's flexible middle row; the caption and
+       notes take only the height they need below it. */
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -413,7 +419,7 @@ onBeforeUnmount(() => {
 .reel-media img {
     display: block;
     max-width: 100%;
-    max-height: 52vh;
+    max-height: 100%;
     border-radius: 20px;
     object-fit: contain;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);

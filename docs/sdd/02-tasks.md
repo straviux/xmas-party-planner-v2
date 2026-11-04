@@ -225,3 +225,12 @@ dropped session cookie (scanner webviews) stranded guests at the start;
 join now redirects to /enter?code={code} (which the entry page
 auto-checks) and entry also receives the session code as a prop.
 Suite: 88 tests / 2,299 assertions.
+
+Mobile sizing round (2026-11-04, from Arc's production phone pass):
+zoom disabled in the viewport meta (maximum-scale 1, user-scalable no)
+plus viewport-fit=cover, which also makes the dock's safe-area padding
+real on iPhones; every form control is 16px on small screens so iOS no
+longer auto-zooms on focus (the PIN input keeps its large size);
+popups cap at 100dvh - 32px and scroll internally; the reels viewer is
+fully opaque and its media fills the slide's middle row; shell heights
+gained dvh fallbacks.

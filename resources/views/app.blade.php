@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
         <meta name="theme-color" content="#1C1B33">
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <title>Secret Santa HQ</title>
