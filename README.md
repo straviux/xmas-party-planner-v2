@@ -83,7 +83,7 @@ reset it from the Guests page; you will create a new one on your next visit,
 and your claim, wishlist, and votes stay exactly as they were.
 
 If you revealed your person but forgot to write the name down, your home
-page has a "See my person again" card: enter your PIN and the name is shown
+page has a "Show my recipient again" card: enter your PIN and the name is shown
 to you again, in a popup. It only ever shows your own person, in your own
 signed-in session, and only after your PIN checks out.
 
@@ -133,7 +133,7 @@ Guest flow:
       anything. Write the name down.
 - [ ] Sign out, enter the same name with a wrong PIN: plain error, nothing
       revealed. With the right PIN you go to your home page, not a reveal.
-- [ ] On your home page, use "See my person again": a wrong PIN shows an
+- [ ] On your home page, use "Show my recipient again": a wrong PIN shows an
       inline error and no name; your real PIN shows the same person you
       revealed. The name must not stay visible after you close the popup.
 - [ ] Add wishlist items: text only, a link, and a photo. The photo shows as

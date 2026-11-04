@@ -51,7 +51,7 @@ async function signOut() {
     }
 }
 
-/* ---------- See my person again (reveal_again) ---------- */
+/* ---------- Show my recipient again (reveal_again) ---------- */
 
 // The popup is the only place the recipient name ever appears on this
 // page: it lives in this local state, which closePopup() wipes, and the
@@ -188,12 +188,12 @@ onBeforeUnmount(() => {
                     Your Secret Santa
                 </span>
                 <p class="dash-sub" style="margin: 10px 0 16px">
-                    You already revealed your person. If the name slipped your
-                    mind, enter your PIN to see it again.
+                    You already revealed who you are buying for. If the name
+                    slipped your mind, enter your PIN to see it again.
                 </p>
                 <button type="button" class="btn btn-primary" @click="openPopup">
                     <Eye :size="16" />
-                    <span>See my person again</span>
+                    <span>Show my recipient again</span>
                 </button>
             </div>
 
@@ -244,12 +244,12 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- See my person again: PIN check, then the name, in a popup only.
+        <!-- Show my recipient again: PIN check, then the name, in a popup only.
              The name is never rendered on the dashboard itself. -->
         <div v-if="popupOpen" class="modal-backdrop" @click.self="backdropClick">
-            <div class="modal-card pop-in" role="dialog" aria-modal="true" aria-label="See my person again">
+            <div class="modal-card pop-in" role="dialog" aria-modal="true" aria-label="Show my recipient again">
                 <template v-if="popupStep === 'pin'">
-                    <h3 class="modal-title">See my person again</h3>
+                    <h3 class="modal-title">Show my recipient again</h3>
                     <p class="muted" style="margin: 0 0 18px; line-height: 1.55">
                         Enter your 4-digit PIN and we will show you who you are
                         buying for.
@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
                             </button>
                             <button type="submit" class="btn btn-primary" :disabled="checking">
                                 <Eye :size="16" />
-                                <span>{{ checking ? 'Checking...' : 'Show my person' }}</span>
+                                <span>{{ checking ? 'Checking...' : 'Show my recipient' }}</span>
                             </button>
                         </div>
                     </form>

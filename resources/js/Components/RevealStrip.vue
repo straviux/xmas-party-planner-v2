@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { ArrowRight, Gift } from 'lucide-vue-next';
 
 // Slide-to-reveal strip shared by the Reveal page and the Guest Home
-// "See my person again" popup.
+// "Show my recipient again" popup.
 //
 // The recipient name lives in the layer under the sliding cover, inside
 // the track, so it is uncovered exactly as far as the cover has slid.
