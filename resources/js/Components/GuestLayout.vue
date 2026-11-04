@@ -46,7 +46,7 @@ const current = computed(() => {
             </Link>
             <Link href="/guest/gifts" class="dock-item" :class="{ active: current === 'gifts' }">
                 <Gift :size="22" />
-                <span>Gifts</span>
+                <span>My wishes</span>
             </Link>
             <Link href="/guest/gifts?add=1" class="dock-centre-wrap" aria-label="Add a wishlist item">
                 <span class="dock-centre">

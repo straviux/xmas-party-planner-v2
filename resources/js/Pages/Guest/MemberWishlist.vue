@@ -184,7 +184,7 @@ async function confirmDeleteWish() {
                     </p>
                     <p class="empty-state-text">
                         <template v-if="isMine">
-                            Add your first wish from your Gifts page, and it will
+                            Add your first wish from your My wishes page, and it will
                             show up here too.
                         </template>
                         <template v-else>

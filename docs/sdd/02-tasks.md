@@ -383,3 +383,11 @@ wishlist page, with leak-scan tests to prove it. Tiles show
 "by <secret name>" (or the ??? placeholder), the own-wish tag now
 reads "Me", the tile open-link button shrank from 48px to 36px,
 and the tile footer is tighter.
+
+Board hero + rename (2026-11-04): the Wishlists board opens with
+the same hero card as the My wishes page (Scor, bubble, eyebrow,
+headline, one line, no button; the toggle and board sit in their
+own card below). The Gifts section is renamed "My wishes"
+everywhere guests see it: dock label, page title, hero eyebrow,
+Home card button, and related labels. The route stays
+/guest/gifts under the hood.

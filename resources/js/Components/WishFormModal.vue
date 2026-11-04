@@ -277,7 +277,7 @@ async function submit() {
                         </template>
                         <template v-else>
                             <Plus :size="18" />
-                            <span>{{ submitting ? 'Adding...' : 'Add to my wishlist' }}</span>
+                            <span>{{ submitting ? 'Adding...' : 'Add to my wishes' }}</span>
                         </template>
                     </button>
                 </div>

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Gift, ListChecks, Plus } from 'lucide-vue-next';
 import GuestLayout from '../../Components/GuestLayout.vue';
+import Mascot from '../../Components/Mascot.vue';
 import WishlistGrid from '../../Components/WishlistGrid.vue';
 import WishQuickView from '../../Components/WishQuickView.vue';
 import WishReels from '../../Components/WishReels.vue';
@@ -176,14 +177,20 @@ onMounted(() => {
 <template>
     <Head title="Everyone's wishlists" />
     <GuestLayout dock wide>
+        <!-- Header card: mascot, title, explainer (same hero as the Gifts page). -->
         <div class="card slide-in">
-            <span class="section-label">Wishlists</span>
-            <h1 class="card-title">Everyone's wishlists</h1>
-            <p class="card-subtitle" style="margin-bottom: 20px">
-                See what the person you are buying for is wishing for, or
-                browse every posted wish in one place.
-            </p>
+            <Mascot message="Hunting for gift ideas?" />
+            <div style="text-align: center; margin-top: 10px">
+                <span class="section-label">Wishlists</span>
+                <h1 class="card-title">What is everyone wishing for?</h1>
+                <p class="card-subtitle" style="max-width: 520px; margin: 0 auto">
+                    Browse everyone's wishes in one place, or switch to My
+                    recipient to see only the list that matters most.
+                </p>
+            </div>
+        </div>
 
+        <div class="card" style="margin-top: 22px">
             <p v-if="loading" class="muted">Loading wishlists...</p>
 
             <div v-else-if="!party" class="empty-state">

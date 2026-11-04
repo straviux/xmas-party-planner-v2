@@ -151,12 +151,12 @@ function openQuickView(item) {
 </script>
 
 <template>
-    <Head title="My wishlist" />
+    <Head title="My wishes" />
     <GuestLayout dock wide>
         <!-- No party: a normal empty state, not an error. -->
         <div v-if="!party" class="card slide-in">
-            <span class="section-label">My wishlist</span>
-            <h1 class="card-title">My wishlist</h1>
+            <span class="section-label">My wishes</span>
+            <h1 class="card-title">My wishes</h1>
             <div class="empty-state">
                 <Gift :size="40" />
                 <p class="empty-state-title">No party set up yet</p>
@@ -172,7 +172,7 @@ function openQuickView(item) {
             <div class="card slide-in">
                 <Mascot message="What would make you smile?" />
                 <div style="text-align: center; margin-top: 10px">
-                    <span class="section-label">My wishlist</span>
+                    <span class="section-label">My wishes</span>
                     <h1 class="card-title">What are you wishing for?</h1>
                     <p class="card-subtitle" style="max-width: 520px; margin: 0 auto">
                         Add the gifts you would love to receive. Everyone at the party

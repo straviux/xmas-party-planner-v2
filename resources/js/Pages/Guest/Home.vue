@@ -414,7 +414,7 @@ onBeforeUnmount(() => {
                 <p class="dash-sub">wishes on your own list</p>
                 <Link href="/guest/gifts" class="btn btn-secondary" style="margin-top: 14px">
                     <Gift :size="15" />
-                    <span>Open my wishlist</span>
+                    <span>Open my wishes</span>
                 </Link>
             </div>
 
