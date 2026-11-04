@@ -251,3 +251,6 @@ flush to the top with rounded bottom corners and safe-area-inset-top
 padding; the centre button sits inline instead of raised; page content
 reserves top space instead of bottom; toasts move to the bottom edge
 on mobile so they never cover the nav.
+
+Owner tweak (2026-11-04): the dock centre button loses its "Add wish"
+text label (aria-label kept) and shrinks from 56px to 48px.

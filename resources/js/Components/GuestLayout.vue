@@ -47,10 +47,9 @@ const current = computed(() => {
             </Link>
             <Link href="/guest/gifts?add=1" class="dock-centre-wrap" aria-label="Add a wishlist item">
                 <span class="dock-centre">
-                    <Star :size="24" />
-                    <Plus class="dock-centre-plus" :size="13" :stroke-width="3.2" />
+                    <Star :size="21" />
+                    <Plus class="dock-centre-plus" :size="12" :stroke-width="3.2" />
                 </span>
-                <span class="dock-centre-label">Add wish</span>
             </Link>
             <Link href="/guest/wishlists" class="dock-item" :class="{ active: current === 'wishlists' }">
                 <ListChecks :size="22" />
