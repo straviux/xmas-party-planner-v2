@@ -456,10 +456,16 @@ onBeforeUnmount(() => {
 
                 <template v-else-if="againRecipient && !againRecipient.secret_name">
                     <!-- The recipient has not picked a secret name yet, so
-                         there is nothing to slide open. -->
+                         there is nothing to slide open: the result block
+                         keeps the success shape, with a placeholder
+                         standing in for the name. -->
                     <div style="text-align: center">
                         <Hourglass :size="30" style="color: var(--text-tertiary)" />
                         <h3 class="modal-title" style="margin-top: 10px">Your recipient is still choosing</h3>
+                        <p class="buying-for">
+                            <span class="buying-for-label">You are buying for</span>
+                            <span class="buying-for-placeholder" role="img" aria-label="Secret name not picked yet">???</span>
+                        </p>
                         <p class="muted" style="margin: 0; line-height: 1.55">
                             Your person has not picked their secret name yet.
                             Check again later from your home page, under Show
@@ -651,5 +657,35 @@ onBeforeUnmount(() => {
 .again-budget {
     color: var(--text-secondary);
     margin: 16px 0 0;
+}
+
+/* The "You are buying for" result block, shared in shape with the
+   success state (and with the Reveal page's waiting state, which
+   carries the same classes): the label matches RevealStrip's
+   under-layer label, and the placeholder sits at the revealed name's
+   type scale but muted and italic, so it can never be mistaken for an
+   actual secret name. */
+.buying-for {
+    margin: 14px 0 12px;
+}
+
+.buying-for-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent, #c427fb);
+}
+
+.buying-for-placeholder {
+    display: block;
+    font-size: 1.38rem;
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    line-height: 1.15;
+    color: var(--text-tertiary);
+    margin-top: 2px;
 }
 </style>

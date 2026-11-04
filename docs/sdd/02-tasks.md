@@ -301,3 +301,9 @@ pin_required_create, pin_must_be_4_digits, pin_incorrect), displayed
 only inside the popup and wiped on close; the Change form starts
 blank by design. Suite: 106 tests / 2,518 assertions; the live E2E
 scans both Home pages for leaked values.
+
+Polish (2026-11-04): the "still choosing" reveal states (recipient
+has no secret name yet) now keep the result shape: a "You are buying
+for" label with a muted italic ??? placeholder in the name slot, on
+both the Reveal page and the Show-my-recipient-again popup, so the
+slot itself is never just missing.
