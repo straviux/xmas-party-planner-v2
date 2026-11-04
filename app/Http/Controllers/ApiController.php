@@ -52,6 +52,7 @@ class ApiController extends Controller
         'guest_set_pin' => 'guestSetPin',
         'guest_set_secret_name' => 'guestSetSecretName',
         'guest_secret_name_view' => 'guestSecretNameView',
+        'guest_recipient_wishlist' => 'guestRecipientWishlist',
         'guest_logout' => 'guestLogout',
         'wishlist_add' => 'wishlistAdd',
         'wishlist_update' => 'wishlistUpdate',
@@ -81,7 +82,7 @@ class ApiController extends Controller
      */
     private array $guestActions = [
         'enter', 'reveal', 'reveal_again', 'guest_verify_pin', 'guest_set_pin',
-        'guest_set_secret_name', 'guest_secret_name_view', 'guest_logout',
+        'guest_set_secret_name', 'guest_secret_name_view', 'guest_recipient_wishlist', 'guest_logout',
         'wishlist_add', 'wishlist_update', 'wishlist_delete', 'poll_vote',
     ];
 
@@ -490,6 +491,17 @@ class ApiController extends Controller
     {
         try {
             $result = app(GuestEntryService::class)->viewSecretName($request);
+        } catch (GuestEntryException $e) {
+            return $this->guestError($e);
+        }
+
+        return $this->ok($result);
+    }
+
+    private function guestRecipientWishlist(Request $request): JsonResponse
+    {
+        try {
+            $result = app(GuestEntryService::class)->recipientWishlist($request);
         } catch (GuestEntryException $e) {
             return $this->guestError($e);
         }

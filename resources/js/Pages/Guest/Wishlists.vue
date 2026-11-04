@@ -1,13 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ChevronRight, Gift, ListChecks, Plus, Search } from 'lucide-vue-next';
+import { Gift, ListChecks, Plus } from 'lucide-vue-next';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import WishlistGrid from '../../Components/WishlistGrid.vue';
 import WishQuickView from '../../Components/WishQuickView.vue';
 import WishReels from '../../Components/WishReels.vue';
 import { post } from '../../lib/api';
-import { normalizeText } from '../../lib/normalize';
 import { toastError } from '../../lib/toast';
 
 const props = defineProps({
@@ -24,9 +23,9 @@ const props = defineProps({
 const loading = ref(true);
 const boardParty = ref(undefined);
 const members = ref([]);
-const query = ref('');
-// 'people' is the original member list; 'all' is the combined wishes grid.
-const view = ref('all');
+// 'recipient' shows only the wishlist of the person the guest is buying
+// for; 'all' is the combined wishes grid.
+const view = ref('recipient');
 const selectedId = ref(null);
 const reelsOpen = ref(false);
 const reelsSequence = ref([]);
@@ -34,23 +33,6 @@ const reelsStartIndex = ref(0);
 
 const party = computed(() =>
     boardParty.value === undefined ? props.party : boardParty.value,
-);
-
-function wishCount(member) {
-    return member.wish_count ?? member.items?.length ?? 0;
-}
-
-function memberMatches(member, rawQuery) {
-    const q = normalizeText(rawQuery);
-    if (!q) return true;
-    const fields = [member.display, member.nickname, ...(member.aliases || [])]
-        .map(normalizeText)
-        .filter(Boolean);
-    return fields.some((field) => field.includes(q));
-}
-
-const visibleMembers = computed(() =>
-    members.value.filter((member) => memberMatches(member, query.value)),
 );
 
 // Every wish from every member in one list, each item tagged with its
@@ -128,11 +110,68 @@ async function loadBoard() {
     }
 }
 
-onMounted(loadBoard);
+// The recipient mode has its own action: the board payload never says
+// who anyone's recipient is, so this is the only way the page can learn
+// whose wishlist the signed-in guest is shopping for.
+const recipientStatus = ref('idle');
+const recipient = ref(null);
+const recipientBudget = ref('');
+const recipientItems = ref([]);
+const recipientSelectedId = ref(null);
 
-function openMember(member) {
-    router.visit(`/guest/wishlists/${member.id}`);
+const recipientCountsLine = computed(() => {
+    const count = recipientItems.value.length;
+    return `${count} wish${count === 1 ? '' : 'es'} from your recipient`;
+});
+
+const recipientSelectedItem = computed(
+    () =>
+        recipientItems.value.find(
+            (item) => String(item.id) === String(recipientSelectedId.value),
+        ) || null,
+);
+
+function openRecipientQuickView(item) {
+    recipientSelectedId.value = item.id;
 }
+
+async function loadRecipient() {
+    recipientStatus.value = 'loading';
+    try {
+        const body = await post('guest_recipient_wishlist');
+        recipient.value = body.recipient || null;
+        recipientBudget.value = body.budget || '';
+        recipientItems.value = body.items || [];
+        recipientStatus.value = 'ready';
+    } catch (err) {
+        if (err.code === 'not_revealed') {
+            recipientStatus.value = 'not_revealed';
+        } else if (err.code === 'not_claimed') {
+            toastError('Your session has ended. Enter your name and PIN to continue.');
+            router.visit('/enter');
+        } else {
+            recipientStatus.value = 'error';
+            toastError(
+                err.message || "Your recipient's wishlist could not be loaded. Please try again.",
+            );
+        }
+    }
+}
+
+function selectView(next) {
+    view.value = next;
+    if (
+        next === 'recipient' &&
+        (recipientStatus.value === 'idle' || recipientStatus.value === 'error')
+    ) {
+        loadRecipient();
+    }
+}
+
+onMounted(() => {
+    loadBoard();
+    loadRecipient();
+});
 </script>
 
 <template>
@@ -142,8 +181,8 @@ function openMember(member) {
             <span class="section-label">Wishlists</span>
             <h1 class="card-title">Everyone's wishlists</h1>
             <p class="card-subtitle" style="margin-bottom: 20px">
-                Find a person to see what they are wishing for, or browse
-                every posted wish in one place.
+                See what the person you are buying for is wishing for, or
+                browse every posted wish in one place.
             </p>
 
             <p v-if="loading" class="muted">Loading wishlists...</p>
@@ -171,77 +210,109 @@ function openMember(member) {
                     <button
                         type="button"
                         class="view-toggle-btn"
-                        :class="{ active: view === 'all' }"
-                        @click="view = 'all'"
+                        :class="{ active: view === 'recipient' }"
+                        @click="selectView('recipient')"
                     >
-                        All wishes
+                        My recipient
                     </button>
                     <button
                         type="button"
                         class="view-toggle-btn"
-                        :class="{ active: view === 'people' }"
-                        @click="view = 'people'"
+                        :class="{ active: view === 'all' }"
+                        @click="selectView('all')"
                     >
-                        By person
+                        All wishes
                     </button>
                 </div>
 
-                <template v-if="view === 'people'">
-                <label class="wish-search" style="margin-bottom: 16px">
-                    <Search :size="18" />
-                    <input
-                        v-model="query"
-                        class="input"
-                        type="text"
-                        autocomplete="off"
-                        placeholder="Search by name, nickname, or alias"
-                        aria-label="Search people"
-                    />
-                </label>
-
-                <div v-if="visibleMembers.length" class="member-list">
-                    <button
-                        v-for="member in visibleMembers"
-                        :key="member.id"
-                        type="button"
-                        class="member-row"
-                        @click="openMember(member)"
+                <template v-if="view === 'recipient'">
+                    <p
+                        v-if="recipientStatus === 'idle' || recipientStatus === 'loading'"
+                        class="muted"
                     >
-                        <span class="member-row-main">
-                            <span class="member-row-name">
-                                {{ member.display }}
-                                <span
-                                    v-if="String(member.id) === String(guest?.id)"
-                                    class="badge badge-locked"
-                                >
-                                    You
+                        Loading your recipient's wishlist...
+                    </p>
+
+                    <div v-else-if="recipientStatus === 'not_revealed'" class="empty-state">
+                        <Gift :size="40" />
+                        <p class="empty-state-title">You have not revealed your recipient yet</p>
+                        <p class="empty-state-text">
+                            The wishlist of the person you are buying for will
+                            appear here once you have revealed who they are.
+                        </p>
+                        <Link href="/reveal" class="btn btn-primary" style="margin-top: 16px">
+                            <span>Reveal my recipient</span>
+                        </Link>
+                    </div>
+
+                    <div v-else-if="recipientStatus === 'error'" class="empty-state">
+                        <Gift :size="40" />
+                        <p class="empty-state-title">This wishlist could not be loaded</p>
+                        <p class="empty-state-text">
+                            Check your connection and try again.
+                        </p>
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            style="margin-top: 16px"
+                            @click="loadRecipient"
+                        >
+                            <span>Try again</span>
+                        </button>
+                    </div>
+
+                    <template v-else>
+                        <div class="recipient-head">
+                            <p class="buying-for">
+                                <span class="buying-for-label">You are buying for</span>
+                                <span v-if="recipient?.secret_name" class="buying-for-name">
+                                    {{ recipient.secret_name }}
                                 </span>
-                            </span>
-                            <span v-if="member.nickname" class="member-row-sub">
-                                “{{ member.nickname }}”
-                            </span>
-                            <span
-                                v-if="member.aliases && member.aliases.length"
-                                class="member-row-sub"
-                            >
-                                (also: {{ member.aliases.join(', ') }})
-                            </span>
-                        </span>
-                        <span class="member-row-side">
-                            <span>
-                                {{
-                                    wishCount(member) > 0
-                                        ? `${wishCount(member)} wish${wishCount(member) === 1 ? '' : 'es'}`
-                                        : 'no wishlist yet'
-                                }}
-                            </span>
-                            <ChevronRight :size="18" />
-                        </span>
-                    </button>
-                </div>
-                <p v-else class="muted" style="margin: 4px 0 0">
-                    No matching names. Check the spelling, or try a nickname.
-                </p>
+                                <span
+                                    v-else
+                                    class="buying-for-placeholder"
+                                    role="img"
+                                    aria-label="Secret name not picked yet"
+                                >???</span>
+                            </p>
+                            <p v-if="!recipient?.secret_name" class="muted" style="margin: 6px 0 0">
+                                Your recipient has not picked a secret name yet.
+                            </p>
+                        </div>
+
+                        <p v-if="recipientBudget" class="muted counts-line" style="margin: 0 0 4px">
+                            Gift budget: <strong>{{ recipientBudget }}</strong>
+                        </p>
+                        <p
+                            v-if="recipientItems.length"
+                            class="muted counts-line"
+                            style="margin: 0 0 14px"
+                        >
+                            {{ recipientCountsLine }}
+                        </p>
+
+                        <WishlistGrid
+                            v-if="recipientItems.length"
+                            :items="recipientItems"
+                            mode="member"
+                            @open="openRecipientQuickView"
+                        />
+                        <div v-else class="empty-state">
+                            <Gift :size="40" />
+                            <p class="empty-state-title">
+                                Your recipient has not posted any wishes yet
+                            </p>
+                            <p class="empty-state-text">
+                                Any wishes they post will appear here.
+                            </p>
+                        </div>
+
+                        <WishQuickView
+                            :item="recipientSelectedItem"
+                            mode="member"
+                            @close="recipientSelectedId = null"
+                        />
+                    </template>
                 </template>
 
                 <template v-else>
@@ -317,7 +388,50 @@ function openMember(member) {
     color: #f3b8ff;
 }
 
-/* Phone size pass: the All wishes / By person toggle reads smaller. */
+.recipient-head {
+    margin-bottom: 14px;
+}
+
+/* The "You are buying for" header, in the same shape as the reveal
+   result: the label matches RevealStrip's under-layer label, the secret
+   name sits at the revealed name's type scale, and the placeholder for
+   a recipient who has not picked one yet is the reveal waiting state's
+   muted italic ??? so it can never be mistaken for an actual name. */
+.buying-for {
+    margin: 0;
+}
+
+.buying-for-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent, #c427fb);
+}
+
+.buying-for-name {
+    display: block;
+    font-size: 1.38rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin-top: 2px;
+}
+
+.buying-for-placeholder {
+    display: block;
+    font-size: 1.38rem;
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    line-height: 1.15;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+
+/* Phone size pass: the My recipient / All wishes toggle reads smaller. */
 @media (max-width: 767.98px) {
     .view-toggle {
         padding: 3px;

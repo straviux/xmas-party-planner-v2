@@ -331,3 +331,15 @@ body shift) no longer waits for hover or touch. It is a continuous
 four synchronised keyframe animations; the :hover rule and its CSS
 vars were removed entirely. Reduced-motion still freezes him at the
 resting pose.
+
+Board change (2026-11-04): the Wishlists tab's "By person" mode is
+replaced by "My recipient" (the default). A new action,
+guest_recipient_wishlist, returns the session guest's own recipient
+(reveal shape), the budget, and only that recipient's items; gates
+are not_claimed and not_revealed, failures carry nothing, and unlike
+reveal_again it needs no fresh PIN (the session is PIN-verified at
+entry; owner's requested behaviour, recorded in AGENTS.md rule 2).
+The tab header shows the codename or the ??? placeholder; All wishes
+is unchanged, and the per-person page remains but is no longer
+linked from the board. Suite: 113 tests / 2,585 assertions; the live
+E2E checks each guest receives exactly their recipient's wishes.

@@ -76,10 +76,11 @@ For guests:
    says so, and "Show my recipient again" will show it once they do.
 6. Add your own wishlist under Gifts (text, a shop link, notes, and a photo
    if you like). To change or remove one of your wishes later, use the
-   gear button on it and choose Edit wish or Delete wish. Browse everyone's wishlists from the Wishlists tab, by
-   person or all together, and swipe through them in the full-screen
-   viewer. Wishlists are for posting and browsing only; there is no
-   reserving.
+   gear button on it and choose Edit wish or Delete wish. The Wishlists
+   tab opens on your recipient's wishes (once you have revealed), or
+   shows everyone's wishes all together, and you can swipe through them
+   in the full-screen viewer. Wishlists are for posting and browsing
+   only; there is no reserving.
 7. Vote in the host's polls under Vote. You can change your vote until the
    host closes a poll.
 
@@ -149,6 +150,9 @@ Guest flow:
 - [ ] On your home page, use "Show my recipient again": a wrong PIN shows an
       inline error and no name; your real PIN shows the same person you
       revealed. The name must not stay visible after you close the popup.
+- [ ] Before revealing, the Wishlists tab's My recipient view asks you to
+      reveal first. After revealing, it shows only your recipient's
+      wishes under their secret name (or ??? if they have not picked one).
 - [ ] Add wishlist items: text only, a link, and a photo. The photo shows as
       a square tile in a shop-style grid, also in LibreWolf.
 - [ ] In the grid, try search, the filter chips, and sorting: instant.

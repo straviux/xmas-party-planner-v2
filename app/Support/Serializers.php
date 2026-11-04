@@ -128,11 +128,12 @@ class Serializers
      * Reveal recipient shape: id, secret_name.
      *
      * This is the ONLY shape that ever carries a recipient. It is used
-     * solely by the `reveal` response and the `reveal_again` response,
-     * both scoped to the session guest's own recipient. It carries the
-     * recipient's secret name (their self-chosen codename), or null when
-     * they have not picked one yet: the recipient's REAL name must never
-     * appear here, so identities stay hidden until the gift exchange.
+     * solely by the `reveal`, `reveal_again`, and
+     * `guest_recipient_wishlist` responses, all scoped to the session
+     * guest's own recipient. It carries the recipient's secret name
+     * (their self-chosen codename), or null when they have not picked
+     * one yet: the recipient's REAL name must never appear here, so
+     * identities stay hidden until the gift exchange.
      */
     public static function revealRecipient(Guest $recipient): array
     {

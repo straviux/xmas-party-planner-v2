@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Guest;
 use App\Models\Party;
+use App\Models\WishlistItem;
 use App\Support\Serializers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -17,10 +18,14 @@ use Illuminate\Support\Str;
  * Secrecy contract (Hard Rule 4): nothing in this service ever returns,
  * stores in the session, or logs a recipient, except reveal() — the
  * response that carries a recipient on first reveal, only once per
- * guest — and revealAgain(), the single named exception: the same guest,
- * in their own session, after PIN verification, and only once they have
- * already revealed. Even those responses carry only the recipient's
- * secret name, never their real name. A guest's OWN secret name is kept
+ * guest — revealAgain(), the named exception: the same guest, in their
+ * own session, after PIN verification, and only once they have already
+ * revealed — and recipientWishlist(), the second named exception: the
+ * same guest's recipient codename plus that recipient's wishlist items,
+ * in their own session, only once they have already revealed (no fresh
+ * PIN: the session itself is PIN-verified at entry). Even those
+ * responses carry only the recipient's secret name, never their real
+ * name. A guest's OWN secret name is kept
  * under the same lock: it is never sent to the guest home page, and only
  * viewSecretName() returns it, after PIN verification. The session
  * stores guest_id + a pin_verified flag only (D2), never the plain PIN.
@@ -377,6 +382,60 @@ class GuestEntryService
         return [
             'recipient' => $recipient === null ? null : Serializers::revealRecipient($recipient),
             'budget' => $guest->party?->budget,
+        ];
+    }
+
+    /**
+     * Your recipient's wishlist (owner-directed feature): a guest who has
+     * revealed can shop from their person's list without the board ever
+     * naming who it belongs to. Returns the recipient's codename (the
+     * reveal shape, null when unset), the party budget, and the
+     * recipient's wishlist items only, newest first — the same item
+     * shape and ordering as the public board.
+     *
+     * Second named exception to the once-only secrecy rule, alongside
+     * revealAgain(). It deliberately needs NO fresh PIN: the guest
+     * session is itself PIN-verified at entry, and the owner asked for
+     * the list to be one tap away after the reveal. Read-only and
+     * repeatable; changes no state.
+     *
+     * The recipient is derived strictly from the session guest's own
+     * recipient_id, so this can only ever return that guest's recipient.
+     * Both gates run before the recipient is loaded into the payload, so
+     * no failure response carries the codename, the real name, or any
+     * item data: an unclaimed session guest is not_claimed, and a guest
+     * who has not revealed yet (or somehow has no recipient) is
+     * not_revealed.
+     *
+     * @return array{recipient: array{id: int, secret_name: ?string}, budget: ?string, items: array<int, array<string, mixed>>}
+     *
+     * @throws GuestEntryException
+     */
+    public function recipientWishlist(Request $request): array
+    {
+        $guest = $this->sessionGuest($request);
+
+        if ($guest === null || ! $guest->claimed) {
+            throw GuestEntryException::make('not_claimed');
+        }
+
+        $recipient = $guest->revealed ? $guest->recipient : null;
+
+        if ($recipient === null) {
+            throw GuestEntryException::make('not_revealed', 409);
+        }
+
+        $items = $recipient->wishlistItems()
+            ->latest('id')
+            ->get()
+            ->map(fn (WishlistItem $item) => Serializers::wishlistItem($item))
+            ->values()
+            ->all();
+
+        return [
+            'recipient' => Serializers::revealRecipient($recipient),
+            'budget' => $guest->party?->budget,
+            'items' => $items,
         ];
     }
 

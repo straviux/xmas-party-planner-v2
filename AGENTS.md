@@ -24,11 +24,16 @@ and best practices.
    `reserved_by_id` must never appear in any API response, host view, log,
    or session. All responses are built through `App\Support\Serializers`.
    The only responses that ever carry a recipient are the single reveal
-   and `reveal_again`, the one named exception: it returns a guest's own
-   recipient to that same guest, in their own session, only after PIN
-   verification, and only when they have already revealed. Reveal
-   responses carry the recipient's secret name (the guest's self-chosen
-   codename, set via `guest_set_secret_name`), never their real name, so
+   and the two named exceptions, both scoped to a guest's own recipient,
+   in that same guest's own session, and only once they have already
+   revealed: `reveal_again` returns the recipient after fresh PIN
+   verification, and `guest_recipient_wishlist` returns the recipient's
+   codename plus that recipient's wishlist items. Unlike `reveal_again`,
+   `guest_recipient_wishlist` needs no fresh PIN, because the session
+   itself is PIN-verified at entry; that is the owner's requested
+   behaviour. Reveal responses carry the recipient's secret name (the
+   guest's self-chosen codename, set via `guest_set_secret_name`), never
+   their real name, so
    real identities stay hidden until the gift exchange itself; a
    recipient who has not picked a secret name yet reveals as null. A
    guest's OWN secret name is under the same lock: it is never sent to
@@ -53,7 +58,13 @@ and best practices.
    name after PIN verification (same PIN failure codes as
    `reveal_again`); a claimed guest who has not picked one yet gets
    `secret_name_unset` 409, checked before the PIN. No failure response
-   from it ever carries the value.
+   from it ever carries the value. `guest_recipient_wishlist` (no
+   inputs) returns the session guest's recipient as the reveal shape
+   (`Serializers::revealRecipient`), the party budget, and the
+   recipient's wishlist items (the `wishlistItem` shape, newest first);
+   gates are `not_claimed` 422 and `not_revealed` 409 (not yet revealed,
+   or no recipient), and no failure response carries the codename or any
+   item data. It is read-only and repeatable.
 7. Testing is the owner's job on real devices: provide code-level checks
    (build, lint, `php artisan test`) and the acceptance checklist only.
    No browser automation or visual test servers.
