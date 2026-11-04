@@ -80,6 +80,25 @@ document.addEventListener(
     { passive: false },
 );
 
+// Pinch-zoom guard: the viewport meta already forbids zooming, but
+// iOS Safari and some in-app webviews ignore it, so any touchmove
+// with two fingers down is swallowed outright, and Safari's own
+// gesture events are cancelled at the source. Single-finger
+// scrolling and dragging (the reveal strip, the reels viewer) never
+// have two touches down, so they are unaffected.
+document.addEventListener(
+    'touchmove',
+    (event) => {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+        }
+    },
+    { passive: false },
+);
+
+document.addEventListener('gesturestart', (event) => event.preventDefault());
+document.addEventListener('gesturechange', (event) => event.preventDefault());
+
 createInertiaApp({
     title: (title) => (title ? `${title} · Secret Santa HQ` : 'Secret Santa HQ'),
     resolve: (name) => {

@@ -369,3 +369,8 @@ a document touchend guard that swallows a second tap within
 swaps her bubble to a random line from an 8-line pool for 2.8 s
 before reverting to the page message. The hat also moved slightly
 left (left offset -0.25em to -1em).
+
+Pinch zoom is disabled app wide (2026-11-04): the viewport meta
+already forbade it but iOS Safari ignores it, so app.js now
+swallows any two-finger touchmove and cancels Safari's gesture
+events. Single-finger scrolling and dragging are unaffected.
