@@ -186,3 +186,12 @@ record delete now confirms through the shared ConfirmModal: guest remove
 guest wishlist deletes (grid tiles used a two-tap arm, quick view too;
 the arm is gone, the popup is the single gate, on both the Gifts page and
 the member wishlist page in mine mode).
+
+Owner features (2026-11-04): the Wishlists board gained an "All wishes"
+view beside "By person": one combined grid of every guest's items, each
+tile labelled with the wisher's name (search matches wisher names too),
+reserve works in place, own items show "Your wish" instead of a Reserve
+button. Tapping a wish in All wishes opens a reels-style full-screen
+viewer: one wish at a time, slide left/right (drag with spring-back,
+arrows and keyboard on desktop, no wraparound), wisher header, counter,
+reserve in place. By person browsing keeps the quick-view popup.

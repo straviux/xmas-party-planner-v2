@@ -38,6 +38,8 @@ const showImage = computed(() => Boolean(props.item?.image) && !broken.value);
 
 const stateLine = computed(() => {
     if (!props.item) return '';
+    // Combined views flag the viewer's own items; they are never reservable.
+    if (props.item.mine) return 'This is your wish.';
     if (props.item.reserved_by_me) return 'You reserved this wish. Nobody else can see that it was you.';
     if (props.item.reserved) return 'This wish is already reserved by someone.';
     return 'This wish is available.';
@@ -46,6 +48,9 @@ const stateLine = computed(() => {
 const action = computed(() => {
     const item = props.item;
     if (!item) return null;
+    // Own items in a combined view get no action at all. Single-owner pages
+    // never set the flag, so the 'mine' mode delete flow below is untouched.
+    if (item.mine) return null;
     if (props.mode === 'mine') {
         return {
             label: 'Delete this wish',
@@ -156,6 +161,9 @@ onBeforeUnmount(() => {
             <div class="qv-body">
                 <h2 class="qv-name">{{ displayName }}</h2>
                 <p v-if="item.notes" class="qv-notes">{{ item.notes }}</p>
+                <p v-if="item.owner && !item.mine" class="qv-wisher">
+                    Wished by {{ item.owner.display }}<span v-if="item.owner.nickname"> “{{ item.owner.nickname }}”</span>
+                </p>
 
                 <p class="qv-state" :class="item.reserved ? 'reserved' : 'available'">
                     <Check v-if="!item.reserved" :size="17" />
@@ -190,3 +198,12 @@ onBeforeUnmount(() => {
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Only combined views attach owner to items; unused everywhere else. */
+.qv-wisher {
+    margin: 8px 0 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+</style>

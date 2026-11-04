@@ -58,7 +58,11 @@ const visibleItems = computed(() => {
 
     const filtered = withIndex.filter(({ item }) => {
         if (q) {
-            const haystack = normalizeText([item.text, item.notes, item.link].filter(Boolean).join(' '));
+            const parts = [item.text, item.notes, item.link];
+            // Combined views attach the wisher; searching their name or
+            // nickname finds their wishes too. Absent elsewhere, so inert.
+            if (item.owner) parts.push(item.owner.display, item.owner.nickname);
+            const haystack = normalizeText(parts.filter(Boolean).join(' '));
             if (!haystack.includes(q)) return false;
         }
         switch (filter.value) {
@@ -179,20 +183,23 @@ function confirmDelete() {
 
         <div v-if="visibleItems.length" class="wish-grid">
             <article v-for="item in visibleItems" :key="item.id" class="wish-tile">
-                <div v-if="hasImage(item)" class="wish-tile-media" @click="emit('open', item)">
+                <div v-if="hasImage(item)" class="wish-tile-media" @click="emit('open', item, visibleItems)">
                     <img :src="item.image" :alt="displayName(item)" loading="lazy" @error="markBroken(item)" />
                     <span v-if="item.reserved" class="wish-badge on-image">Reserved</span>
                 </div>
                 <div class="wish-tile-body">
                     <div
                         :class="{ 'wish-open-area': !hasImage(item) }"
-                        @click="!hasImage(item) && emit('open', item)"
+                        @click="!hasImage(item) && emit('open', item, visibleItems)"
                     >
                         <span v-if="item.reserved && !hasImage(item)" class="wish-badge" style="margin-bottom: 8px">
                             Reserved
                         </span>
                         <p class="wish-name clamp-2">{{ displayName(item) }}</p>
                         <p v-if="item.notes" class="wish-notes clamp-3">{{ item.notes }}</p>
+                        <p v-if="item.owner" class="wish-owner">
+                            by {{ item.owner.display }}<span v-if="item.owner.nickname"> “{{ item.owner.nickname }}”</span>
+                        </p>
                     </div>
                     <div class="wish-tile-actions">
                         <a
@@ -206,7 +213,9 @@ function confirmDelete() {
                         >
                             <ExternalLink :size="19" />
                         </a>
+                        <span v-if="item.mine" class="wish-mine-chip">Your wish</span>
                         <button
+                            v-else
                             type="button"
                             :class="actionState(item).className"
                             :disabled="actionState(item).disabled"
@@ -236,3 +245,26 @@ function confirmDelete() {
         />
     </div>
 </template>
+
+<style scoped>
+/* Only combined views attach owner/mine to items; these styles are unused
+   by every existing single-owner usage of the grid. */
+.wish-owner {
+    margin: 6px 0 0;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+.wish-mine-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--glass);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+</style>
