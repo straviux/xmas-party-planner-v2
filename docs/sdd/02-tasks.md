@@ -455,3 +455,8 @@ Snow overflow fixed (2026-11-04): the snow layer no longer
 stretches past the mascot's sides; it matches the wrap's width
 exactly (small vertical bleed only), so showers can no longer
 push the page sideways on phones.
+
+Board hero card removed (2026-11-04): the Wishlists page no
+longer shows the "What is everyone wishing for?" header card;
+like My wishes it now goes from Scor straight to the board card
+(toggle, states, grids).

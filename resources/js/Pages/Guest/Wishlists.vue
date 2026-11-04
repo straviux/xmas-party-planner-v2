@@ -180,19 +180,7 @@ onMounted(() => {
         <!-- Scor stands on the page background, outside any card. -->
         <Mascot message="Hunting for gift ideas?" />
 
-        <!-- Header card: title and explainer. -->
         <div class="card slide-in" style="margin-top: 10px">
-            <div style="text-align: center">
-                <span class="section-label">Wishlists</span>
-                <h1 class="card-title">What is everyone wishing for?</h1>
-                <p class="card-subtitle" style="max-width: 520px; margin: 0 auto">
-                    Browse everyone's wishes in one place, or switch to My
-                    recipient to see only the list that matters most.
-                </p>
-            </div>
-        </div>
-
-        <div class="card" style="margin-top: 22px">
             <p v-if="loading" class="muted">Loading wishlists...</p>
 
             <div v-else-if="!party" class="empty-state">
