@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import { CircleAlert, KeyRound, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-vue-next';
 import ConfirmModal from '../../Components/ConfirmModal.vue';
@@ -30,7 +30,9 @@ const form = ref({ display: '', nickname: '', aliases: '', pin: '' });
 const editingId = ref(null);
 const formError = ref('');
 const busy = ref(false);
-const removeId = ref(null);
+const formOpen = ref(false);
+const displayInput = ref(null);
+const removeTarget = ref(null);
 const pinResetTarget = ref(null);
 const pinBusy = ref(false);
 
@@ -95,7 +97,20 @@ async function load() {
     }
 }
 
-onMounted(load);
+function onKeydown(event) {
+    if (event.key === 'Escape' && formOpen.value && !busy.value && !removeTarget.value && !pinResetTarget.value) {
+        closeForm();
+    }
+}
+
+onMounted(() => {
+    load();
+    window.addEventListener('keydown', onKeydown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKeydown);
+});
 
 function showActionError(err, fallback) {
     if (err.code === 'guests_locked') {
@@ -115,6 +130,23 @@ function resetForm() {
     formError.value = '';
 }
 
+async function focusDisplay() {
+    await nextTick();
+    displayInput.value?.focus();
+}
+
+function openCreate() {
+    resetForm();
+    formOpen.value = true;
+    focusDisplay();
+}
+
+function closeForm() {
+    if (busy.value) return;
+    formOpen.value = false;
+    resetForm();
+}
+
 function startEdit(guest) {
     editingId.value = guest.id;
     formError.value = '';
@@ -124,6 +156,8 @@ function startEdit(guest) {
         aliases: aliasesList(guest).join(', '),
         pin: '',
     };
+    formOpen.value = true;
+    focusDisplay();
 }
 
 async function submit() {
@@ -154,9 +188,12 @@ async function submit() {
             toastSuccess('Guest added. The draw was re-done for everyone.');
         }
         resetForm();
+        formOpen.value = false;
         await load();
     } catch (err) {
         if (err.code === 'guests_locked' || err.code === 'not_set_up') {
+            formOpen.value = false;
+            resetForm();
             showActionError(err, 'That change could not be saved.');
         } else {
             formError.value = err.message || 'That guest could not be saved.';
@@ -172,10 +209,14 @@ async function removeGuest(guest) {
     try {
         await post('host_guest_remove', { id: guest.id });
         toastSuccess(`${guest.display} was removed, along with their wishlist.`);
-        removeId.value = null;
-        if (editingId.value === guest.id) resetForm();
+        removeTarget.value = null;
+        if (editingId.value === guest.id) {
+            resetForm();
+            formOpen.value = false;
+        }
         await load();
     } catch (err) {
+        removeTarget.value = null;
         showActionError(err, 'That guest could not be removed.');
     } finally {
         busy.value = false;
@@ -193,6 +234,13 @@ async function removeGuest(guest) {
         title="Guests"
         subtitle="The full guest list. While nobody has locked a name, changes re-do the draw automatically."
     >
+        <template #actions>
+            <button v-if="hasParty" type="button" class="btn btn-teal btn-sm" @click="openCreate">
+                <Plus :size="15" />
+                <span>Add guest</span>
+            </button>
+        </template>
+
         <p v-if="bannerError" class="error-text">
             <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
             <span>{{ bannerError }}</span>
@@ -208,52 +256,6 @@ async function removeGuest(guest) {
         </section>
 
         <template v-else>
-            <section class="host-panel">
-                <h2 class="host-panel-title">{{ editingId ? 'Edit guest' : 'Add a guest' }}</h2>
-                <p v-if="formError" class="error-text" style="margin-top: 12px">
-                    <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
-                    <span>{{ formError }}</span>
-                </p>
-                <form style="margin-top: 14px" @submit.prevent="submit">
-                    <div class="form-grid">
-                        <label class="field">
-                            <span class="field-label">Display name (required)</span>
-                            <input v-model="form.display" class="input" type="text" required placeholder="For example: MARIA SANTOS" />
-                        </label>
-                        <label class="field">
-                            <span class="field-label">Nickname</span>
-                            <input v-model="form.nickname" class="input" type="text" placeholder="For example: Mai" />
-                        </label>
-                        <label class="field">
-                            <span class="field-label">Aliases (comma-separated, for search)</span>
-                            <input v-model="form.aliases" class="input" type="text" placeholder="For example: Ate Mai, Maria" />
-                        </label>
-                        <label class="field">
-                            <span class="field-label">PIN (optional, 4 digits)</span>
-                            <input
-                                v-model="form.pin"
-                                class="input"
-                                type="text"
-                                inputmode="numeric"
-                                maxlength="4"
-                                :placeholder="editingId ? 'Leave blank to keep the current PIN' : 'Leave blank: guest makes their own'"
-                            />
-                        </label>
-                    </div>
-                    <div class="row-actions">
-                        <button type="submit" class="btn btn-teal btn-sm" :disabled="busy">
-                            <Plus v-if="!editingId" :size="15" />
-                            <Pencil v-else :size="15" />
-                            <span>{{ busy ? 'Saving...' : editingId ? 'Save changes' : 'Add guest' }}</span>
-                        </button>
-                        <button v-if="editingId" type="button" class="btn btn-secondary btn-sm" @click="resetForm">
-                            <X :size="15" />
-                            <span>Cancel edit</span>
-                        </button>
-                    </div>
-                </form>
-            </section>
-
             <section class="host-panel">
                 <div style="display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 8px">
                     <h2 class="host-panel-title" style="margin: 0">Guest list</h2>
@@ -291,16 +293,7 @@ async function removeGuest(guest) {
                                 <span class="badge" :class="guestStatus(guest).cls">{{ guestStatus(guest).label }}</span>
                             </td>
                             <td>
-                                <div v-if="removeId === guest.id" class="row-actions">
-                                    <span class="small muted">Remove {{ guest.display }}?</span>
-                                    <button type="button" class="btn btn-danger-ghost btn-sm" :disabled="busy" @click="removeGuest(guest)">
-                                        Yes, remove
-                                    </button>
-                                    <button type="button" class="btn btn-secondary btn-sm" @click="removeId = null">
-                                        Keep
-                                    </button>
-                                </div>
-                                <div v-else class="row-actions">
+                                <div class="row-actions">
                                     <button type="button" class="btn btn-secondary btn-sm" @click="startEdit(guest)">
                                         <Pencil :size="14" />
                                         <span>Edit</span>
@@ -319,7 +312,7 @@ async function removeGuest(guest) {
                                         <KeyRound :size="14" />
                                         <span>Reset PIN</span>
                                     </button>
-                                    <button type="button" class="btn btn-secondary btn-sm" @click="removeId = guest.id">
+                                    <button type="button" class="btn btn-secondary btn-sm" @click="removeTarget = guest">
                                         <Trash2 :size="14" />
                                         <span>Remove</span>
                                     </button>
@@ -329,10 +322,82 @@ async function removeGuest(guest) {
                     </tbody>
                 </table>
                 <p v-else class="muted" style="margin: 12px 0 2px">
-                    {{ search ? 'No guests match that search.' : 'No guests yet, add your first guest above.' }}
+                    {{ search ? 'No guests match that search.' : 'No guests yet. Use Add guest to add your first guest.' }}
                 </p>
             </section>
         </template>
+
+        <div v-if="formOpen" class="modal-backdrop" @click.self="closeForm">
+            <div
+                class="modal-card pop-in"
+                style="width: min(94vw, 680px)"
+                role="dialog"
+                aria-modal="true"
+                :aria-label="editingId ? 'Edit guest' : 'Add guest'"
+            >
+                <h3 class="modal-title">{{ editingId ? 'Edit guest' : 'Add guest' }}</h3>
+                <p v-if="formError" class="error-text" style="margin-top: 12px">
+                    <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
+                    <span>{{ formError }}</span>
+                </p>
+                <form style="margin-top: 14px" @submit.prevent="submit">
+                    <div class="form-grid">
+                        <label class="field">
+                            <span class="field-label">Display name (required)</span>
+                            <input
+                                ref="displayInput"
+                                v-model="form.display"
+                                class="input"
+                                type="text"
+                                required
+                                placeholder="For example: MARIA SANTOS"
+                            />
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Nickname</span>
+                            <input v-model="form.nickname" class="input" type="text" placeholder="For example: Mai" />
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Aliases (comma-separated, for search)</span>
+                            <input v-model="form.aliases" class="input" type="text" placeholder="For example: Ate Mai, Maria" />
+                        </label>
+                        <label class="field">
+                            <span class="field-label">PIN (optional, 4 digits)</span>
+                            <input
+                                v-model="form.pin"
+                                class="input"
+                                type="text"
+                                inputmode="numeric"
+                                maxlength="4"
+                                :placeholder="editingId ? 'Leave blank to keep the current PIN' : 'Leave blank: guest makes their own'"
+                            />
+                        </label>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" :disabled="busy" @click="closeForm">
+                            <X :size="15" />
+                            <span>Cancel</span>
+                        </button>
+                        <button type="submit" class="btn btn-teal btn-sm" :disabled="busy">
+                            <Plus v-if="!editingId" :size="15" />
+                            <Pencil v-else :size="15" />
+                            <span>{{ busy ? 'Saving...' : editingId ? 'Save changes' : 'Add guest' }}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <ConfirmModal
+            v-if="removeTarget"
+            :title="`Remove ${removeTarget.display}?`"
+            :body="`This removes ${removeTarget.display} from the party and deletes their wishlist items. Votes they cast are removed too. Any wish they had reserved becomes available again, and the draw is re-done for the remaining guests.`"
+            confirm-label="Remove guest"
+            danger
+            :busy="busy"
+            @confirm="removeGuest(removeTarget)"
+            @cancel="removeTarget = null"
+        />
 
         <ConfirmModal
             v-if="pinResetTarget"

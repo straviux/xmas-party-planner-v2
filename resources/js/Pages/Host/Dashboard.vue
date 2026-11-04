@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import QRCode from 'qrcode';
 import {
@@ -111,7 +111,20 @@ async function load() {
     }
 }
 
-onMounted(load);
+function onKeydown(event) {
+    if (event.key === 'Escape' && pwOpen.value && !pwBusy.value && !confirmState.value) {
+        closePasswordModal();
+    }
+}
+
+onMounted(() => {
+    load();
+    window.addEventListener('keydown', onKeydown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKeydown);
+});
 
 async function copyInvite() {
     if (!party.value) return;
@@ -259,6 +272,8 @@ function askResetAll() {
 const pwForm = ref({ current: '', next: '', confirm: '' });
 const pwError = ref('');
 const pwBusy = ref(false);
+const pwOpen = ref(false);
+const pwCurrentInput = ref(null);
 
 const pwMessages = {
     password_incorrect: 'Your current password is not right. Check it and try again.',
@@ -266,6 +281,20 @@ const pwMessages = {
     password_mismatch: 'The two new passwords do not match.',
     password_same: 'The new password must be different from your current password.',
 };
+
+async function openPasswordModal() {
+    pwError.value = '';
+    pwOpen.value = true;
+    await nextTick();
+    pwCurrentInput.value?.focus();
+}
+
+function closePasswordModal() {
+    if (pwBusy.value) return;
+    pwOpen.value = false;
+    pwError.value = '';
+    pwForm.value = { current: '', next: '', confirm: '' };
+}
 
 async function changePassword() {
     pwError.value = '';
@@ -281,6 +310,7 @@ async function changePassword() {
             new_password_confirmation: pwForm.value.confirm,
         });
         pwForm.value = { current: '', next: '', confirm: '' };
+        pwOpen.value = false;
         toastSuccess('Password changed');
     } catch (err) {
         pwError.value = pwMessages[err.code] || err.message || 'The password could not be changed.';
@@ -504,51 +534,10 @@ async function printQr() {
                     <p class="admin-row-sub" style="margin-bottom: 14px">
                         Pick a new password for your host sign-in. You stay signed in here.
                     </p>
-                    <p v-if="pwError" class="error-text">
-                        <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
-                        <span>{{ pwError }}</span>
-                    </p>
-                    <form @submit.prevent="changePassword">
-                        <div class="form-grid">
-                            <label class="field">
-                                <span class="field-label">Current password</span>
-                                <input
-                                    v-model="pwForm.current"
-                                    class="input"
-                                    type="password"
-                                    autocomplete="current-password"
-                                    required
-                                />
-                            </label>
-                            <span class="field" aria-hidden="true"></span>
-                            <label class="field">
-                                <span class="field-label">New password</span>
-                                <input
-                                    v-model="pwForm.next"
-                                    class="input"
-                                    type="password"
-                                    autocomplete="new-password"
-                                    required
-                                />
-                            </label>
-                            <label class="field">
-                                <span class="field-label">Confirm new password</span>
-                                <input
-                                    v-model="pwForm.confirm"
-                                    class="input"
-                                    type="password"
-                                    autocomplete="new-password"
-                                    required
-                                />
-                            </label>
-                        </div>
-                        <div class="row-actions">
-                            <button type="submit" class="btn btn-teal btn-sm" :disabled="pwBusy">
-                                <KeyRound :size="15" />
-                                <span>{{ pwBusy ? 'Changing...' : 'Change password' }}</span>
-                            </button>
-                        </div>
-                    </form>
+                    <button type="button" class="btn btn-teal btn-sm" @click="openPasswordModal">
+                        <KeyRound :size="15" />
+                        <span>Change password</span>
+                    </button>
                 </div>
 
                 <div v-if="party" class="admin-row">
@@ -638,6 +627,70 @@ async function printQr() {
                 </div>
             </section>
         </template>
+
+        <div v-if="pwOpen" class="modal-backdrop" @click.self="closePasswordModal">
+            <div
+                class="modal-card pop-in"
+                style="width: min(94vw, 620px)"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Change password"
+            >
+                <h3 class="modal-title">Change password</h3>
+                <p class="muted small" style="margin: 0 0 6px">
+                    Pick a new password for your host sign-in. You stay signed in here.
+                </p>
+                <p v-if="pwError" class="error-text" style="margin-top: 12px">
+                    <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
+                    <span>{{ pwError }}</span>
+                </p>
+                <form style="margin-top: 14px" @submit.prevent="changePassword">
+                    <div class="form-grid">
+                        <label class="field">
+                            <span class="field-label">Current password</span>
+                            <input
+                                ref="pwCurrentInput"
+                                v-model="pwForm.current"
+                                class="input"
+                                type="password"
+                                autocomplete="current-password"
+                                required
+                            />
+                        </label>
+                        <span class="field" aria-hidden="true"></span>
+                        <label class="field">
+                            <span class="field-label">New password</span>
+                            <input
+                                v-model="pwForm.next"
+                                class="input"
+                                type="password"
+                                autocomplete="new-password"
+                                required
+                            />
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Confirm new password</span>
+                            <input
+                                v-model="pwForm.confirm"
+                                class="input"
+                                type="password"
+                                autocomplete="new-password"
+                                required
+                            />
+                        </label>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" :disabled="pwBusy" @click="closePasswordModal">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-teal btn-sm" :disabled="pwBusy">
+                            <KeyRound :size="15" />
+                            <span>{{ pwBusy ? 'Changing...' : 'Change password' }}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <ConfirmModal
             v-if="confirmState"

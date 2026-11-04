@@ -22,7 +22,6 @@ const emit = defineEmits(['close', 'reserve', 'delete']);
 
 const closeButton = ref(null);
 const broken = ref(false);
-const armed = ref(false);
 let savedScrollY = null;
 let previousOverflow = '';
 
@@ -49,8 +48,8 @@ const action = computed(() => {
     if (!item) return null;
     if (props.mode === 'mine') {
         return {
-            label: armed.value ? 'Tap again to delete' : 'Delete this wish',
-            className: armed.value ? 'btn btn-danger-ghost' : 'btn btn-secondary',
+            label: 'Delete this wish',
+            className: 'btn btn-secondary',
             icon: Trash2,
             disabled: props.busy,
         };
@@ -100,7 +99,6 @@ watch(
     () => props.item,
     async (item) => {
         broken.value = false;
-        armed.value = false;
         if (item) {
             lockScroll();
             await nextTick();
@@ -114,11 +112,7 @@ watch(
 function handleAction() {
     if (!props.item) return;
     if (props.mode === 'mine') {
-        if (!armed.value) {
-            armed.value = true;
-            return;
-        }
-        armed.value = false;
+        // Parents gate this with a confirmation popup before deleting.
         emit('delete', props.item);
         return;
     }

@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { Bookmark, BookmarkCheck, ExternalLink, Search, Trash2 } from 'lucide-vue-next';
+import ConfirmModal from './ConfirmModal.vue';
 import { normalizeText } from '../lib/normalize';
 
 const props = defineProps({
@@ -26,8 +27,7 @@ const query = ref('');
 const filter = ref('all');
 const sort = ref('newest');
 const broken = ref({});
-const armedId = ref(null);
-let armedTimer = null;
+const deleteTarget = ref(null);
 
 const FILTERS = [
     { value: 'all', label: 'All' },
@@ -98,10 +98,9 @@ const visibleItems = computed(() => {
 
 function actionState(item) {
     if (props.mode === 'mine') {
-        const armed = armedId.value === item.id;
         return {
-            label: armed ? 'Tap again to delete' : 'Delete',
-            className: armed ? 'btn btn-danger-ghost' : 'btn btn-secondary',
+            label: 'Delete',
+            className: 'btn btn-secondary',
             icon: Trash2,
             disabled: props.busyId === item.id,
         };
@@ -132,32 +131,17 @@ function actionState(item) {
 
 function handleAction(item) {
     if (props.mode === 'mine') {
-        if (armedId.value !== item.id) {
-            armedId.value = item.id;
-            if (armedTimer) window.clearTimeout(armedTimer);
-            armedTimer = window.setTimeout(() => {
-                armedId.value = null;
-            }, 3200);
-            return;
-        }
-        armedId.value = null;
-        if (armedTimer) window.clearTimeout(armedTimer);
-        emit('delete', item);
+        deleteTarget.value = item;
         return;
     }
     emit('reserve', item);
 }
 
-watch(
-    () => props.items,
-    () => {
-        armedId.value = null;
-    },
-);
-
-onBeforeUnmount(() => {
-    if (armedTimer) window.clearTimeout(armedTimer);
-});
+function confirmDelete() {
+    const item = deleteTarget.value;
+    deleteTarget.value = null;
+    if (item) emit('delete', item);
+}
 </script>
 
 <template>
@@ -239,5 +223,16 @@ onBeforeUnmount(() => {
         <p v-else class="muted" style="margin: 6px 0 0">
             No wishes match that search. Try a different word or filter.
         </p>
+
+        <ConfirmModal
+            v-if="deleteTarget"
+            title="Delete this wish?"
+            :body="`${displayName(deleteTarget)} will be deleted. This cannot be undone.`"
+            confirm-label="Delete wish"
+            cancel-label="Keep wish"
+            danger
+            @confirm="confirmDelete"
+            @cancel="deleteTarget = null"
+        />
     </div>
 </template>

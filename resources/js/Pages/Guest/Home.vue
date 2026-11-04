@@ -4,6 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { CalendarDays, CircleAlert, Eye, Gift, LockKeyhole, LogOut, Wallet } from 'lucide-vue-next';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import Mascot from '../../Components/Mascot.vue';
+import RevealStrip from '../../Components/RevealStrip.vue';
 import { post } from '../../lib/api';
 import { toastError } from '../../lib/toast';
 
@@ -63,6 +64,11 @@ const checking = ref(false);
 const pinInput = ref(null);
 const againRecipient = ref(null);
 const againBudget = ref(null);
+// Reset lever for the popup's RevealStrip: bumped on every popup open and
+// close so each use starts with a fresh, covered strip.
+const againReset = ref(0);
+// True once the popup strip's slide has finished and the name is uncovered.
+const stripDone = ref(false);
 
 const digitsOnly = (value) => value.replace(/\D/g, '').slice(0, 4);
 
@@ -72,6 +78,8 @@ function openPopup() {
     popupStep.value = 'pin';
     againRecipient.value = null;
     againBudget.value = null;
+    againReset.value++;
+    stripDone.value = false;
     popupOpen.value = true;
     nextTick(() => {
         if (pinInput.value) pinInput.value.focus();
@@ -86,6 +94,8 @@ function closePopup() {
     checking.value = false;
     againRecipient.value = null;
     againBudget.value = null;
+    againReset.value++;
+    stripDone.value = false;
 }
 
 function backdropClick() {
@@ -285,18 +295,29 @@ onBeforeUnmount(() => {
                 </template>
 
                 <template v-else-if="againRecipient">
-                    <span class="section-label">You are buying for</span>
-                    <p class="again-name">{{ againRecipient.display }}</p>
-                    <p v-if="againRecipient.nickname" class="again-sub">“{{ againRecipient.nickname }}”</p>
-                    <p v-if="againBudget" class="again-budget">
-                        <Gift :size="17" style="vertical-align: -3px" />
-                        Gift budget: <strong>{{ againBudget }}</strong>
-                    </p>
-                    <p class="muted" style="margin: 18px 0 0; line-height: 1.55">
-                        Write this down somewhere private.
-                    </p>
+                    <!-- The name is already fetched at this point; the strip
+                         is a pure presentation reveal, slid by the guest. -->
+                    <RevealStrip
+                        :recipient="againRecipient"
+                        :fail-signal="againReset"
+                        @done="stripDone = true"
+                    />
+                    <template v-if="stripDone">
+                        <p v-if="againBudget" class="again-budget">
+                            <Gift :size="17" style="vertical-align: -3px" />
+                            Gift budget: <strong>{{ againBudget }}</strong>
+                        </p>
+                        <p class="muted" style="margin: 18px 0 0; line-height: 1.55">
+                            Write this down somewhere private.
+                        </p>
+                    </template>
                     <div class="modal-actions">
-                        <Link href="/guest/wishlists" class="btn btn-secondary" @click="closePopup">
+                        <Link
+                            v-if="stripDone"
+                            href="/guest/wishlists"
+                            class="btn btn-secondary"
+                            @click="closePopup"
+                        >
                             <Gift :size="16" />
                             <span>See their wishlist</span>
                         </Link>
@@ -356,20 +377,6 @@ onBeforeUnmount(() => {
     font-size: 1.3rem;
     letter-spacing: 0.5em;
     text-align: center;
-}
-
-.again-name {
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
-    margin: 6px 0 0;
-}
-
-.again-sub {
-    color: var(--text-secondary);
-    margin: 6px 0 0;
-    font-size: 1.02rem;
 }
 
 .again-budget {

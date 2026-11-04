@@ -174,3 +174,15 @@ popup and is cleared on close. First reveal stays once-only. AGENTS.md
 hard rule 2 now names reveal_again as the single exception to the
 reveal-only recipient rule. Suite: 80 tests / 2,251 assertions, live E2E
 verified (wrong PIN leaks nothing, repeatable, per-guest isolation).
+
+Owner UX round (2026-11-04): the reveal strip is now a shared
+RevealStrip component used by both the Reveal page and the reveal-again
+popup (PIN first, then slide to uncover the name inside the popup).
+Forms moved into modals: host poll create/edit, host guest add/edit,
+dashboard change password, and the guest add-a-wish form (dock centre
+button opens the modal via ?add=1). Party Settings stays a page. Every
+record delete now confirms through the shared ConfirmModal: guest remove
+(was an inline row expansion), poll delete (was a one-off modal), and
+guest wishlist deletes (grid tiles used a two-tap arm, quick view too;
+the arm is gone, the popup is the single gate, on both the Gifts page and
+the member wishlist page in mine mode).

@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import { CircleAlert, Gift, ImagePlus, Plus, X } from 'lucide-vue-next';
+import ConfirmModal from '../../Components/ConfirmModal.vue';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import Mascot from '../../Components/Mascot.vue';
 import WishlistGrid from '../../Components/WishlistGrid.vue';
@@ -42,6 +43,8 @@ const notes = ref('');
 const imageData = ref('');
 const imageError = ref('');
 const fileInput = ref(null);
+const wishTextInput = ref(null);
+const deleteTarget = ref(null);
 
 const myEntry = computed(() =>
     board.value.find((entry) => String(entry.id) === String(props.guest?.id)),
@@ -71,12 +74,34 @@ async function loadList() {
     }
 }
 
+function onKeydown(event) {
+    if (event.key === 'Escape' && showForm.value && !submitting.value && !deleteTarget.value) {
+        closeAddForm();
+    }
+}
+
 onMounted(() => {
+    window.addEventListener('keydown', onKeydown);
     if (new URLSearchParams(window.location.search).get('add') === '1') {
-        showForm.value = true;
+        openAddForm();
     }
     loadList();
 });
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKeydown);
+});
+
+async function openAddForm() {
+    showForm.value = true;
+    await nextTick();
+    wishTextInput.value?.focus();
+}
+
+function closeAddForm() {
+    if (submitting.value) return;
+    showForm.value = false;
+}
 
 function openFilePicker() {
     fileInput.value?.click();
@@ -169,6 +194,25 @@ async function deleteItem(item) {
     }
 }
 
+function wishDisplayName(item) {
+    if (!item) return 'This wish';
+    if (item.text) return item.text;
+    if (item.kind === 'image') return 'Screenshot wish';
+    if (item.kind === 'link' || item.link) return 'Link wish';
+    return 'Untitled wish';
+}
+
+function requestDelete(item) {
+    deleteTarget.value = item;
+}
+
+async function confirmDeleteWish() {
+    const item = deleteTarget.value;
+    if (!item) return;
+    await deleteItem(item);
+    deleteTarget.value = null;
+}
+
 function openQuickView(item) {
     selectedId.value = item.id;
 }
@@ -207,14 +251,52 @@ function openQuickView(item) {
                         type="button"
                         class="btn btn-primary"
                         style="margin-top: 18px"
-                        @click="showForm = !showForm"
+                        @click="openAddForm"
                     >
                         <Plus :size="18" />
-                        <span>{{ showForm ? 'Close the form' : 'Add a wish' }}</span>
+                        <span>Add a wish</span>
                     </button>
                 </div>
 
-                <form v-if="showForm" class="slide-in" style="margin-top: 24px" @submit.prevent="submitWish">
+
+            </div>
+
+            <!-- Wishes live below the header card, in the shopping grid. -->
+            <div style="margin-top: 22px">
+                <p v-if="loading" class="muted">Loading your wishes...</p>
+
+                <div v-else-if="myItems.length === 0" class="card">
+                    <div class="empty-state">
+                        <Gift :size="40" />
+                        <p class="empty-state-title">No wishes yet</p>
+                        <p class="empty-state-text">
+                            Tap + to add your first one, so your Secret Santa knows
+                            what to look for.
+                        </p>
+                    </div>
+                </div>
+
+                <WishlistGrid
+                    v-else
+                    :items="myItems"
+                    mode="mine"
+                    :busy-id="busyId"
+                    @delete="deleteItem"
+                    @open="openQuickView"
+                />
+            </div>
+        </template>
+
+        <div v-if="showForm" class="modal-backdrop" @click.self="closeAddForm">
+            <div
+                class="modal-card pop-in"
+                style="width: min(94vw, 560px)"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Add a wish"
+            >
+                <h3 class="modal-title">Add a wish</h3>
+                <form style="margin-top: 14px" @submit.prevent="submitWish">
                     <p v-if="formError" class="error-text">
                         <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
                         <span>{{ formError }}</span>
@@ -223,6 +305,7 @@ function openQuickView(item) {
                     <label class="field">
                         <span class="field-label">Wish</span>
                         <input
+                            ref="wishTextInput"
                             v-model="text"
                             class="input"
                             type="text"
@@ -287,45 +370,37 @@ function openQuickView(item) {
                         </p>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-block" :disabled="submitting">
-                        <Plus :size="18" />
-                        <span>{{ submitting ? 'Adding...' : 'Add to my wishlist' }}</span>
-                    </button>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" :disabled="submitting" @click="closeAddForm">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" :disabled="submitting">
+                            <Plus :size="18" />
+                            <span>{{ submitting ? 'Adding...' : 'Add to my wishlist' }}</span>
+                        </button>
+                    </div>
                 </form>
             </div>
-
-            <!-- Wishes live below the header card, in the shopping grid. -->
-            <div style="margin-top: 22px">
-                <p v-if="loading" class="muted">Loading your wishes...</p>
-
-                <div v-else-if="myItems.length === 0" class="card">
-                    <div class="empty-state">
-                        <Gift :size="40" />
-                        <p class="empty-state-title">No wishes yet</p>
-                        <p class="empty-state-text">
-                            Tap + to add your first one, so your Secret Santa knows
-                            what to look for.
-                        </p>
-                    </div>
-                </div>
-
-                <WishlistGrid
-                    v-else
-                    :items="myItems"
-                    mode="mine"
-                    :busy-id="busyId"
-                    @delete="deleteItem"
-                    @open="openQuickView"
-                />
-            </div>
-        </template>
+        </div>
 
         <WishQuickView
             :item="selectedItem"
             mode="mine"
             :busy="busyId !== null"
             @close="selectedId = null"
-            @delete="deleteItem"
+            @delete="requestDelete"
+        />
+
+        <ConfirmModal
+            v-if="deleteTarget"
+            title="Delete this wish?"
+            :body="`${wishDisplayName(deleteTarget)} will be deleted. This cannot be undone.`"
+            confirm-label="Delete wish"
+            cancel-label="Keep wish"
+            danger
+            :busy="busyId !== null"
+            @confirm="confirmDeleteWish"
+            @cancel="deleteTarget = null"
         />
     </GuestLayout>
 </template>

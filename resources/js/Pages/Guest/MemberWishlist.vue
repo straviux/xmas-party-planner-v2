@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, Gift } from 'lucide-vue-next';
+import ConfirmModal from '../../Components/ConfirmModal.vue';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import WishlistGrid from '../../Components/WishlistGrid.vue';
 import WishQuickView from '../../Components/WishQuickView.vue';
@@ -27,6 +28,7 @@ const loading = ref(true);
 const board = ref([]);
 const busyId = ref(null);
 const selectedId = ref(null);
+const deleteTarget = ref(null);
 
 const isMine = computed(() => String(props.member?.id) === String(props.guest?.id));
 const mode = computed(() => (isMine.value ? 'mine' : 'member'));
@@ -119,6 +121,27 @@ async function deleteItem(item) {
 function openQuickView(item) {
     selectedId.value = item.id;
 }
+
+function wishDisplayName(item) {
+    if (!item) return 'This wish';
+    if (item.text) return item.text;
+    if (item.kind === 'image') return 'Screenshot wish';
+    if (item.kind === 'link' || item.link) return 'Link wish';
+    return 'Untitled wish';
+}
+
+// The grid confirms inside itself before emitting delete; the quick view
+// emits straight away, so its deletes are gated here with the same popup.
+function requestDelete(item) {
+    deleteTarget.value = item;
+}
+
+async function confirmDeleteWish() {
+    const item = deleteTarget.value;
+    if (!item) return;
+    await deleteItem(item);
+    deleteTarget.value = null;
+}
 </script>
 
 <template>
@@ -182,7 +205,19 @@ function openQuickView(item) {
             :busy="busyId !== null"
             @close="selectedId = null"
             @reserve="toggleReserve"
-            @delete="deleteItem"
+            @delete="requestDelete"
+        />
+
+        <ConfirmModal
+            v-if="deleteTarget"
+            title="Delete this wish?"
+            :body="`${wishDisplayName(deleteTarget)} will be deleted. This cannot be undone.`"
+            confirm-label="Delete wish"
+            cancel-label="Keep wish"
+            danger
+            :busy="busyId !== null"
+            @confirm="confirmDeleteWish"
+            @cancel="deleteTarget = null"
         />
     </GuestLayout>
 </template>

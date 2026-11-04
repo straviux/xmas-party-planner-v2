@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowRight, CircleAlert, Gift, House, LogOut, PenLine, TriangleAlert } from 'lucide-vue-next';
+import { CircleAlert, Gift, House, LogOut, PenLine, TriangleAlert } from 'lucide-vue-next';
 import GuestLayout from '../Components/GuestLayout.vue';
+import RevealStrip from '../Components/RevealStrip.vue';
 import { post } from '../lib/api';
 import { toastError } from '../lib/toast';
 
@@ -17,84 +18,22 @@ const props = defineProps({
     },
 });
 
-// phase: idle -> tearing (committed, sliding open) -> done | back to idle on a retryable error
+// phase: idle -> tearing (committed, strip sliding open) -> done | back to idle on a retryable error
 const phase = ref('idle');
 const recipient = ref(null);
 const budget = ref(null);
 const errorText = ref('');
 const errorAction = ref(''); // '' | 'home'
 const signingOut = ref(false);
+// Bumped after a failed reveal call so the strip springs its cover back
+// and can be slid again.
+const failSignal = ref(0);
 
-// Slide state: progress 0..1 drives the cover. The recipient name lives in
-// the layer under the cover, inside the track, so it is uncovered exactly
-// as far as the cover has slid. The name only exists on this page after
-// the reveal call returns it, so no amount of pre-commit dragging (which
-// is purely visual) can show or consume it.
-const progress = ref(0);
-const animMs = ref(0);
-const dragging = ref(false);
-const trackEl = ref(null);
-let dragStartX = 0;
-let dragStartProgress = 0;
-let dragMoved = false;
-
-const COMMIT_AT = 0.72;
-
-const coverStyle = computed(() => ({
-    transform: `translateX(${progress.value * 102}%)`,
-    transition: dragging.value ? 'none' : `transform ${animMs.value}ms cubic-bezier(0.22, 0.9, 0.3, 1)`,
-}));
-
-function reducedMotion() {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-function wait(ms) {
-    return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
-function onPointerDown(event) {
-    if (phase.value !== 'idle') return;
-    dragging.value = true;
-    dragMoved = false;
-    dragStartX = event.clientX;
-    dragStartProgress = progress.value;
-    trackEl.value?.setPointerCapture?.(event.pointerId);
-}
-
-function onPointerMove(event) {
-    if (!dragging.value || phase.value !== 'idle') return;
-    const rect = trackEl.value?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return;
-    const dx = event.clientX - dragStartX;
-    if (Math.abs(dx) > 6) dragMoved = true;
-    progress.value = Math.min(1, Math.max(0, dragStartProgress + dx / rect.width));
-}
-
-async function onPointerUp() {
-    if (!dragging.value) return;
-    dragging.value = false;
-    if (phase.value !== 'idle') return;
-    // A tap (no real drag) commits too, like the old tear tap.
-    if (!dragMoved || progress.value >= COMMIT_AT) {
-        await reveal();
-    } else {
-        // Released early: spring back, the reveal is not consumed.
-        animMs.value = reducedMotion() ? 40 : 280;
-        progress.value = 0;
-    }
-}
-
-function onPointerCancel() {
-    if (!dragging.value) return;
-    dragging.value = false;
-    if (phase.value === 'idle') {
-        animMs.value = reducedMotion() ? 40 : 280;
-        progress.value = 0;
-    }
-}
-
-async function reveal() {
+// Fired by the strip when the guest commits a slide gesture. The
+// recipient name only exists on this page after this call returns it, so
+// no amount of pre-commit dragging (which is purely visual) can show or
+// consume it.
+async function tear() {
     if (phase.value !== 'idle') return;
     errorText.value = '';
     errorAction.value = '';
@@ -111,18 +50,13 @@ async function reveal() {
     if (body) {
         recipient.value = body.recipient || null;
         budget.value = body.budget ?? props.party?.budget ?? null;
-        // Slow final slide: the name sits under the cover and is uncovered
-        // progressively as the cover slides away.
-        animMs.value = reducedMotion() ? 60 : 1250;
-        progress.value = 1;
-        await wait(animMs.value);
-        phase.value = 'done';
+        // The strip sees `recipient` arrive and runs the slow completion
+        // slide; onStripDone flips phase to 'done' once it finishes.
         return;
     }
 
-    // Failure: the cover slides back so it can be tried again.
-    animMs.value = reducedMotion() ? 40 : 300;
-    progress.value = 0;
+    // Failure: bump the signal so the strip springs its cover back.
+    failSignal.value++;
     phase.value = 'idle';
     if (!failure) return;
     if (failure.code === 'already_claimed') {
@@ -136,6 +70,11 @@ async function reveal() {
     } else {
         errorText.value = failure.message || 'The reveal did not work. Try sliding again.';
     }
+}
+
+// The strip finished its completion slide and the name is uncovered.
+function onStripDone() {
+    phase.value = 'done';
 }
 
 async function signOut() {
@@ -162,45 +101,14 @@ async function signOut() {
                 over your shoulder.
             </p>
 
-            <!-- Slide-to-reveal control: the name lives inside the track,
-                 under the sliding cover. -->
-            <div
-                ref="trackEl"
-                class="tear-track"
-                :class="{ done: phase === 'done' }"
-                role="button"
-                tabindex="0"
-                :aria-disabled="phase !== 'idle'"
-                aria-label="Slide to reveal your Secret Santa person"
-                @pointerdown="onPointerDown"
-                @pointermove="onPointerMove"
-                @pointerup="onPointerUp"
-                @pointercancel="onPointerCancel"
-                @keydown.enter.prevent="reveal"
-                @keydown.space.prevent="reveal"
-            >
-                <!-- Under-layer: what the cover uncovers -->
-                <span class="tear-under">
-                    <template v-if="recipient">
-                        <span class="tear-under-label">You are buying for</span>
-                        <span class="tear-under-name">
-                            {{ recipient.display }}<span v-if="recipient.nickname" class="tear-under-nick"> “{{ recipient.nickname }}”</span>
-                        </span>
-                    </template>
-                    <template v-else>
-                        <Gift :size="26" class="tear-under-icon" />
-                        <span class="tear-under-hint">Someone is wrapped up in here</span>
-                    </template>
-                </span>
-
-                <!-- Sliding cover with the drag handle -->
-                <span class="tear-cover" :style="coverStyle">
-                    <span class="tear-label">{{ phase === 'done' ? 'Revealed' : 'Slide to reveal' }}</span>
-                    <span class="tear-knob">
-                        <ArrowRight :size="24" :stroke-width="2.6" />
-                    </span>
-                </span>
-            </div>
+            <!-- Slide-to-reveal control: the name lives inside the strip,
+                 under its sliding cover (see RevealStrip). -->
+            <RevealStrip
+                :recipient="recipient"
+                :fail-signal="failSignal"
+                @commit="tear"
+                @done="onStripDone"
+            />
 
             <p v-if="phase === 'idle'" class="muted small" style="margin: 10px 0 0; text-align: center">
                 Drag the strip across, or tap it, and your person's name appears inside the strip.
@@ -260,121 +168,6 @@ async function signOut() {
 </template>
 
 <style scoped>
-.tear-track {
-    position: relative;
-    height: 84px;
-    margin-top: 22px;
-    border: 2px dashed rgba(255, 255, 255, 0.38);
-    border-radius: 999px;
-    background:
-        repeating-linear-gradient(
-            -45deg,
-            rgba(255, 255, 255, 0.05) 0 14px,
-            rgba(255, 255, 255, 0.015) 14px 28px
-        ),
-        rgba(255, 255, 255, 0.07);
-    cursor: grab;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: none;
-    overflow: hidden;
-}
-
-.tear-track.done {
-    cursor: default;
-}
-
-/* The uncovered layer: the recipient name after the reveal, a wrapped
-   placeholder before it. */
-.tear-under {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 2px;
-    padding: 0 26px;
-    pointer-events: none;
-}
-
-.tear-under-label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--accent, #c427fb);
-}
-
-.tear-under-name {
-    font-size: 1.38rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
-    color: var(--text-primary, #ffffff);
-    white-space: nowrap;
-}
-
-.tear-under-nick {
-    font-size: 1.02rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-}
-
-.tear-under-icon {
-    color: var(--text-tertiary);
-    align-self: center;
-}
-
-.tear-under-hint {
-    align-self: center;
-    color: var(--text-tertiary);
-    font-size: 0.92rem;
-}
-
-/* The sliding cover. */
-.tear-cover {
-    position: absolute;
-    inset: 0;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #5936b4 0%, #362a84 100%);
-    box-shadow: -12px 0 28px rgba(0, 0, 0, 0.35);
-    pointer-events: none;
-    will-change: transform;
-}
-
-.tear-label {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-right: 46px;
-    font-weight: 800;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    color: #ffffff;
-    pointer-events: none;
-}
-
-.tear-knob {
-    position: absolute;
-    top: 50%;
-    right: 12px;
-    width: 54px;
-    height: 54px;
-    margin-top: -27px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #a3e635 0%, #84cc16 100%);
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 22px rgba(132, 204, 22, 0.45);
-    pointer-events: none;
-}
-
 .result-card {
     border: 1px solid var(--card-border);
     background: var(--glass);

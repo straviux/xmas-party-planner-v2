@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import {
     ChartColumn,
@@ -12,6 +12,7 @@ import {
     Trash2,
     X,
 } from 'lucide-vue-next';
+import ConfirmModal from '../../Components/ConfirmModal.vue';
 import HostLayout from '../../Components/HostLayout.vue';
 import SignInGate from './SignInGate.vue';
 import { post } from '../../lib/api';
@@ -41,7 +42,7 @@ const formQuestion = ref('');
 const formOptions = ref([{ text: '' }, { text: '' }]);
 const formError = ref('');
 const saving = ref(false);
-const formPanel = ref(null);
+const questionInput = ref(null);
 
 const busyPollId = ref(null);
 const deleteTarget = ref(null);
@@ -69,7 +70,25 @@ async function load() {
     }
 }
 
-onMounted(load);
+function onKeydown(event) {
+    if (event.key === 'Escape' && formOpen.value && !saving.value && !deleteTarget.value) {
+        closeForm();
+    }
+}
+
+onMounted(() => {
+    load();
+    window.addEventListener('keydown', onKeydown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKeydown);
+});
+
+async function focusQuestion() {
+    await nextTick();
+    questionInput.value?.focus();
+}
 
 function openCreate() {
     formMode.value = 'create';
@@ -78,7 +97,7 @@ function openCreate() {
     formOptions.value = [{ text: '' }, { text: '' }];
     formError.value = '';
     formOpen.value = true;
-    scrollToForm();
+    focusQuestion();
 }
 
 function openEdit(poll) {
@@ -91,21 +110,15 @@ function openEdit(poll) {
     }
     formError.value = '';
     formOpen.value = true;
-    scrollToForm();
+    focusQuestion();
 }
 
 function closeForm() {
+    if (saving.value) return;
     formOpen.value = false;
     formError.value = '';
     editingId.value = null;
     formMode.value = 'create';
-}
-
-async function scrollToForm() {
-    await nextTick();
-    if (!formPanel.value) return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    formPanel.value.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
 }
 
 function addOptionRow() {
@@ -244,69 +257,6 @@ async function deletePoll() {
         </section>
 
         <template v-else>
-            <section v-if="formOpen" ref="formPanel" class="host-panel">
-                <h2 class="host-panel-title">{{ formMode === 'create' ? 'New poll' : 'Manage poll' }}</h2>
-                <p class="muted small" style="margin: 0 0 6px">
-                    Guests vote once and can change their vote until you close the poll.
-                    Editing an option keeps the votes it already has.
-                </p>
-                <p v-if="formError" class="error-text" style="margin-top: 12px">
-                    <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
-                    <span>{{ formError }}</span>
-                </p>
-                <form style="margin-top: 14px" @submit.prevent="save">
-                    <label class="field">
-                        <span class="field-label">Question (required)</span>
-                        <input
-                            v-model="formQuestion"
-                            class="input"
-                            type="text"
-                            required
-                            placeholder="For example: What should this year's theme be?"
-                        />
-                    </label>
-
-                    <span class="field-label" style="display: block; margin: 16px 0 8px">Options</span>
-                    <div class="stack" style="gap: 9px">
-                        <div v-for="(option, index) in formOptions" :key="index" class="poll-option-row">
-                            <input
-                                v-model="option.text"
-                                class="input"
-                                type="text"
-                                :placeholder="`Option ${index + 1}`"
-                                :aria-label="`Option ${index + 1}`"
-                            />
-                            <button
-                                type="button"
-                                class="btn btn-secondary btn-sm"
-                                :disabled="formOptions.length <= 2"
-                                :title="formOptions.length <= 2 ? 'A poll needs at least 2 options' : 'Remove this option'"
-                                @click="removeOptionRow(index)"
-                            >
-                                <X :size="14" />
-                                <span>Remove</span>
-                            </button>
-                        </div>
-                    </div>
-                    <p class="muted small" style="margin: 9px 0 0">A poll needs at least 2 options.</p>
-
-                    <div class="row-actions" style="margin-top: 18px">
-                        <button type="button" class="btn btn-secondary btn-sm" @click="addOptionRow">
-                            <Plus :size="15" />
-                            <span>Add option</span>
-                        </button>
-                        <button type="submit" class="btn btn-teal btn-sm" :disabled="saving">
-                            <Save :size="15" />
-                            <span>{{ saving ? 'Saving...' : formMode === 'create' ? 'Create poll' : 'Save changes' }}</span>
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" @click="closeForm">
-                            <X :size="15" />
-                            <span>Cancel</span>
-                        </button>
-                    </div>
-                </form>
-            </section>
-
             <section class="host-panel">
                 <h2 class="host-panel-title">All polls</h2>
                 <p v-if="loading" class="muted" style="margin: 10px 0 2px">Loading polls...</p>
@@ -372,23 +322,88 @@ async function deletePoll() {
             </section>
         </template>
 
-        <div v-if="deleteTarget" class="modal-backdrop" @click.self="deleteTarget = null">
-            <div class="modal-card pop-in" role="dialog" aria-modal="true">
-                <h3 class="modal-title">Delete this poll?</h3>
-                <p class="muted" style="margin: 0; line-height: 1.55">
-                    "{{ deleteTarget.question }}" and all of its votes will be
-                    deleted. This cannot be undone. Your party, guests, and
-                    wishlists do not change.
+        <div v-if="formOpen" class="modal-backdrop" @click.self="closeForm">
+            <div
+                class="modal-card pop-in"
+                style="width: min(94vw, 640px)"
+                role="dialog"
+                aria-modal="true"
+                :aria-label="formMode === 'create' ? 'Create poll' : 'Edit poll'"
+            >
+                <h3 class="modal-title">{{ formMode === 'create' ? 'Create poll' : 'Edit poll' }}</h3>
+                <p class="muted small" style="margin: 0 0 6px">
+                    Guests vote once and can change their vote until you close the poll.
+                    Editing an option keeps the votes it already has.
                 </p>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary btn-sm" @click="deleteTarget = null">
-                        Keep poll
-                    </button>
-                    <button type="button" class="btn btn-danger-ghost btn-sm" :disabled="deleting" @click="deletePoll">
-                        {{ deleting ? 'Deleting...' : 'Yes, delete it' }}
-                    </button>
-                </div>
+                <p v-if="formError" class="error-text" style="margin-top: 12px">
+                    <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
+                    <span>{{ formError }}</span>
+                </p>
+                <form style="margin-top: 14px" @submit.prevent="save">
+                    <label class="field">
+                        <span class="field-label">Question (required)</span>
+                        <input
+                            ref="questionInput"
+                            v-model="formQuestion"
+                            class="input"
+                            type="text"
+                            required
+                            placeholder="For example: What should this year's theme be?"
+                        />
+                    </label>
+
+                    <span class="field-label" style="display: block; margin: 16px 0 8px">Options</span>
+                    <div class="stack" style="gap: 9px">
+                        <div v-for="(option, index) in formOptions" :key="index" class="poll-option-row">
+                            <input
+                                v-model="option.text"
+                                class="input"
+                                type="text"
+                                :placeholder="`Option ${index + 1}`"
+                                :aria-label="`Option ${index + 1}`"
+                            />
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-sm"
+                                :disabled="formOptions.length <= 2"
+                                :title="formOptions.length <= 2 ? 'A poll needs at least 2 options' : 'Remove this option'"
+                                @click="removeOptionRow(index)"
+                            >
+                                <X :size="14" />
+                                <span>Remove</span>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="muted small" style="margin: 9px 0 0">A poll needs at least 2 options.</p>
+
+                    <div class="row-actions" style="margin-top: 18px">
+                        <button type="button" class="btn btn-secondary btn-sm" @click="addOptionRow">
+                            <Plus :size="15" />
+                            <span>Add option</span>
+                        </button>
+                        <button type="submit" class="btn btn-teal btn-sm" :disabled="saving">
+                            <Save :size="15" />
+                            <span>{{ saving ? 'Saving...' : formMode === 'create' ? 'Create poll' : 'Save changes' }}</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" :disabled="saving" @click="closeForm">
+                            <X :size="15" />
+                            <span>Cancel</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+
+        <ConfirmModal
+            v-if="deleteTarget"
+            title="Delete this poll?"
+            :body="`${deleteTarget.question} and all of its votes will be deleted. This cannot be undone.`"
+            confirm-label="Yes, delete it"
+            cancel-label="Keep poll"
+            danger
+            :busy="deleting"
+            @confirm="deletePoll"
+            @cancel="deleteTarget = null"
+        />
     </HostLayout>
 </template>
