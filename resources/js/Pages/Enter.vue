@@ -74,7 +74,12 @@ function guestMatches(guest, rawQuery) {
     return queryTokens.some((qt) => nameTokens.some((nt) => levenshtein(qt, nt) <= 1));
 }
 
-const results = computed(() => guests.value.filter((guest) => guestMatches(guest, query.value)));
+// Names are only listed once the search has at least 2 letters;
+// an empty or 1-letter search shows a hint instead of the whole list.
+const queryReady = computed(() => normalize(query.value).length >= 2);
+const results = computed(() =>
+    queryReady.value ? guests.value.filter((guest) => guestMatches(guest, query.value)) : [],
+);
 
 /* ---------- flow ---------- */
 
@@ -331,6 +336,9 @@ async function submitPin() {
                             <ArrowLeft :size="18" class="guest-row-arrow" />
                         </button>
                     </div>
+                    <p v-else-if="!queryReady" class="muted" style="margin: 4px 0 0">
+                        Type at least 2 letters of your name to search.
+                    </p>
                     <p v-else class="muted" style="margin: 4px 0 0">
                         No matching names. Check the spelling, or try a nickname.
                     </p>

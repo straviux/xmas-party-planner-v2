@@ -149,3 +149,8 @@ the deployed Hostinger site during the owner's acceptance pass.
   acceptance checklist.
 - Full acceptance checklist sweep (code-level); hand the checklist to Arc
   for the real phone + desktop pass.
+
+Owner tweak (2026-11-04): the Enter name search no longer lists all names
+up front. Results appear only once the search has at least 2 letters;
+below that a hint says so. Matching rules (nickname/alias, one-letter typo
+tolerance) are unchanged.
