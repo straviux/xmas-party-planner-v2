@@ -102,8 +102,8 @@ The owner deploys; this app ships with instructions only.
   server user.
 - PHP needs the GD extension with WebP support, or guests cannot upload
   wishlist screenshots.
-- Sessions use the default file driver; on shared hosting make sure the
-  session path in `storage/framework/sessions` persists.
+- Sessions use the database driver; the sessions table is created by the
+  migrations above, so no extra setup is needed on shared hosting.
 
 ## Checks
 
