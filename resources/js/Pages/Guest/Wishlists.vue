@@ -180,7 +180,7 @@ onMounted(() => {
         <!-- Scor stands on the page background, outside any card. -->
         <Mascot message="Hunting for gift ideas?" />
 
-        <div class="card slide-in" style="margin-top: 10px">
+        <div class="slide-in" style="margin-top: 10px">
             <p v-if="loading" class="muted">Loading wishlists...</p>
 
             <div v-else-if="!party" class="empty-state">

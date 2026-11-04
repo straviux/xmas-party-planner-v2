@@ -467,3 +467,8 @@ of the same line) instead of sitting on its own line above them.
 
 Sort select shrunk again (2026-11-04): 26px tall at all sizes
 with tighter padding and radius, at the owner's request.
+
+Board card container removed (2026-11-04): the Wishlists page's
+toggle, states, and grids now sit directly on the page
+background with no card wrapping them, matching the flat layout
+of the My wishes page.
