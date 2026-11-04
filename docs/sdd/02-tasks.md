@@ -422,3 +422,7 @@ Thought-bubble dots (2026-11-04): the chatbox's pointed tail is
 replaced by two floating cream circles trailing toward Scor, the
 lower one smaller (14px over 8px), each on its own float timing
 (2.7s and 3.9s), independent of the bubble's float.
+
+No tilt (2026-11-04): the chatbox float is a straight vertical
+bob; the slight rotation sway added with the stronger float is
+removed at the owner's call.
