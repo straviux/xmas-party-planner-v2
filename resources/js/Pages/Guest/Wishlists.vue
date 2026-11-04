@@ -246,7 +246,7 @@ function openMember(member) {
 
                 <template v-else>
                     <template v-if="allItems.length">
-                        <p class="muted" style="margin: 0 0 14px">{{ allCountsLine }}</p>
+                        <p class="muted counts-line" style="margin: 0 0 14px">{{ allCountsLine }}</p>
                         <WishlistGrid
                             :items="allItems"
                             mode="member"
@@ -315,5 +315,19 @@ function openMember(member) {
 .view-toggle-btn.active {
     background: rgba(196, 39, 251, 0.18);
     color: #f3b8ff;
+}
+
+/* Phone size pass: the All wishes / By person toggle reads smaller. */
+@media (max-width: 767.98px) {
+    .view-toggle {
+        padding: 3px;
+        margin-bottom: 14px;
+    }
+
+    .view-toggle-btn {
+        min-height: 32px;
+        padding: 6px 14px;
+        font-size: 0.78rem;
+    }
 }
 </style>

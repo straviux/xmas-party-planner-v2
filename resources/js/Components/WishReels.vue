@@ -183,6 +183,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+    <!-- Teleported to <body>: the viewer is rendered inside a page card
+         whose backdrop-filter would otherwise become the containing block
+         for this fixed overlay, confining it to the card's box instead of
+         the viewport (page visible at the edges, header scrolled away). -->
+    <Teleport to="body">
     <div
         v-if="currentItem"
         class="reels-overlay"
@@ -277,6 +282,7 @@ onBeforeUnmount(() => {
             <ChevronRight :size="26" />
         </button>
     </div>
+    </Teleport>
 </template>
 
 <style scoped>
@@ -299,7 +305,12 @@ onBeforeUnmount(() => {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     width: min(100%, 760px);
-    min-height: 100dvh;
+    /* Exactly one viewport tall: the teleported overlay is truly
+       viewport-sized, so a min-height let the slide outgrow it and the
+       overlay scrolled (header pushed out of view). The grid's flexible
+       middle row absorbs the slack instead. */
+    height: 100vh;
+    height: 100dvh;
     margin: 0 auto;
     padding: max(18px, env(safe-area-inset-top)) 22px max(22px, env(safe-area-inset-bottom));
     transition: transform 0.22s ease;

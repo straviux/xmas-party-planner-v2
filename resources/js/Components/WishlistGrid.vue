@@ -109,6 +109,13 @@ function confirmDelete() {
 <template>
     <div>
         <div class="wish-controls">
+            <div class="sort-row">
+                <select v-model="sort" class="select sort-select" aria-label="Sort wishes">
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="az">A–Z</option>
+                </select>
+            </div>
             <label class="wish-search">
                 <Search :size="18" />
                 <input
@@ -131,11 +138,6 @@ function confirmDelete() {
                 >
                     {{ chip.label }}
                 </button>
-                <select v-model="sort" class="select sort-select" aria-label="Sort wishes">
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                    <option value="az">A–Z</option>
-                </select>
             </div>
         </div>
 
@@ -217,5 +219,18 @@ function confirmDelete() {
     color: var(--text-secondary);
     font-size: 0.8rem;
     font-weight: 700;
+}
+
+/* Phone size pass: tile tags read smaller on small screens. */
+@media (max-width: 767.98px) {
+    .wish-owner {
+        font-size: 0.73rem;
+    }
+
+    .wish-mine-chip {
+        min-height: 34px;
+        padding: 7px 11px;
+        font-size: 0.72rem;
+    }
 }
 </style>

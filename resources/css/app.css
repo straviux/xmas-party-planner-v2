@@ -1148,6 +1148,12 @@ button {
     margin-bottom: 18px;
 }
 
+/* The sort select gets its own right-aligned row above the search bar. */
+.sort-row {
+    display: flex;
+    justify-content: flex-end;
+}
+
 .wish-search {
     position: relative;
     display: block;
@@ -1647,6 +1653,61 @@ button.poll-option:hover:not(:disabled) {
 
     .wish-tile:hover {
         transform: none;
+    }
+}
+
+/* ---------- Phone size pass ----------
+   On small phones the standard chips, buttons, and helper texts crowd
+   the layout, so trim them ~10-15% below 768px only (desktop is
+   untouched). Form control FONT sizes are deliberately not set here:
+   the 16px iOS anti-zoom guard below must keep winning; only padding
+   and min-height shrink on fields. The dock is excluded on purpose. */
+@media (max-width: 767.98px) {
+    .btn {
+        min-height: 42px;
+        padding: 10px 19px;
+        font-size: 0.86rem;
+    }
+
+    .btn-sm {
+        min-height: 34px;
+        padding: 7px 14px;
+        font-size: 0.77rem;
+    }
+
+    .chip {
+        min-height: 32px;
+        padding: 6px 13px;
+        font-size: 0.76rem;
+    }
+
+    /* Helper/intro line under guest page titles. */
+    .card-subtitle {
+        font-size: 0.85rem;
+    }
+
+    /* "N wishes from M people" line on the wishlists board. */
+    .counts-line {
+        font-size: 0.88rem;
+    }
+
+    .wish-name {
+        font-size: 0.88rem;
+    }
+
+    .wish-notes {
+        font-size: 0.77rem;
+    }
+
+    .wish-search .input {
+        min-height: 44px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    .sort-select {
+        min-height: 34px;
+        padding: 7px 10px;
     }
 }
 

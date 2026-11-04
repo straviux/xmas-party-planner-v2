@@ -234,3 +234,13 @@ longer auto-zooms on focus (the PIN input keeps its large size);
 popups cap at 100dvh - 32px and scroll internally; the reels viewer is
 fully opaque and its media fills the slide's middle row; shell heights
 gained dvh fallbacks.
+
+Mobile round 2 (2026-11-04): the reels viewer is teleported to <body>
+(it was confined to the board card's box because .card has a
+backdrop-filter, which becomes the containing block for fixed
+descendants) and the slide is exactly one viewport tall. The grid
+toolbar is reordered everywhere: sort select (right) above the search
+bar above the chips. Phone size pass at <=767.98px: buttons, chips, the
+board view toggle, helper subtitles, counts line, and tile text all
+step down ~10-15%; form-control font sizes untouched (16px anti-zoom
+rule still wins); dock untouched.
