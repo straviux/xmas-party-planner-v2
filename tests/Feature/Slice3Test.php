@@ -52,6 +52,17 @@ if (! function_exists('slice3Add')) {
     }
 }
 
+if (! function_exists('slice3Update')) {
+    /** Update an item as the current session guest and return its board shape. */
+    function slice3Update(object $test, array $data): array
+    {
+        $response = $test->postJson('/api/wishlist_update', $data);
+        $response->assertOk()->assertJsonPath('ok', true);
+
+        return $response->json('item');
+    }
+}
+
 if (! function_exists('slice3PngDataUrl')) {
     /** A solid red PNG of the given size, as a data URL. */
     function slice3PngDataUrl(int $width, int $height): string
@@ -140,6 +151,9 @@ test('wishlist actions need a guest session', function () {
     $this->postJson('/api/wishlist_add', ['text' => 'Book'])
         ->assertStatus(422)
         ->assertJsonPath('error', 'not_claimed');
+    $this->postJson('/api/wishlist_update', ['item_id' => 1, 'text' => 'Book'])
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'not_claimed');
     $this->postJson('/api/wishlist_delete', ['id' => 1])
         ->assertStatus(422)
         ->assertJsonPath('error', 'not_claimed');
@@ -214,6 +228,169 @@ test('an image string over the server cap is image_too_large', function () {
         ->assertJsonPath('error', 'image_too_large');
 
     expect(WishlistItem::count())->toBe(0);
+});
+
+// ----------------------------------------------------------------------
+// Editing items
+// ----------------------------------------------------------------------
+
+test('the owner can edit text, link, and notes; only sent keys change and kind is re-derived', function () {
+    [, $guests] = slice3Party();
+    slice3Enter($this, $guests['Ana Cruz']);
+
+    $item = slice3Add($this, ['text' => 'A good book', 'notes' => 'Paperback']);
+
+    // Text and notes change; link stays absent, kind stays text.
+    $updated = slice3Update($this, ['item_id' => $item['id'], 'text' => 'A great book', 'notes' => 'Hardcover']);
+    expect($updated['text'])->toBe('A great book')
+        ->and($updated['notes'])->toBe('Hardcover')
+        ->and($updated['link'])->toBeNull()
+        ->and($updated['kind'])->toBe('text');
+
+    // Adding a bare link normalizes it and promotes the kind, like an add.
+    $updated = slice3Update($this, ['item_id' => $item['id'], 'link' => 'example.com/book']);
+    expect($updated['link'])->toBe('https://example.com/book')
+        ->and($updated['kind'])->toBe('link')
+        ->and($updated['text'])->toBe('A great book');
+
+    // Clearing the link with an explicit null drops the kind back to text.
+    $updated = slice3Update($this, ['item_id' => $item['id'], 'link' => null]);
+    expect($updated['link'])->toBeNull()
+        ->and($updated['kind'])->toBe('text')
+        ->and($updated['text'])->toBe('A great book')
+        ->and($updated['notes'])->toBe('Hardcover');
+
+    $stored = WishlistItem::findOrFail($item['id']);
+    expect($stored->text)->toBe('A great book')
+        ->and($stored->link)->toBeNull()
+        ->and($stored->kind)->toBe('text');
+});
+
+test('the owner can attach and replace the photo, stored as WebP like an add', function () {
+    [, $guests] = slice3Party();
+    slice3Enter($this, $guests['Ana Cruz']);
+
+    $item = slice3Add($this, ['text' => 'This one']);
+
+    $withPhoto = slice3Update($this, ['item_id' => $item['id'], 'image' => slice3PngDataUrl(40, 20)]);
+    expect($withPhoto['kind'])->toBe('image')
+        ->and($withPhoto['image'])->toStartWith('data:image/webp;base64,');
+
+    $info = slice3StoredImageInfo($withPhoto['image']);
+    expect($info[0])->toBe(40)
+        ->and($info[1])->toBe(20)
+        ->and($info[2])->toBe(IMAGETYPE_WEBP);
+
+    // A bad replacement is refused and the current photo survives.
+    $this->postJson('/api/wishlist_update', ['item_id' => $item['id'], 'image' => '!!!not-base64!!!'])
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'image_invalid');
+    expect(WishlistItem::findOrFail($item['id'])->image)->toBe($withPhoto['image']);
+
+    // Replacing with a different photo swaps the stored WebP.
+    $replaced = slice3Update($this, ['item_id' => $item['id'], 'image' => slice3PngDataUrl(12, 12)]);
+    expect($replaced['image'])->not->toBe($withPhoto['image']);
+    $info = slice3StoredImageInfo($replaced['image']);
+    expect($info[0])->toBe(12)
+        ->and($info[1])->toBe(12);
+});
+
+test('image null removes the photo and kind falls back to link, then text', function () {
+    [, $guests] = slice3Party();
+    slice3Enter($this, $guests['Ana Cruz']);
+
+    $item = slice3Add($this, [
+        'text' => 'Headphones',
+        'link' => 'https://shop.example.com/h',
+        'image' => slice3PngDataUrl(10, 10),
+    ]);
+    expect($item['kind'])->toBe('image');
+
+    $cleared = slice3Update($this, ['item_id' => $item['id'], 'image' => null]);
+    expect($cleared['image'])->toBeNull()
+        ->and($cleared['kind'])->toBe('link')
+        ->and($cleared['text'])->toBe('Headphones');
+
+    // An update that does not mention the image leaves the photo alone.
+    $item = slice3Add($this, ['image' => slice3PngDataUrl(10, 10)]);
+    $renamed = slice3Update($this, ['item_id' => $item['id'], 'text' => 'That mug']);
+    expect($renamed['kind'])->toBe('image')
+        ->and($renamed['image'])->toStartWith('data:image/webp;base64,');
+});
+
+test('an edit that would leave the wish empty is wish_empty and saves nothing', function () {
+    [, $guests] = slice3Party();
+    slice3Enter($this, $guests['Ana Cruz']);
+
+    $textItem = slice3Add($this, ['text' => 'Only text']);
+    $this->postJson('/api/wishlist_update', ['item_id' => $textItem['id'], 'text' => '  '])
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'wish_empty');
+    expect(WishlistItem::findOrFail($textItem['id'])->text)->toBe('Only text');
+
+    $imageItem = slice3Add($this, ['image' => slice3PngDataUrl(10, 10)]);
+    $this->postJson('/api/wishlist_update', ['item_id' => $imageItem['id'], 'image' => null])
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'wish_empty');
+    expect(WishlistItem::findOrFail($imageItem['id'])->image)->not->toBeNull();
+});
+
+test('only the owner can edit an item, and unknown items are wish_not_found', function () {
+    [$party, $guests] = slice3Party();
+    $ana = $guests['Ana Cruz'];
+    $ben = $guests['Ben Reyes'];
+
+    slice3Enter($this, $ana);
+    $item = slice3Add($this, ['text' => 'Ana wish']);
+
+    $this->postJson('/api/wishlist_update', ['item_id' => 9999, 'text' => 'Nope'])
+        ->assertStatus(404)
+        ->assertJsonPath('error', 'wish_not_found');
+
+    // A missing item_id resolves the same way, like wishlist_delete.
+    $this->postJson('/api/wishlist_update', ['text' => 'Nope'])
+        ->assertStatus(404)
+        ->assertJsonPath('error', 'wish_not_found');
+
+    // An item belonging to another party is not found either.
+    $otherParty = Party::create([
+        'name' => 'Other Party',
+        'budget' => '300 pesos',
+        'date' => '2026-12-21',
+        'invite_code' => 'OTHERCODE',
+    ]);
+    $outsider = $otherParty->guests()->create(['display' => 'Out Sider']);
+    $foreign = $outsider->wishlistItems()->create(['text' => 'Foreign wish', 'kind' => 'text']);
+
+    $this->postJson('/api/wishlist_update', ['item_id' => $foreign->id, 'text' => 'Nope'])
+        ->assertStatus(404)
+        ->assertJsonPath('error', 'wish_not_found');
+
+    $this->postJson('/api/guest_logout')->assertOk();
+    slice3Enter($this, $ben);
+
+    $this->postJson('/api/wishlist_update', ['item_id' => $item['id'], 'text' => 'Ben was here'])
+        ->assertStatus(403)
+        ->assertJsonPath('error', 'forbidden');
+    expect(WishlistItem::findOrFail($item['id'])->text)->toBe('Ana wish');
+});
+
+test('wishlist_update responses keep the secrecy scan clean', function () {
+    [, $guests] = slice3Party();
+    slice3Enter($this, $guests['Ana Cruz']);
+
+    $item = slice3Add($this, ['text' => 'Ana wish']);
+    $response = $this->postJson('/api/wishlist_update', [
+        'item_id' => $item['id'],
+        'text' => 'Ana wish, edited',
+    ])->assertOk();
+
+    $keys = slice3KeysRecursive($response->json());
+    expect($keys)->not->toContain('reserved_by_id')
+        ->and($keys)->not->toContain('reserved')
+        ->and($keys)->not->toContain('reserved_by_me')
+        ->and($keys)->not->toContain('recipient_id')
+        ->and($keys)->not->toContain('pin_hash');
 });
 
 // ----------------------------------------------------------------------

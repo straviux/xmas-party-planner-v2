@@ -70,7 +70,8 @@ For guests:
    the gift budget. Write it down; if you forget, your home page can show
    it again after you re-enter your PIN.
 5. Add your own wishlist under Gifts (text, a shop link, notes, and a photo
-   if you like). Browse everyone's wishlists from the Wishlists tab, by
+   if you like). To change or remove one of your wishes later, use the
+   gear button on it and choose Edit wish or Delete wish. Browse everyone's wishlists from the Wishlists tab, by
    person or all together, and swipe through them in the full-screen
    viewer. Wishlists are for posting and browsing only; there is no
    reserving.

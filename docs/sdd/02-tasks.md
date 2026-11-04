@@ -205,3 +205,12 @@ already_reserved / cannot_reserve_own codes are deleted. The
 reserved_by_id column stays in the schema, dormant and still never
 exposed (a test proves even a populated legacy value surfaces nothing).
 Suite: 81 tests / 2,203 assertions.
+
+Owner addition (2026-11-04): wish editing. New wishlist_update action
+(owner only, same validation and WebP pipeline as add; image absent =
+keep, null = remove, string = replace; a wish still cannot be saved
+empty). The add form is now a shared WishFormModal with an edit mode.
+On tiles and in the quick view (own wishes only), the separate Delete
+button is replaced by a single gear icon-only button opening a small
+menu with Edit wish and Delete wish; Delete still goes through the
+confirmation popup. Suite: 87 tests / 2,295 assertions.

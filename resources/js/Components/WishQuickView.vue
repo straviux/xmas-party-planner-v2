@@ -1,13 +1,14 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { Check, ExternalLink, Trash2, X } from 'lucide-vue-next';
+import { Check, ExternalLink, X } from 'lucide-vue-next';
+import WishActionsMenu from './WishActionsMenu.vue';
 
 const props = defineProps({
     item: {
         type: Object,
         default: null,
     },
-    // 'mine' shows Delete; other modes are for viewing the wish.
+    // 'mine' shows the settings menu (edit/delete); other modes view only.
     mode: {
         type: String,
         default: 'member',
@@ -18,7 +19,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close', 'delete']);
+const emit = defineEmits(['close', 'delete', 'edit']);
 
 const closeButton = ref(null);
 const broken = ref(false);
@@ -43,22 +44,11 @@ const stateLine = computed(() => {
     return '';
 });
 
-const action = computed(() => {
-    const item = props.item;
-    if (!item) return null;
-    // Own items in a combined view get no action at all. Single-owner pages
-    // never set the flag, so the 'mine' mode delete flow below is untouched.
-    if (item.mine) return null;
-    if (props.mode === 'mine') {
-        return {
-            label: 'Delete this wish',
-            className: 'btn btn-secondary',
-            icon: Trash2,
-            disabled: props.busy,
-        };
-    }
-    return null;
-});
+// Own items in a combined view get no menu at all. Single-owner pages
+// never set the flag, so the 'mine' mode edit/delete flow is untouched.
+const showMenu = computed(
+    () => Boolean(props.item) && !props.item.mine && props.mode === 'mine',
+);
 
 function lockScroll() {
     if (savedScrollY === null) {
@@ -90,12 +80,6 @@ watch(
         }
     },
 );
-
-function handleAction() {
-    if (!props.item || props.mode !== 'mine') return;
-    // Parents gate this with a confirmation popup before deleting.
-    emit('delete', props.item);
-}
 
 function onKeydown(event) {
     if (event.key === 'Escape' && props.item) {
@@ -143,7 +127,7 @@ onBeforeUnmount(() => {
                     <span>{{ stateLine }}</span>
                 </p>
 
-                <div v-if="item.link || action" class="qv-actions">
+                <div v-if="item.link || showMenu" class="qv-actions">
                     <a
                         v-if="item.link"
                         class="btn btn-secondary"
@@ -155,16 +139,14 @@ onBeforeUnmount(() => {
                         <ExternalLink :size="17" />
                         <span>Open link</span>
                     </a>
-                    <button
-                        v-if="action"
-                        type="button"
-                        :class="action.className"
-                        :disabled="action.disabled"
-                        @click="handleAction"
-                    >
-                        <component :is="action.icon" :size="17" />
-                        <span>{{ action.label }}</span>
-                    </button>
+                    <!-- Parents gate the delete emit with a confirmation popup. -->
+                    <WishActionsMenu
+                        v-if="showMenu"
+                        :item="item"
+                        :busy="busy"
+                        @edit="emit('edit', $event)"
+                        @delete="emit('delete', $event)"
+                    />
                 </div>
             </div>
         </div>

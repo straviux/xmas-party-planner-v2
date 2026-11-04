@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, Gift } from 'lucide-vue-next';
 import ConfirmModal from '../../Components/ConfirmModal.vue';
 import GuestLayout from '../../Components/GuestLayout.vue';
+import WishFormModal from '../../Components/WishFormModal.vue';
 import WishlistGrid from '../../Components/WishlistGrid.vue';
 import WishQuickView from '../../Components/WishQuickView.vue';
 import { post } from '../../lib/api';
@@ -29,6 +30,10 @@ const board = ref([]);
 const busyId = ref(null);
 const selectedId = ref(null);
 const deleteTarget = ref(null);
+
+// Edit form (own list only; the grid and quick view only offer it in
+// 'mine' mode). editingItem null keeps the modal closed.
+const editingItem = ref(null);
 
 const isMine = computed(() => String(props.member?.id) === String(props.guest?.id));
 const mode = computed(() => (isMine.value ? 'mine' : 'member'));
@@ -80,6 +85,32 @@ async function deleteItem(item) {
 
 function openQuickView(item) {
     selectedId.value = item.id;
+}
+
+function openEditForm(item) {
+    // The quick view closes so the form is the only popup on screen; the
+    // grid underneath already shows the saved changes in place.
+    selectedId.value = null;
+    editingItem.value = item;
+}
+
+function patchItem(updated) {
+    for (const entry of board.value) {
+        const entryItems = entry.items || [];
+        const index = entryItems.findIndex((item) => String(item.id) === String(updated.id));
+        if (index >= 0) {
+            entryItems.splice(index, 1, { ...entryItems[index], ...updated });
+            return;
+        }
+    }
+}
+
+function onFormSaved(savedItem) {
+    editingItem.value = null;
+    if (savedItem) {
+        patchItem(savedItem);
+        toastSuccess('Changes saved');
+    }
 }
 
 function wishDisplayName(item) {
@@ -153,6 +184,7 @@ async function confirmDeleteWish() {
                 :mode="mode"
                 :busy-id="busyId"
                 @delete="deleteItem"
+                @edit="openEditForm"
                 @open="openQuickView"
             />
         </div>
@@ -163,6 +195,14 @@ async function confirmDeleteWish() {
             :busy="busyId !== null"
             @close="selectedId = null"
             @delete="requestDelete"
+            @edit="openEditForm"
+        />
+
+        <WishFormModal
+            v-if="editingItem"
+            :item="editingItem"
+            @close="editingItem = null"
+            @saved="onFormSaved"
         />
 
         <ConfirmModal

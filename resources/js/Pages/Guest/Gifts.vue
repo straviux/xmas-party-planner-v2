@@ -1,10 +1,11 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import { CircleAlert, Gift, ImagePlus, Plus, X } from 'lucide-vue-next';
+import { Gift, Plus } from 'lucide-vue-next';
 import ConfirmModal from '../../Components/ConfirmModal.vue';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import Mascot from '../../Components/Mascot.vue';
+import WishFormModal from '../../Components/WishFormModal.vue';
 import WishlistGrid from '../../Components/WishlistGrid.vue';
 import WishQuickView from '../../Components/WishQuickView.vue';
 import { post } from '../../lib/api';
@@ -25,25 +26,14 @@ const props = defineProps({
     },
 });
 
-const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-
 const loading = ref(true);
 const board = ref([]);
 const busyId = ref(null);
 const selectedId = ref(null);
 
-// Add form
-const showForm = ref(false);
-const submitting = ref(false);
-const formError = ref('');
-const text = ref('');
-const link = ref('');
-const notes = ref('');
-const imageData = ref('');
-const imageError = ref('');
-const fileInput = ref(null);
-const wishTextInput = ref(null);
+// Wish form (add and edit share the modal; editingItem null means add)
+const formOpen = ref(false);
+const editingItem = ref(null);
 const deleteTarget = ref(null);
 
 const myEntry = computed(() =>
@@ -54,13 +44,6 @@ const myItems = computed(() => myEntry.value?.items || []);
 const selectedItem = computed(
     () => myItems.value.find((item) => String(item.id) === String(selectedId.value)) || null,
 );
-
-const ADD_ERRORS = {
-    wish_empty: 'Add a short description, a link, or a screenshot, at least one.',
-    image_too_large: 'That image is too large to save. Try a smaller screenshot.',
-    image_invalid: 'That image could not be saved. Try a different screenshot.',
-    not_claimed: 'You need to enter the party first before adding wishes.',
-};
 
 async function loadList() {
     try {
@@ -74,101 +57,50 @@ async function loadList() {
     }
 }
 
-function onKeydown(event) {
-    if (event.key === 'Escape' && showForm.value && !submitting.value && !deleteTarget.value) {
-        closeAddForm();
-    }
-}
-
 onMounted(() => {
-    window.addEventListener('keydown', onKeydown);
     if (new URLSearchParams(window.location.search).get('add') === '1') {
         openAddForm();
     }
     loadList();
 });
 
-onBeforeUnmount(() => {
-    window.removeEventListener('keydown', onKeydown);
-});
-
-async function openAddForm() {
-    showForm.value = true;
-    await nextTick();
-    wishTextInput.value?.focus();
+function openAddForm() {
+    editingItem.value = null;
+    formOpen.value = true;
 }
 
-function closeAddForm() {
-    if (submitting.value) return;
-    showForm.value = false;
+function openEditForm(item) {
+    // The quick view closes so the form is the only popup on screen; the
+    // grid underneath already shows the saved changes in place.
+    selectedId.value = null;
+    editingItem.value = item;
+    formOpen.value = true;
 }
 
-function openFilePicker() {
-    fileInput.value?.click();
+function closeForm() {
+    formOpen.value = false;
+    editingItem.value = null;
 }
 
-function onFileChange(event) {
-    imageError.value = '';
-    const file = event.target.files && event.target.files[0];
-    event.target.value = '';
-    if (!file) return;
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-        imageError.value =
-            'That file type is not allowed. Use a PNG, JPEG, GIF, or WebP image.';
-        return;
+function patchItem(updated) {
+    for (const entry of board.value) {
+        const items = entry.items || [];
+        const index = items.findIndex((item) => String(item.id) === String(updated.id));
+        if (index >= 0) {
+            items.splice(index, 1, { ...items[index], ...updated });
+            return;
+        }
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-        imageError.value = 'That image is too big. The limit is 10 MB.';
-        return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-        imageData.value = typeof reader.result === 'string' ? reader.result : '';
-    };
-    reader.onerror = () => {
-        imageError.value = 'That image could not be read. Try a different one.';
-    };
-    reader.readAsDataURL(file);
 }
 
-function removeImage() {
-    imageData.value = '';
-    imageError.value = '';
-}
-
-function resetForm() {
-    text.value = '';
-    link.value = '';
-    notes.value = '';
-    imageData.value = '';
-    imageError.value = '';
-    formError.value = '';
-}
-
-async function submitWish() {
-    formError.value = '';
-    const payload = {
-        text: text.value.trim() || null,
-        link: link.value.trim() || null,
-        notes: notes.value.trim() || null,
-        image: imageData.value || null,
-    };
-    if (!payload.text && !payload.link && !payload.image) {
-        formError.value = ADD_ERRORS.wish_empty;
-        return;
-    }
-    submitting.value = true;
-    try {
-        await post('wishlist_add', payload);
+async function onFormSaved(savedItem, mode) {
+    closeForm();
+    if (mode === 'edit' && savedItem) {
+        patchItem(savedItem);
+        toastSuccess('Changes saved');
+    } else {
         toastSuccess('Wish added');
-        resetForm();
-        showForm.value = false;
         await loadList();
-    } catch (err) {
-        formError.value =
-            ADD_ERRORS[err.code] || err.message || 'That wish could not be added. Please try again.';
-    } finally {
-        submitting.value = false;
     }
 }
 
@@ -282,106 +214,18 @@ function openQuickView(item) {
                     mode="mine"
                     :busy-id="busyId"
                     @delete="deleteItem"
+                    @edit="openEditForm"
                     @open="openQuickView"
                 />
             </div>
         </template>
 
-        <div v-if="showForm" class="modal-backdrop" @click.self="closeAddForm">
-            <div
-                class="modal-card pop-in"
-                style="width: min(94vw, 560px)"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Add a wish"
-            >
-                <h3 class="modal-title">Add a wish</h3>
-                <form style="margin-top: 14px" @submit.prevent="submitWish">
-                    <p v-if="formError" class="error-text">
-                        <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
-                        <span>{{ formError }}</span>
-                    </p>
-
-                    <label class="field">
-                        <span class="field-label">Wish</span>
-                        <input
-                            ref="wishTextInput"
-                            v-model="text"
-                            class="input"
-                            type="text"
-                            autocomplete="off"
-                            placeholder="For example: A warm knitted scarf"
-                        />
-                    </label>
-
-                    <label class="field">
-                        <span class="field-label">Link (optional)</span>
-                        <input
-                            v-model="link"
-                            class="input"
-                            type="url"
-                            inputmode="url"
-                            autocomplete="off"
-                            placeholder="Paste a shop link, if you have one"
-                        />
-                    </label>
-
-                    <label class="field">
-                        <span class="field-label">Notes (optional)</span>
-                        <textarea
-                            v-model="notes"
-                            class="textarea"
-                            placeholder="Where to buy, size, colour"
-                        ></textarea>
-                    </label>
-
-                    <div class="field">
-                        <span class="field-label">Screenshot (optional)</span>
-                        <div v-if="imageData" class="wish-preview">
-                            <img :src="imageData" alt="Your screenshot preview" />
-                            <button
-                                type="button"
-                                class="icon-btn wish-preview-remove"
-                                aria-label="Remove screenshot"
-                                @click="removeImage"
-                            >
-                                <X :size="17" />
-                            </button>
-                        </div>
-                        <template v-else>
-                            <button type="button" class="btn btn-secondary" @click="openFilePicker">
-                                <ImagePlus :size="18" />
-                                <span>Add a screenshot</span>
-                            </button>
-                            <p class="small muted" style="margin: 8px 0 0">
-                                PNG, JPEG, GIF, or WebP, up to 10 MB.
-                            </p>
-                        </template>
-                        <input
-                            ref="fileInput"
-                            class="file-input-hidden"
-                            type="file"
-                            accept="image/png,image/jpeg,image/gif,image/webp"
-                            @change="onFileChange"
-                        />
-                        <p v-if="imageError" class="error-text" style="margin-top: 12px">
-                            <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
-                            <span>{{ imageError }}</span>
-                        </p>
-                    </div>
-
-                    <div class="modal-actions">
-                        <button type="button" class="btn btn-secondary" :disabled="submitting" @click="closeAddForm">
-                            Cancel
-                        </button>
-                        <button type="submit" class="btn btn-primary" :disabled="submitting">
-                            <Plus :size="18" />
-                            <span>{{ submitting ? 'Adding...' : 'Add to my wishlist' }}</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <WishFormModal
+            v-if="formOpen"
+            :item="editingItem"
+            @close="closeForm"
+            @saved="onFormSaved"
+        />
 
         <WishQuickView
             :item="selectedItem"
@@ -389,6 +233,7 @@ function openQuickView(item) {
             :busy="busyId !== null"
             @close="selectedId = null"
             @delete="requestDelete"
+            @edit="openEditForm"
         />
 
         <ConfirmModal

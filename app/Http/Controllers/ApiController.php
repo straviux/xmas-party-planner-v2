@@ -52,6 +52,7 @@ class ApiController extends Controller
         'guest_set_pin' => 'guestSetPin',
         'guest_logout' => 'guestLogout',
         'wishlist_add' => 'wishlistAdd',
+        'wishlist_update' => 'wishlistUpdate',
         'wishlist_delete' => 'wishlistDelete',
         'wishlist_list' => 'wishlistList',
         'host_poll_create' => 'hostPollCreate',
@@ -78,7 +79,7 @@ class ApiController extends Controller
      */
     private array $guestActions = [
         'enter', 'reveal', 'reveal_again', 'guest_verify_pin', 'guest_set_pin', 'guest_logout',
-        'wishlist_add', 'wishlist_delete', 'poll_vote',
+        'wishlist_add', 'wishlist_update', 'wishlist_delete', 'poll_vote',
     ];
 
     public function __invoke(Request $request, string $action, DrawService $draw): JsonResponse
@@ -506,6 +507,35 @@ class ApiController extends Controller
                 'notes' => $request->input('notes'),
                 'image' => $request->input('image'),
             ]);
+        } catch (WishlistException $e) {
+            return $this->wishlistError($e);
+        }
+
+        return $this->ok(['item' => Serializers::wishlistItem($item)]);
+    }
+
+    private function wishlistUpdate(Request $request): JsonResponse
+    {
+        $guest = $this->sessionGuestOrError($request);
+        if ($guest instanceof JsonResponse) {
+            return $guest;
+        }
+
+        $item = $this->findPartyItem($request->input('item_id'));
+        if ($item === null) {
+            return $this->error('wish_not_found', 404);
+        }
+
+        try {
+            // Only keys actually present in the payload reach the service
+            // ($request->only keeps explicit nulls, e.g. image: null to
+            // remove the photo); absent keys keep their current values.
+            // A guest_id in the payload is ignored, same as wishlist_add.
+            $item = app(WishlistService::class)->updateItem(
+                $guest,
+                $item,
+                $request->only(['text', 'link', 'notes', 'image']),
+            );
         } catch (WishlistException $e) {
             return $this->wishlistError($e);
         }

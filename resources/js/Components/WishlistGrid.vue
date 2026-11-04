@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { ExternalLink, Search, Trash2 } from 'lucide-vue-next';
+import { ExternalLink, Search } from 'lucide-vue-next';
 import ConfirmModal from './ConfirmModal.vue';
+import WishActionsMenu from './WishActionsMenu.vue';
 import { normalizeText } from '../lib/normalize';
 
 const props = defineProps({
@@ -9,7 +10,7 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    // 'mine' shows Delete actions; other modes are for browsing wishes.
+    // 'mine' shows the settings menu (edit/delete); other modes browse.
     mode: {
         type: String,
         default: 'member',
@@ -21,7 +22,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['delete', 'open']);
+const emit = defineEmits(['delete', 'edit', 'open']);
 
 const query = ref('');
 const filter = ref('all');
@@ -93,15 +94,6 @@ const visibleItems = computed(() => {
 
     return filtered.map(({ item }) => item);
 });
-
-function deleteActionState(item) {
-    return {
-        label: 'Delete',
-        className: 'btn btn-secondary',
-        icon: Trash2,
-        disabled: props.busyId === item.id,
-    };
-}
 
 function handleAction(item) {
     deleteTarget.value = item;
@@ -176,16 +168,13 @@ function confirmDelete() {
                             <ExternalLink :size="19" />
                         </a>
                         <span v-if="item.mine" class="wish-mine-chip">Your wish</span>
-                        <button
+                        <WishActionsMenu
                             v-else-if="props.mode === 'mine'"
-                            type="button"
-                            :class="deleteActionState(item).className"
-                            :disabled="deleteActionState(item).disabled"
-                            @click="handleAction(item)"
-                        >
-                            <component :is="deleteActionState(item).icon" :size="17" />
-                            <span>{{ deleteActionState(item).label }}</span>
-                        </button>
+                            :item="item"
+                            :busy="props.busyId === item.id"
+                            @edit="emit('edit', $event)"
+                            @delete="handleAction"
+                        />
                     </div>
                 </div>
             </article>
