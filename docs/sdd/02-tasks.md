@@ -154,3 +154,13 @@ Owner tweak (2026-11-04): the Enter name search no longer lists all names
 up front. Results appear only once the search has at least 2 letters;
 below that a hint says so. Matching rules (nickname/alias, one-letter typo
 tolerance) are unchanged.
+
+Owner-directed change (2026-11-04, supersedes the Slice 2 tap-only tear):
+the reveal is now a slide. The recipient name sits inside the slide track
+under a sliding cover; dragging scrubs the cover (release before ~72%
+springs back and consumes nothing), passing the threshold or tapping
+commits the once-only reveal, and the cover then slides away slowly
+(~1.25s) uncovering the name progressively. The name still only reaches
+the page in the reveal response, so pre-commit dragging can never show
+or burn it. Keyboard Enter/Space still commits; reduced motion shortens
+the completion slide.

@@ -118,8 +118,11 @@ Guest flow:
 - [ ] Create a PIN (two fields, must match): your name locks, no recipient
       is shown, and you land on the reveal page.
 - [ ] Refresh before tearing: you are back on the reveal page, name hidden.
-- [ ] Tear: your person pops in once, with the budget and a button to their
-      wishlist. Write it down.
+- [ ] Slide the strip (drag it, or tap it): the cover slides away slowly and
+      your person's name is uncovered inside the strip itself, shown exactly
+      once, with the budget and a button to their wishlist below. Dragging
+      the strip partway and letting go must spring it back without revealing
+      anything. Write the name down.
 - [ ] Sign out, enter the same name with a wrong PIN: plain error, nothing
       revealed. With the right PIN you go to your home page, not a reveal.
 - [ ] Add wishlist items: text only, a link, and a photo. The photo shows as
