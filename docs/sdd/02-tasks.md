@@ -483,3 +483,11 @@ keyed by its message, so every tap remounted it and restarted
 the pop-in and float animations, causing a slight repositioning
 glitch. The element is now reused; only the text changes (the
 typewriter still re-types each new line into the same bubble).
+
+Chatbox repositioning, second fix (2026-11-05): the key removal
+alone was not it. The bubble's box was content-sized, so on tap
+it collapsed to an empty pill and grew back as the line typed
+in, shifting Scor below it. The bubble is now a constant box
+(fixed width, at least two lines tall) with an invisible sizer
+holding the full line's layout and the typed text overlaid, so
+typing changes nothing outside the bubble.

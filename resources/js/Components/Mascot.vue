@@ -200,8 +200,17 @@ onBeforeUnmount(() => {
              its pop-in and float animations and making it jump.
              Reusing the element keeps both animations continuous;
              only the text changes, and the typewriter watcher above
-             re-types the new line into the same bubble. -->
-        <div v-if="displayedMessage" class="mascot-bubble">{{ typedText }}</div>
+             re-types the new line into the same bubble.
+             Inside, an invisible sizer holds the FULL line's layout
+             (see .mascot-bubble-sizer in app.css) while the typed
+             text overlays it, so the bubble's box never resizes
+             while typing: without it the box collapsed to an empty
+             pill on every tap and grew back character by character,
+             shoving Scor below it up and down. -->
+        <div v-if="displayedMessage" class="mascot-bubble">
+            <span class="mascot-bubble-sizer">{{ displayedMessage }}</span>
+            <span class="mascot-bubble-typed">{{ typedText }}</span>
+        </div>
         <div ref="scorRef" class="scor">
             <div class="scor-head">
                 <img class="scor-hat-img" :src="scorHatUrl" alt="" />
