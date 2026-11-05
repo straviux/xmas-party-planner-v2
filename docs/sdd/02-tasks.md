@@ -477,3 +477,9 @@ Recipient header hidden on the board (2026-11-04): the My
 recipient mode no longer shows the "You are buying for" name
 block; the reveal flow is where the recipient's secret name
 belongs. The tab keeps the budget line, wish count, and grid.
+
+Chatbox no longer re-renders on tap (2026-11-05): the bubble was
+keyed by its message, so every tap remounted it and restarted
+the pop-in and float animations, causing a slight repositioning
+glitch. The element is now reused; only the text changes (the
+typewriter still re-types each new line into the same bubble).

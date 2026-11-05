@@ -195,7 +195,13 @@ onBeforeUnmount(() => {
                 ></span>
             </div>
         </Transition>
-        <div v-if="displayedMessage" :key="displayedMessage" class="mascot-bubble">{{ typedText }}</div>
+        <!-- No :key on the bubble, deliberately: keying it by the
+             message remounted the element on every tap, restarting
+             its pop-in and float animations and making it jump.
+             Reusing the element keeps both animations continuous;
+             only the text changes, and the typewriter watcher above
+             re-types the new line into the same bubble. -->
+        <div v-if="displayedMessage" class="mascot-bubble">{{ typedText }}</div>
         <div ref="scorRef" class="scor">
             <div class="scor-head">
                 <img class="scor-hat-img" :src="scorHatUrl" alt="" />
