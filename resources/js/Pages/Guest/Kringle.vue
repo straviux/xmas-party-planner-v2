@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
+import GiftReveal from '../../Components/GiftReveal.vue';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import KringleRoulette from '../../Components/KringleRoulette.vue';
 import Mascot from '../../Components/Mascot.vue';
@@ -58,10 +59,15 @@ async function onSpinCommit() {
     }
 }
 
+// A guest who spun in this visit gets the gift reveal animation;
+// one who comes back later in the week sees the settled result card.
+const justSpun = ref(false);
+
 function onSpinDone() {
     if (pendingState) {
         state.value = pendingState;
         pendingState = null;
+        justSpun.value = true;
     }
     result.value = undefined;
 }
@@ -130,10 +136,12 @@ const weeksLeftText = computed(() => {
                     </p>
                 </div>
 
-                <!-- Spun: the result block keeps the app's reveal shape.
-                     Monito Monita is open, so the name is the real one. -->
+                <!-- Spun: a fresh spin unwraps the gift reveal; a
+                     return visit shows the settled result card. Monito
+                     Monita is open, so the name is the real one. -->
                 <div v-else class="pop-in" style="margin-top: 22px">
-                    <div class="result-card">
+                    <GiftReveal v-if="justSpun" :name="state.recipient?.name || ''" />
+                    <div v-else class="result-card">
                         <p class="buying-for">
                             <span class="buying-for-label">You are buying for</span>
                             <span class="buying-for-name">

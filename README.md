@@ -173,9 +173,11 @@ Guest flow:
       confirm voting is refused and the winner is shown.
 - [ ] Monito Monita: the dock has a Monito tab, and your home page
       shows this week's theme. Open the Monito Monita page, spin the
-      roulette, and confirm it lands on a real name that is not yours
-      and stays shown for the week. Spinning again in the same week
-      must not be possible.
+      roulette, and confirm the names scroll, slow down, and land on
+      a real name that is not yours; a gift then unwraps with your
+      Monito's name rising out of it. The name stays shown for the
+      week (without replaying the gift when you come back). Spinning
+      again in the same week must not be possible.
 - [ ] The dock no longer has a My wishes tab: your wishes live in the
       Wishlists tab's My wishes view. The star button opens the add
       form there, and your home page's "Open my wishes" lands there

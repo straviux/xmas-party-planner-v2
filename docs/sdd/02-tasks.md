@@ -541,3 +541,13 @@ wishes / All wishes) carrying its add/edit/delete machinery with
 it; the dock star and the home page's Open my wishes now land on
 /guest/wishlists (with ?add=1 / ?view=mine), and /guest/gifts
 redirects there. Gifts.vue is deleted.
+
+Kringle animation pass (2026-11-07, owner's ask): the spin is now a
+scrolling roulette (KringleRoulette rewritten: a three-row window,
+names scrolling fast while the draw runs, then a landing run that
+eases out over about two seconds onto the drawn name, frame pulse
+on settle; same commit/result/failSignal contract). A fresh spin
+then plays the new GiftReveal: a wrapped gift wiggles, its lid pops
+off, confetti bursts, and the Monito's name rises in. Return visits
+in the same week show the settled result card without replaying
+the gift. Both honour reduced motion (no scroll, settled gift).
