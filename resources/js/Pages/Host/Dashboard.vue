@@ -544,8 +544,8 @@ async function printQr() {
                         <p class="admin-row-title">Unclaim all names</p>
                         <p class="admin-row-sub">
                             Clears every claim and reveal, so all guests can enter and reveal again.
-                            It does not redraw recipients, does not clear PINs, and does not delete
-                            guests, wishlists, or polls. This is the step to do before a Redraw.
+                            It does not change anyone's recipient, does not clear PINs, and does not
+                            delete guests, wishlists, or polls.
                         </p>
                     </div>
                     <button
