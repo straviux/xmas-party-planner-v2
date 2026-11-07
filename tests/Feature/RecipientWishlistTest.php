@@ -32,7 +32,12 @@ if (! function_exists('recipientWishlistParty')) {
             ]);
         }
 
-        (new DrawService)->redraw($party);
+        // Roulette world: recipients come from spins, so the fixture
+        // spins for everyone (each guest draws live, in id order).
+        $draw = new DrawService;
+        foreach ($party->guests()->orderBy('id')->get() as $partyGuest) {
+            $draw->assignForGuest($partyGuest);
+        }
 
         return [$party, $guests];
     }

@@ -14,7 +14,6 @@ import {
     RotateCcw,
     Settings,
     ShieldAlert,
-    Shuffle,
     Trash2,
     Users,
     Wallet,
@@ -189,29 +188,11 @@ function askResetOne(guest) {
     });
 }
 
-function askRedraw() {
-    askConfirm({
-        key: 'redraw',
-        title: 'Redraw recipients?',
-        body: 'Every guest gets a new recipient, so who everyone buys for changes. PINs, wishlists, and votes do not change. A redraw only works while no names are locked.',
-        confirmLabel: 'Yes, redraw',
-        run: async () => {
-            try {
-                await post('host_redraw');
-                toastSuccess('Recipients redrawn');
-                await load();
-            } catch (err) {
-                toastError(err.message || 'The redraw could not be done.');
-            }
-        },
-    });
-}
-
 function askUnclaimAll() {
     askConfirm({
         key: 'unclaim',
         title: 'Unclaim all names?',
-        body: 'This clears every claim and reveal, so all guests can enter and reveal again. It does not redraw recipients, does not clear PINs, and does not delete guests, wishlists, polls, or votes.',
+        body: 'This clears every claim and reveal, so all guests can enter and reveal again. It does not change anyone\'s recipient, does not clear PINs, and does not delete guests, wishlists, polls, or votes.',
         confirmLabel: 'Yes, unclaim all',
         run: async () => {
             try {
@@ -548,27 +529,6 @@ async function printQr() {
                     <button type="button" class="btn btn-teal btn-sm" @click="openPasswordModal">
                         <KeyRound :size="15" />
                         <span>Change password</span>
-                    </button>
-                </div>
-
-                <div v-if="party" class="admin-row">
-                    <div class="admin-row-text">
-                        <p class="admin-row-title">Redraw recipients</p>
-                        <p class="admin-row-sub">
-                            Re-assigns who everyone buys for. Only works when no names are locked.
-                        </p>
-                        <p v-if="counts.locked > 0" class="hint-text">
-                            Locked names block a redraw. Use Unclaim all first.
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        class="btn btn-secondary btn-sm"
-                        :disabled="!!actionBusy"
-                        @click="askRedraw"
-                    >
-                        <Shuffle :size="15" />
-                        <span>Redraw recipients</span>
                     </button>
                 </div>
             </section>

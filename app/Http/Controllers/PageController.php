@@ -62,6 +62,11 @@ class PageController extends Controller
         return Inertia::render('Reveal', [
             'party' => Serializers::partyPublic($guest->party),
             'guest' => Serializers::publicGuest($guest),
+            // The roulette's cycle list: the party's codenames, no
+            // mapping (see Serializers::wheelNames). The recipient is
+            // NOT in this page's props; it arrives only in the reveal
+            // response when the guest spins.
+            'wheelNames' => Serializers::wheelNames($guest->party),
         ]);
     }
 

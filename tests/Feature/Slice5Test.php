@@ -7,7 +7,6 @@ use App\Models\PollOption;
 use App\Models\User;
 use App\Models\Vote;
 use App\Models\WishlistItem;
-use App\Services\DrawService;
 use Illuminate\Support\Facades\Hash;
 
 if (! function_exists('slice5LoginHost')) {
@@ -173,7 +172,7 @@ test('reset_one with an unknown guest is guest_not_found', function () {
 });
 
 // ----------------------------------------------------------------------
-// Unclaim all and redraw
+// Unclaim all (recipients are never changed by admin controls)
 // ----------------------------------------------------------------------
 
 test('host_unclaim_all clears every claim and changes nothing else', function () {
@@ -191,7 +190,7 @@ test('host_unclaim_all clears every claim and changes nothing else', function ()
     expect(Guest::where('claimed', true)->count())->toBe(0)
         ->and(Guest::where('revealed', true)->count())->toBe(0)
         ->and(Guest::whereNotNull('claimed_at')->count())->toBe(0)
-        // The draw is NOT redrawn and PINs are NOT cleared.
+        // Recipients are NOT changed and PINs are NOT cleared.
         ->and(slice5Mapping())->toBe($mappingBefore)
         ->and(slice5PinHashes())->toBe($pinsBefore)
         ->and(WishlistItem::count())->toBe(2)
@@ -199,26 +198,23 @@ test('host_unclaim_all clears every claim and changes nothing else', function ()
         ->and(Poll::count())->toBe(1);
 });
 
-test('host_redraw is blocked while a name is claimed, then redraws a derangement after unclaim all', function () {
+test('host_redraw is retired: recipients come only from the roulette now', function () {
     slice5Fixture($this);
 
+    // The action no longer exists in the dispatch map.
     $this->postJson('/api/host_redraw')
-        ->assertStatus(409)
-        ->assertJsonPath('error', 'guests_locked')
-        ->assertJsonPath('message', DrawService::LOCKED_MESSAGE);
+        ->assertStatus(404)
+        ->assertJsonPath('error', 'unknown_action');
 
-    $this->postJson('/api/host_unclaim_all')->assertOk();
-    $this->postJson('/api/host_redraw')
-        ->assertOk()
-        ->assertJsonPath('ok', true);
-
+    // And the fixture's only recipient is Ana's, drawn by her reveal:
+    // unrevealed guests have no recipient until they spin.
     $mapping = slice5Mapping();
     expect($mapping)->toHaveCount(3);
-    foreach ($mapping as $guestId => $recipientId) {
-        expect($recipientId)->not->toBeNull()
-            ->and($recipientId)->not->toBe($guestId);
+    $assigned = array_filter($mapping);
+    expect($assigned)->toHaveCount(1);
+    foreach ($assigned as $guestId => $recipientId) {
+        expect($recipientId)->not->toBe($guestId);
     }
-    expect(array_unique(array_values($mapping)))->toHaveCount(3);
 });
 
 // ----------------------------------------------------------------------
@@ -371,7 +367,7 @@ test('admin actions need the host session', function () {
     slice5Fixture($this);
     $this->postJson('/api/host_logout')->assertOk();
 
-    foreach (['reset_one', 'host_unclaim_all', 'host_redraw', 'host_reset_pin', 'host_clear_wishlists', 'reset_all', 'host_change_password'] as $action) {
+    foreach (['reset_one', 'host_unclaim_all', 'host_reset_pin', 'host_clear_wishlists', 'reset_all', 'host_change_password'] as $action) {
         $this->postJson("/api/{$action}", ['guest_id' => 1])
             ->assertForbidden()
             ->assertJsonPath('error', 'forbidden');
@@ -386,8 +382,6 @@ test('admin writes with no party report not_set_up', function () {
     $this->postJson('/api/host_reset_pin', ['guest_id' => 1])
         ->assertStatus(422)->assertJsonPath('error', 'not_set_up');
     $this->postJson('/api/host_unclaim_all')
-        ->assertStatus(422)->assertJsonPath('error', 'not_set_up');
-    $this->postJson('/api/host_redraw')
         ->assertStatus(422)->assertJsonPath('error', 'not_set_up');
     $this->postJson('/api/host_clear_wishlists')
         ->assertStatus(422)->assertJsonPath('error', 'not_set_up');

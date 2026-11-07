@@ -498,3 +498,16 @@ Monday from a built-in pool of 24; everyone brings a themed
 gift, exchanged by lot at the meetup. Fixed run every Monday
 until the party week (anchored to the party date). Full design
 in docs/sdd/03-kringle-design.md. Build awaits the owner's go.
+
+Roulette draw (2026-11-07, owner's pick over the slide reveal): the
+pre-drawn derangement is replaced by a live draw. A guest's recipient
+is assigned at their first reveal by DrawService::assignForGuest
+(random pick from the not-yet-picked guests inside the reveal
+transaction, never themselves; forced pick on the second-to-last
+spin so the last guest can never be stranded; recipients pre-drawn
+under the old system are kept as-is). Automatic draws on guest
+changes and the host_redraw action are retired (404 unknown_action).
+The reveal page is a roulette: it flickers through the party's
+codenames (new wheelNames page prop, names only, no mapping) and
+lands on the result; the reveal-again popup keeps the slide strip.
+Suite 117 tests green plus a live E2E (e2e_roulette.py).

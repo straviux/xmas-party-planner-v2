@@ -28,8 +28,13 @@ hosting (A4) and any deployment action (documented only).
   contract, plus A1/A2 additions. Every response shape is an explicit
   allowlist serializer — models are never returned raw.
 - Services:
-  - `DrawService` — derangement (rejection-sampled shuffle, no fixed points;
-    n=2 swap falls out naturally), re-draw triggers, claimed-guard.
+  - `DrawService` — the roulette draw (since 2026-11-07, replacing the
+    original pre-drawn derangement): assignForGuest() assigns a guest's
+    recipient live at their first reveal, a random pick from the
+    not-yet-picked guests, never themselves, with a forced pick on the
+    second-to-last spin so the last guest cannot be stranded; across all
+    spins the result is still a derangement. Claimed-guard for guest
+    changes. The pre-draw triggers and the host redraw were retired.
   - `GuestEntryService` — search (A13), lock + PIN create/verify in one
     transaction with `lockForUpdate` on the guest row.
   - `RevealService` — verifies session `pin_verified` (D2) or PIN (D1-B),

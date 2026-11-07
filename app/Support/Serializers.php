@@ -146,6 +146,33 @@ class Serializers
     }
 
     /**
+     * Roulette wheel names for the reveal page: the party's secret
+     * names as a flat list of strings, shuffled, with no guest ids and
+     * no mapping of any kind. The wheel cycles through codenames while
+     * it spins; the list is the whole party's codenames (the same set
+     * the wishlist board already shows any claimed guest), never the
+     * live pool of unpicked recipients, so it cannot leak who has or
+     * has not been drawn. Guests without a codename contribute
+     * nothing. The recipient themselves only ever arrives via
+     * revealRecipient(), in the reveal response.
+     *
+     * @return array<int, string>
+     */
+    public static function wheelNames(Party $party): array
+    {
+        $names = $party->guests()
+            ->whereNotNull('secret_name')
+            ->pluck('secret_name')
+            ->filter(fn ($name) => is_string($name) && $name !== '')
+            ->values()
+            ->all();
+
+        shuffle($names);
+
+        return $names;
+    }
+
+    /**
      * Wishlist member shape: id, secret_name.
      *
      * Guest-facing wishlist surfaces (the `wishlist_list` board entries

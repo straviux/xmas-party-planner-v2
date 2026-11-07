@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleAlert, Gift, Hourglass, House, LogOut, PenLine, TriangleAlert } from 'lucide-vue-next';
 import GuestLayout from '../Components/GuestLayout.vue';
-import RevealStrip from '../Components/RevealStrip.vue';
+import RouletteReveal from '../Components/RouletteReveal.vue';
 import { post } from '../lib/api';
 import { toastError } from '../lib/toast';
 
@@ -16,31 +16,43 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    // The secret names the roulette reel flickers through while it
+    // spins. Decoration only: the draw itself happens server-side in
+    // the reveal call, and the landed name comes back in its response.
+    wheelNames: {
+        type: Array,
+        default: () => [],
+    },
 });
 
-// phase: idle -> tearing (committed, strip sliding open) -> done
-//             -> waiting (revealed, but the recipient has no secret name
-//                yet, so there is nothing to slide open) | back to idle
-//                on a retryable error
+// phase: idle -> spinning (committed, roulette flickering then
+//                settling onto the drawn name) -> done
+//             -> waiting (drawn, but the recipient has no secret name
+//                yet, so the reel lands on the placeholder instead)
+//             | back to idle on a retryable error
 const phase = ref('idle');
 const recipient = ref(null);
+// The reveal outcome handed to the roulette: undefined until the
+// reveal call returns, then { name } with the recipient's secret
+// name, or null when they have not picked one yet.
+const result = ref(undefined);
 const budget = ref(null);
 const errorText = ref('');
 const errorAction = ref(''); // '' | 'home'
 const signingOut = ref(false);
-// Bumped after a failed reveal call so the strip springs its cover back
-// and can be slid again.
+// Bumped after a failed reveal call so the roulette stops flickering
+// and returns to idle, ready to spin again.
 const failSignal = ref(0);
 
-// Fired by the strip when the guest commits a slide gesture. The
-// recipient name only exists on this page after this call returns it, so
-// no amount of pre-commit dragging (which is purely visual) can show or
-// consume it.
-async function tear() {
+// Fired by the roulette when the guest presses the spin button. The
+// spin is the draw: this call picks the recipient server-side and
+// returns their secret name, so nothing on this page can show or
+// consume the result before the spin commits it.
+async function spin() {
     if (phase.value !== 'idle') return;
     errorText.value = '';
     errorAction.value = '';
-    phase.value = 'tearing';
+    phase.value = 'spinning';
 
     let body = null;
     let failure = null;
@@ -55,20 +67,15 @@ async function tear() {
         const revealed = body.recipient || null;
         if (revealed && revealed.secret_name) {
             recipient.value = revealed;
-            // The strip sees `recipient` arrive and runs the slow
-            // completion slide; onStripDone flips phase to 'done' once
-            // it finishes.
-        } else {
-            // The reveal itself is done, but the recipient has not
-            // picked a secret name yet: there is no name to hide under
-            // the strip, so the page switches to the waiting state and
-            // the strip never receives a recipient.
-            phase.value = 'waiting';
         }
+        // The roulette sees `result` arrive and decelerates onto the
+        // name (or onto the placeholder when there is no name yet);
+        // onRouletteDone flips the phase once it has landed.
+        result.value = { name: revealed?.secret_name ?? null };
         return;
     }
 
-    // Failure: bump the signal so the strip springs its cover back.
+    // Failure: bump the signal so the roulette stops and resets.
     failSignal.value++;
     phase.value = 'idle';
     if (!failure) return;
@@ -79,15 +86,17 @@ async function tear() {
         toastError('Enter your name and PIN first, then come back to reveal.');
         router.visit('/enter');
     } else if (failure.code === 'pin_incorrect') {
-        errorText.value = 'Something did not check out. Try sliding again.';
+        errorText.value = 'Something did not check out. Try spinning again.';
     } else {
-        errorText.value = failure.message || 'The reveal did not work. Try sliding again.';
+        errorText.value = failure.message || 'The reveal did not work. Try spinning again.';
     }
 }
 
-// The strip finished its completion slide and the name is uncovered.
-function onStripDone() {
-    phase.value = 'done';
+// The roulette landed: a real secret name means the reveal is done;
+// a placeholder landing means the recipient has not picked a secret
+// name yet, so the page switches to the waiting state.
+function onRouletteDone() {
+    phase.value = result.value && result.value.name ? 'done' : 'waiting';
 }
 
 async function signOut() {
@@ -107,27 +116,28 @@ async function signOut() {
     <GuestLayout>
         <div class="card slide-in">
             <span class="section-label">Secret Santa reveal</span>
-            <h1 class="card-title">Your recipient is hidden here</h1>
+            <h1 class="card-title">Spin for your recipient</h1>
             <p class="card-subtitle" style="margin-bottom: 8px">
-                Hi {{ guest?.display }}. When you are ready, slide the strip below
-                to see the secret name of the person you are buying for. Make
-                sure nobody is looking over your shoulder.
+                Hi {{ guest?.display }}. When you are ready, spin the roulette: it
+                picks the person you are buying for and lands on their secret
+                name. Make sure nobody is looking over your shoulder.
             </p>
 
-            <!-- Slide-to-reveal control: the secret name lives inside the
-                 strip, under its sliding cover (see RevealStrip). Hidden
-                 entirely in the waiting state, where the recipient has
-                 no secret name to uncover yet. -->
+            <!-- Roulette draw control: the reel flickers through secret
+                 names and lands on the drawn recipient (see
+                 RouletteReveal). Hidden entirely in the waiting state,
+                 where the recipient has no secret name to land on yet. -->
             <template v-if="phase !== 'waiting'">
-                <RevealStrip
-                    :recipient="recipient"
+                <RouletteReveal
+                    :names="wheelNames"
+                    :result="result"
                     :fail-signal="failSignal"
-                    @commit="tear"
-                    @done="onStripDone"
+                    @commit="spin"
+                    @done="onRouletteDone"
                 />
 
                 <p v-if="phase === 'idle'" class="muted small" style="margin: 10px 0 0; text-align: center">
-                    Drag the strip across, or tap it, and their secret name appears inside the strip.
+                    One spin. Whoever it lands on is your recipient.
                 </p>
             </template>
 
@@ -239,10 +249,10 @@ async function signOut() {
 
 /* The "You are buying for" result block, shared in shape with the
    success state (and with the reveal-again popup in Guest Home, which
-   carries the same classes): the label matches RevealStrip's
-   under-layer label, and the placeholder sits at the revealed name's
-   type scale but muted and italic, so it can never be mistaken for an
-   actual secret name. */
+   carries the same classes): the label matches the result label used
+   across the reveal surfaces, and the placeholder sits at the
+   revealed name's type scale but muted and italic, so it can never
+   be mistaken for an actual secret name. */
 .buying-for {
     margin: 14px 0 12px;
 }
