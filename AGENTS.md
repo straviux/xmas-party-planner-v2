@@ -44,17 +44,8 @@ and best practices.
    never who got whom.
 4. Images are WebP only, never AVIF. Screenshots are converted to WebP on
    save (max side 1600px) and stored as data URLs.
-5. Guest changes (add/edit/remove) are blocked once any name is claimed.
-   There is no pre-draw and no redraw: a guest's recipient is drawn live
-   by the roulette at their first reveal (DrawService::assignForGuest,
-   inside the reveal transaction; a random pick from the not-yet-picked
-   guests, never themselves, with one forced pick on the second-to-last
-   spin so the last guest can never be stranded with only themselves).
-   Across all spins the result is still a derangement, and a recipient
-   once assigned never changes (the hybrid path also keeps recipients
-   pre-drawn before the roulette shipped). The `host_redraw` action is
-   retired and removed from the dispatch map at the owner's direction;
-   do not restore it.
+5. Guests changes (add/edit/remove) are blocked once any name is claimed;
+   the draw is a derangement and re-runs automatically while unclaimed.
 6. API is a single dispatch route, `POST /api/{action}`; action names and
    error codes are a stable contract, do not rename them. Guest secrets:
    `guest_set_secret_name` {secret_name} lets a claimed guest set their

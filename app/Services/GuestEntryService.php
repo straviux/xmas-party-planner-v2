@@ -285,16 +285,13 @@ class GuestEntryService
     }
 
     /**
-     * The single reveal, which is also the spin: the guest's recipient
-     * is drawn live at this moment (DrawService::assignForGuest) when
-     * they do not have one yet; there is no pre-draw. D1: there is no
-     * second PIN prompt; the endpoint checks the session's
-     * pin_verified flag, set when the PIN was verified or created at
-     * entry. Sets `revealed` in a locked transaction and returns the
-     * recipient exactly once; a second attempt gets already_claimed
-     * with no recipient data. The recipient is carried as their secret
-     * name only (or null when they have not picked one); their real
-     * name never appears in this response.
+     * The single reveal. D1: there is no second PIN prompt; the endpoint
+     * checks the session's pin_verified flag, set when the PIN was verified
+     * or created at entry. Sets `revealed` in a locked transaction and
+     * returns the recipient exactly once; a second attempt gets
+     * already_claimed with no recipient data. The recipient is carried as
+     * their secret name only (or null when they have not picked one);
+     * their real name never appears in this response.
      *
      * @return array{recipient: array{id: int, secret_name: ?string}|null, budget: ?string}
      *
@@ -319,10 +316,10 @@ class GuestEntryService
                 throw GuestEntryException::make('already_claimed', 409);
             }
 
-            $recipient = app(DrawService::class)->assignForGuest($guest);
-
             $guest->revealed = true;
             $guest->save();
+
+            $recipient = $guest->recipient;
 
             return [
                 'recipient' => $recipient === null ? null : Serializers::revealRecipient($recipient),

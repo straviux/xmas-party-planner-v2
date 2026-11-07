@@ -66,6 +66,7 @@ class ApiController extends Controller
         'poll_vote' => 'pollVote',
         'reset_one' => 'resetOne',
         'host_unclaim_all' => 'hostUnclaimAll',
+        'host_redraw' => 'hostRedraw',
         'host_reset_pin' => 'hostResetPin',
         'host_clear_wishlists' => 'hostClearWishlists',
         'reset_all' => 'resetAll',
@@ -249,14 +250,18 @@ class ApiController extends Controller
             ]);
         }
 
-        // No draw happens here: recipients are assigned live by the
-        // roulette at each guest's first reveal (DrawService).
-        $guest = $party->guests()->create([
-            'display' => $display,
-            'nickname' => $this->nullableString($request->input('nickname')),
-            'aliases' => $this->normalizeAliases($request->input('aliases')),
-            'pin_hash' => $this->hashPin($request->input('pin')),
-        ]);
+        $guest = DB::transaction(function () use ($request, $party, $display, $draw) {
+            $guest = $party->guests()->create([
+                'display' => $display,
+                'nickname' => $this->nullableString($request->input('nickname')),
+                'aliases' => $this->normalizeAliases($request->input('aliases')),
+                'pin_hash' => $this->hashPin($request->input('pin')),
+            ]);
+
+            $draw->redraw($party);
+
+            return $guest;
+        });
 
         return $this->ok(['guest' => Serializers::hostGuest($guest->fresh())]);
     }
@@ -283,7 +288,7 @@ class ApiController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($request, $guest) {
+        DB::transaction(function () use ($request, $party, $guest, $draw) {
             $updates = [];
 
             if ($request->has('display')) {
@@ -305,6 +310,8 @@ class ApiController extends Controller
             if ($updates !== []) {
                 $guest->update($updates);
             }
+
+            $draw->redraw($party);
         });
 
         return $this->ok(['guest' => Serializers::hostGuest($guest->fresh())]);
@@ -326,12 +333,14 @@ class ApiController extends Controller
             return $this->error('guest_not_found', 404);
         }
 
-        // The guest's wishlist items and votes cascade away with the
-        // row. Guest changes are locked once any name is claimed, and
-        // recipients only exist after claims (they are drawn at each
-        // guest's first reveal), so no recipient can point at this
-        // guest yet; the FK still nulls recipient_id defensively.
-        $guest->delete();
+        DB::transaction(function () use ($party, $guest, $draw) {
+            // The guest's wishlist items and votes cascade away with the row;
+            // anyone who drew this guest has recipient_id set to null by the
+            // FK, and the redraw below reassigns everyone.
+            $guest->delete();
+
+            $draw->redraw($party);
+        });
 
         return $this->ok();
     }
@@ -772,10 +781,36 @@ class ApiController extends Controller
             return $party;
         }
 
-        // Claims only: no recipient changes, no PIN changes, nothing deleted.
+        // Claims only: no redraw, no PIN changes, nothing deleted.
         $unclaimed = app(AdminService::class)->unclaimAll($party);
 
         return $this->ok(['unclaimed' => $unclaimed]);
+    }
+
+    private function hostRedraw(Request $request, DrawService $draw): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        try {
+            app(AdminService::class)->redraw($party, $draw);
+        } catch (\DomainException $e) {
+            // DrawService refuses while any name is claimed; map it exactly
+            // like the guest-management lock (409 guests_locked, plain
+            // locked message).
+            if ($e->getMessage() === 'guests_locked') {
+                return $this->error('guests_locked', 409, [
+                    'message' => DrawService::LOCKED_MESSAGE,
+                ]);
+            }
+
+            throw $e;
+        }
+
+        // No recipient data in the response: the host stays blind.
+        return $this->ok();
     }
 
     private function hostResetPin(Request $request): JsonResponse

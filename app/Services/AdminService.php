@@ -14,11 +14,10 @@ use Illuminate\Support\Facades\Hash;
  *
  * Every control is scoped to exactly what its name says and nothing more.
  * The differences between them are the product: Reset one does not touch
- * the PIN, Unclaim all does not change recipients, Reset PIN does not
- * unclaim, and Clear wishlists does not touch claims, polls, or votes.
- * Recipient mappings are never read for a response here and never
- * changed by any admin control: a recipient is assigned only by the
- * roulette at a guest's first reveal (DrawService::assignForGuest).
+ * the PIN, Unclaim all does not redraw, Reset PIN does not unclaim, and
+ * Clear wishlists does not touch claims, polls, or votes. Recipient
+ * mappings are never read for a response here and never changed except by
+ * an explicit Redraw.
  */
 class AdminService
 {
@@ -40,9 +39,9 @@ class AdminService
 
     /**
      * Unclaim all: clears claimed + revealed for every guest of the party.
-     * Does NOT change recipients (a guest who already drew keeps the
-     * same recipient when they reveal again), does NOT clear PINs, and
-     * does NOT delete guests, wishlist items, polls, or votes.
+     * Does NOT redraw recipients (this is the prerequisite for Redraw,
+     * not a redraw itself), does NOT clear PINs, and does NOT delete
+     * guests, wishlist items, polls, or votes.
      *
      * Returns how many guests were claimed before the reset.
      */
@@ -59,6 +58,17 @@ class AdminService
 
             return $claimed;
         });
+    }
+
+    /**
+     * Redraw: a fresh derangement for the party, via DrawService. Blocked
+     * while any name is claimed: DrawService::redraw throws a
+     * DomainException with message 'guests_locked', which the controller
+     * maps to the same 409 response as the guest-management actions.
+     */
+    public function redraw(Party $party, DrawService $draw): void
+    {
+        $draw->redraw($party);
     }
 
     /**

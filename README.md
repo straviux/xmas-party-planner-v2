@@ -44,18 +44,18 @@ For the host:
 2. Open **Party settings**, name the party, set the date and gift budget, and
    type the guest list (one name per line; nicknames, aliases, and an
    optional preset PIN can be added per guest later on the Guests page).
-   Nobody is matched up yet: each guest draws their recipient live, by
-   roulette, when they reveal. Nobody can draw themselves, everyone is
-   drawn exactly once, and the last spin can never strand anyone.
+   Saving runs the Secret Santa draw automatically: everyone gets someone,
+   nobody gets themselves.
 3. From the dashboard, copy the invite link (or print the QR code) and share
    it with your guests.
-4. Adding, editing, or removing guests is free until the first guest locks
-   their name. After that, guest changes are blocked until claims are reset.
+4. Adding, editing, or removing guests re-runs the draw automatically, but
+   only until the first guest locks their name. After that, guest changes
+   are blocked until claims are reset.
 5. Create polls on the Polls page (for example, voting on a party theme).
    Guests can change their vote until you close the poll.
 6. The dashboard's Admin controls and Danger zone handle the fixes: reset
    one guest, reset a forgotten PIN, unclaim all names (this does not
-   change anyone's recipient), clear wishlists, or delete the whole party.
+   redraw), redraw recipients, clear wishlists, or delete the whole party.
    Each button explains exactly what it does and does not touch. You can
    never see who got whom, and neither can anyone else.
 
@@ -69,9 +69,8 @@ For guests:
 4. Pick a secret name. It is the only name your Secret Santa will see;
    your real name stays hidden until the gift exchange itself. Secret
    names are unique at the party, so grab yours early.
-5. Spin the roulette on the reveal page: the spin itself picks the
-   person you are buying for and lands on their secret name, plus the
-   gift budget. Write it down; if
+5. Slide the strip on the reveal page to see the secret name of the
+   person you are buying for, plus the gift budget. Write it down; if
    you forget, your home page can show it again after you re-enter your
    PIN. If your person has not picked a secret name yet, the reveal
    says so, and "Show my recipient again" will show it once they do.
@@ -132,14 +131,14 @@ Guest flow:
       Tapping a result asks "Is this you?" before anything locks.
 - [ ] Create a PIN (two fields, must match): your name locks, no recipient
       is shown, and you land on the reveal page.
-- [ ] Refresh before spinning: you are back on the reveal page, name hidden.
+- [ ] Refresh before tearing: you are back on the reveal page, name hidden.
 - [ ] After the PIN step you are asked for a secret name before you can
       go on. A name another guest already took is refused.
-- [ ] Spin the roulette: the secret names flicker past, slow down, and
-      land on your person's SECRET name, shown exactly once, with the
-      budget below. Their real name appears nowhere. Before the spin,
-      nobody has a recipient yet, not even in the host's screens. Write
-      the secret name down.
+- [ ] Slide the strip (drag it, or tap it): the cover slides away slowly and
+      your person's SECRET name is uncovered inside the strip itself, shown
+      exactly once, with the budget below. Their real name appears nowhere.
+      Dragging the strip partway and letting go must spring it back without
+      revealing anything. Write the secret name down.
 - [ ] Reveal when your person has not picked a secret name yet: you get a
       "still choosing" note instead of a name, and "Show my recipient
       again" on your home page shows the secret name once they pick one.
@@ -173,10 +172,8 @@ Host flow (desktop):
       name as a guest, then try adding a guest again: a clear refusal.
 - [ ] Forget a PIN on purpose: Guests page, Reset PIN; the guest creates a
       new PIN next visit and loses nothing.
-- [ ] Unclaim all, check the subtitle matched what happened (recipients
-      unchanged, no PINs cleared). There is no redraw to try: anyone who
-      already drew keeps the same recipient when they reveal again, and
-      everyone else still draws theirs at their first reveal.
+- [ ] Unclaim all, check the subtitle matched what happened (no redraw, no
+      PINs cleared), then Redraw and confirm it works now.
 - [ ] Reset everything on a throwaway party and confirm the dashboard
       returns to the clean setup state.
 

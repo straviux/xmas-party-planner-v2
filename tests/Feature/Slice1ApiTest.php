@@ -136,10 +136,10 @@ test('party setup, guest adds, and the automatic derangement', function () {
     $guests = Guest::orderBy('id')->get();
     expect($guests)->toHaveCount(3);
     foreach ($guests as $guest) {
-        // No pre-draw: a recipient exists only after the guest spins
-        // the roulette at their first reveal.
-        expect($guest->recipient_id)->toBeNull();
+        expect($guest->recipient_id)->not->toBeNull()
+            ->and((int) $guest->recipient_id)->not->toBe($guest->id);
     }
+    expect($guests->pluck('recipient_id')->unique())->toHaveCount(3);
 
     $this->postJson('/api/host_status')
         ->assertOk()
@@ -246,7 +246,7 @@ test('guest changes are blocked once a name is claimed', function () {
     expect(Guest::count())->toBe(2);
 });
 
-test('removing a guest removes their wishlist and leaves the rest undrawn', function () {
+test('removing a guest removes their wishlist and re-draws the rest', function () {
     seedHostUser();
     loginAsHost($this);
 
@@ -265,9 +265,9 @@ test('removing a guest removes their wishlist and leaves the rest undrawn', func
     expect(Guest::count())->toBe(2);
     $remaining = Guest::all();
     foreach ($remaining as $guest) {
-        // Nobody has a recipient until they spin at their reveal:
-        // adding or removing guests never draws.
-        expect($guest->recipient_id)->toBeNull();
+        // Two guests swap after the redraw.
+        expect((int) $guest->recipient_id)->not->toBe($guest->id)
+            ->and($guest->recipient_id)->not->toBeNull();
     }
 });
 
