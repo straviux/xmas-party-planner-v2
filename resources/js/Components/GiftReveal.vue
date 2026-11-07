@@ -8,9 +8,11 @@ import { computed } from 'vue';
 // instead (the page decides which to render).
 //
 // Pure CSS shapes and theme colours, no images. The base styles are
-// the SETTLED state (lid off, name visible), and every animation
-// lives under prefers-reduced-motion: no-preference with backwards
-// fill, so reduced-motion guests simply get the settled state.
+// the SETTLED state (lid off, name visible); the animations run on
+// top of them with backwards fill. The reveal always animates,
+// including on devices reporting reduced motion: the owner exempted
+// it (and the roulette) from the reduced-motion freeze, like the
+// mascot (2026-11-07).
 const props = defineProps({
     name: {
         type: String,
@@ -132,7 +134,7 @@ const pieces = computed(() =>
 }
 
 /* Settled state: the lid rests popped off, up and tilted. The pop
-   animation below starts it from closed under no-preference. */
+   animation below starts it from closed. */
 .gift-lid {
     position: absolute;
     z-index: 3;
@@ -232,30 +234,28 @@ const pieces = computed(() =>
     margin: 14px 0 0;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .gift {
-        animation: gift-wiggle 0.5s ease-in-out 0.05s;
-    }
+.gift {
+    animation: gift-wiggle 0.5s ease-in-out 0.05s;
+}
 
-    .gift-lid {
-        animation: lid-pop 0.6s cubic-bezier(0.2, 1.4, 0.36, 1) 0.52s backwards;
-    }
+.gift-lid {
+    animation: lid-pop 0.6s cubic-bezier(0.2, 1.4, 0.36, 1) 0.52s backwards;
+}
 
-    .gift-glow {
-        animation: glow-in 0.8s ease-out 0.5s backwards;
-    }
+.gift-glow {
+    animation: glow-in 0.8s ease-out 0.5s backwards;
+}
 
-    .burst {
-        animation: burst-flash 0.7s ease-out 0.52s both;
-    }
+.burst {
+    animation: burst-flash 0.7s ease-out 0.52s both;
+}
 
-    .confetti {
-        animation: confetti-fly 0.95s ease-out both;
-    }
+.confetti {
+    animation: confetti-fly 0.95s ease-out both;
+}
 
-    .gift-name {
-        animation: name-rise 0.55s ease-out 0.7s backwards;
-    }
+.gift-name {
+    animation: name-rise 0.55s ease-out 0.7s backwards;
 }
 
 @keyframes gift-wiggle {

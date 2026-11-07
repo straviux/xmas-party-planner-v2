@@ -98,7 +98,9 @@ and best practices.
    remaining pool. Guest navigation: the dock is Home / Monito
    (the Kringle page) / star / Wishlists / Vote; My wishes is a view
    inside the Wishlists page (`/guest/wishlists?view=mine`), and
-   `/guest/gifts` redirects there.
+   `/guest/gifts` redirects there. The roulette scroll and the gift
+   reveal always animate: the owner exempted them from the
+   reduced-motion freeze, like the mascot (2026-11-07).
 
 ## Working notes
 

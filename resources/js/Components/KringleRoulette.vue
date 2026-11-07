@@ -24,6 +24,10 @@ import { RotateCw } from 'lucide-vue-next';
 //   arrives, and clears it back to undefined after `done`.
 // - failSignal (prop): ANY change stops everything and returns the
 //   reel to idle, in any state.
+//
+// The spin always animates, including on devices reporting reduced
+// motion: the owner exempted the roulette (and the gift reveal) from
+// the reduced-motion freeze, like the mascot (2026-11-07).
 const props = defineProps({
     names: {
         type: Array,
@@ -56,10 +60,6 @@ let runSeq = 0;
 let interval = null;
 let timer = null;
 let spinStartedAt = 0;
-
-function reducedMotion() {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
 
 function pool() {
     return (props.names || []).filter((n) => typeof n === 'string' && n !== '');
@@ -201,15 +201,6 @@ function startLanding(seq) {
 function maybeLand(seq) {
     if (seq !== runSeq || state.value !== 'spinning') return;
     if (props.result === undefined || props.result === null) return;
-    if (reducedMotion()) {
-        // No scroll theatre and no enforced wait: centre the drawn
-        // name and finish.
-        stopAll();
-        idleStrip(props.result?.name ?? '???');
-        state.value = 'done';
-        emit('done');
-        return;
-    }
     const waited = Date.now() - spinStartedAt;
     if (waited < MIN_SPIN_MS) {
         timer = window.setTimeout(() => maybeLand(seq), MIN_SPIN_MS - waited);
@@ -225,9 +216,7 @@ function startSpin() {
     spinStartedAt = Date.now();
     const seq = ++runSeq;
     emit('commit');
-    if (!reducedMotion()) {
-        startLoop(seq);
-    }
+    startLoop(seq);
     maybeLand(seq);
 }
 
@@ -429,10 +418,4 @@ onBeforeUnmount(() => {
     margin-top: 14px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .reel-strip {
-        transition: none !important;
-        filter: none;
-    }
-}
 </style>
