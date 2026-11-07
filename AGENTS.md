@@ -39,7 +39,9 @@ and best practices.
    guest's OWN secret name is under the same lock: it is never sent to
    the guest home page (the page gets only an `ownHasSecretName` flag)
    and is returned solely by `guest_secret_name_view`, after the guest
-   re-enters their PIN.
+   re-enters their PIN. The Monito Monita weekly draws are a separate
+   mapping governed by rule 8; they never involve the main exchange's
+   `recipient_id`.
 3. The host is blind too: dashboards show locked/awaiting counts and names,
    never who got whom.
 4. Images are WebP only, never AVIF. Screenshots are converted to WebP on
@@ -72,6 +74,26 @@ and best practices.
 7. Testing is the owner's job on real devices: provide code-level checks
    (build, lint, `php artisan test`) and the acceptance checklist only.
    No browser automation or visual test servers.
+8. Monito Monita (Kris Kringle) is a separate feature from the main
+   exchange and never touches the main draw. Themes: one per party per
+   Monday week (Asia/Manila), generated lazily and stored in
+   `kringle_themes`, drawn at random from `KringleService::THEMES`
+   without repeats until the pool cycles; the run ends at the party
+   week (the `parties.date` anchor; no date, no end). Host regenerate
+   (`host_kringle_regenerate`) swaps the current week's theme for an
+   unused one and frees the old one. The roulette: each week, each
+   guest spins once (`kringle_spin`, PIN-verified session, no fresh
+   prompt) to draw that week's recipient live from the week's
+   not-yet-drawn guests, never themselves, with the endgame guard in
+   `KringleService::spin`; draws live in `kringle_draws`, unique per
+   (party, week, giver) and per (party, week, recipient), and each
+   week is independent. A week's pairings are never listed anywhere:
+   a guest receives only their own recipient's codename
+   (`Serializers::kringleRecipient`, {secret_name}), and the host
+   sees only the current theme and a spun count (`host_status.kringle`).
+   The Kringle page's wheel names (`Serializers::wheelNames`) are the
+   whole party's codenames as plain strings with no mapping, never
+   the week's remaining pool.
 
 ## Working notes
 

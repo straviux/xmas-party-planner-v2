@@ -1,7 +1,11 @@
 # Kris Kringle: weekly themed exchange (DESIGN ONLY)
 
-Status: designed 2026-11-07 with the owner. NOT built. Build only on
-the owner's go-ahead; this note is the spec for that build.
+Status: designed 2026-11-07 with the owner and BUILT the same day on
+the owner's go-ahead: KringleService + kringle_spin / kringle_current
+/ host_kringle_regenerate, the /guest/kringle page with
+KringleRoulette, home and host dashboard cards; 12 backend tests and
+a live end-to-end pass. Production needs `php artisan migrate` for
+the kringle_themes and kringle_draws tables.
 Amended 2026-11-07: the exchange is run by a roulette in the app
 (the owner's calls that day), replacing the original in-person lot.
 

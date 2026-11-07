@@ -11,6 +11,8 @@ use App\Services\AdminService;
 use App\Services\DrawService;
 use App\Services\GuestEntryException;
 use App\Services\GuestEntryService;
+use App\Services\KringleException;
+use App\Services\KringleService;
 use App\Services\PollException;
 use App\Services\PollService;
 use App\Services\WishlistException;
@@ -53,6 +55,9 @@ class ApiController extends Controller
         'guest_set_secret_name' => 'guestSetSecretName',
         'guest_secret_name_view' => 'guestSecretNameView',
         'guest_recipient_wishlist' => 'guestRecipientWishlist',
+        'kringle_current' => 'kringleCurrent',
+        'kringle_spin' => 'kringleSpin',
+        'host_kringle_regenerate' => 'hostKringleRegenerate',
         'guest_logout' => 'guestLogout',
         'wishlist_add' => 'wishlistAdd',
         'wishlist_update' => 'wishlistUpdate',
@@ -83,6 +88,7 @@ class ApiController extends Controller
     private array $guestActions = [
         'enter', 'reveal', 'reveal_again', 'guest_verify_pin', 'guest_set_pin',
         'guest_set_secret_name', 'guest_secret_name_view', 'guest_recipient_wishlist', 'guest_logout',
+        'kringle_current', 'kringle_spin',
         'wishlist_add', 'wishlist_update', 'wishlist_delete', 'poll_vote',
     ];
 
@@ -162,6 +168,9 @@ class ApiController extends Controller
                     ->count(),
                 'polls' => $party->polls()->count(),
             ],
+            // Monito Monita card data: current theme + this week's
+            // spun count. Counts only, never any pairing.
+            'kringle' => app(KringleService::class)->hostSummary($party),
         ]);
     }
 
@@ -507,6 +516,73 @@ class ApiController extends Controller
         }
 
         return $this->ok($result);
+    }
+
+    // ------------------------------------------------------------------
+    // Monito Monita (guest session; the caller's own weekly state only)
+    // ------------------------------------------------------------------
+
+    private function kringleCurrent(Request $request): JsonResponse
+    {
+        $guest = app(GuestEntryService::class)->sessionGuest($request);
+        if ($guest === null || ! $guest->claimed) {
+            return $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+        }
+
+        return $this->ok([
+            'kringle' => app(KringleService::class)->guestState($guest->party, $guest),
+        ]);
+    }
+
+    private function kringleSpin(Request $request): JsonResponse
+    {
+        $guest = app(GuestEntryService::class)->sessionGuest($request);
+        if ($guest === null || ! $guest->claimed) {
+            return $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+        }
+
+        // The spin is a draw, so it carries the reveal's gate: the
+        // session must be PIN-verified (set at entry), no fresh prompt.
+        if ($request->session()->get('pin_verified') !== true) {
+            return $this->error('pin_incorrect', 422, [
+                'message' => 'That PIN does not match. Try again.',
+            ]);
+        }
+
+        $kringle = app(KringleService::class);
+
+        try {
+            $kringle->spin($guest);
+        } catch (KringleException $e) {
+            return $this->error($e->errorCode, $e->status, [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        // The full updated week state rides along, so the page can
+        // settle the roulette on the result and swap state wholesale.
+        return $this->ok([
+            'kringle' => $kringle->guestState($guest->party, $guest),
+        ]);
+    }
+
+    private function hostKringleRegenerate(Request $request): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        $kringle = app(KringleService::class);
+        $kringle->regenerate($party);
+
+        return $this->ok([
+            'kringle' => $kringle->hostSummary($party),
+        ]);
     }
 
     private function guestLogout(Request $request): JsonResponse

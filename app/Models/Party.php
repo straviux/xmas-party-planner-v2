@@ -30,4 +30,14 @@ class Party extends Model
     {
         return $this->hasMany(Poll::class);
     }
+
+    public function kringleThemes(): HasMany
+    {
+        return $this->hasMany(KringleTheme::class);
+    }
+
+    public function kringleDraws(): HasMany
+    {
+        return $this->hasMany(KringleDraw::class);
+    }
 }

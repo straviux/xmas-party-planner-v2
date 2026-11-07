@@ -16,6 +16,7 @@ Route::get('/guest/gifts', [PageController::class, 'guestGifts'])->name('guest.g
 Route::get('/guest/wishlists', [PageController::class, 'guestWishlists'])->name('guest.wishlists');
 Route::get('/guest/wishlists/{member}', [PageController::class, 'guestMemberWishlist'])->name('guest.wishlists.member');
 Route::get('/guest/vote', [PageController::class, 'guestVote'])->name('guest.vote');
+Route::get('/guest/kringle', [PageController::class, 'guestKringle'])->name('guest.kringle');
 
 // Host pages (props carry authed + username only; data comes from the API).
 Route::get('/host', [PageController::class, 'hostDashboard'])->name('host.dashboard');

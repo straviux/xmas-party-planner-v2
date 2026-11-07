@@ -58,6 +58,10 @@ For the host:
    redraw), redraw recipients, clear wishlists, or delete the whole party.
    Each button explains exactly what it does and does not touch. You can
    never see who got whom, and neither can anyone else.
+7. Monito Monita runs itself alongside: the dashboard shows this week's
+   theme and how many guests have spun, and a Regenerate button swaps
+   the theme if it does not fit. You never see who drew whom there
+   either, only the count.
 
 For guests:
 
@@ -83,6 +87,12 @@ For guests:
    only; there is no reserving.
 7. Vote in the host's polls under Vote. You can change your vote until the
    host closes a poll.
+8. Every week there is also Monito Monita: the app picks a theme every
+   Monday (something long, something red, and so on), and your home
+   page shows it. Open the Monito Monita page and spin the roulette
+   once to draw who you are buying for that week; the gift matches the
+   theme. Next Monday brings a new theme and a fresh spin. The themes
+   stop in the party week itself.
 
 Signing out never unlocks a name. If you forget your PIN, ask the host to
 reset it from the Guests page; you will create a new one on your next visit,
@@ -160,6 +170,14 @@ Guest flow:
       scroll position.
 - [ ] Vote in a poll, change your vote, and after the host closes it,
       confirm voting is refused and the winner is shown.
+- [ ] Monito Monita: your home page shows this week's theme. Open the
+      Monito Monita page, spin the roulette, and confirm it lands on a
+      secret name that is not yours and stays shown for the week.
+      Spinning again in the same week must not be possible. If your
+      Monito has not picked a secret name yet, you see ??? instead.
+- [ ] As the host, confirm the dashboard's Monito Monita card shows the
+      same theme, the spun count goes up as guests spin, and Regenerate
+      theme swaps the theme for everyone.
 
 Host flow (desktop):
 

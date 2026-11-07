@@ -146,6 +146,53 @@ class Serializers
     }
 
     /**
+     * Monito Monita recipient shape: secret_name only.
+     *
+     * Used solely by the Kringle payloads (the spin response, the
+     * caller's own week state and history), always scoped to the
+     * session guest's OWN draw for a week. Unlike revealRecipient it
+     * carries no id: nothing in the Kringle UI needs one, and a week's
+     * pairings are never listed anywhere, so no other guest's draw is
+     * ever serialized. Null when the recipient has not picked a
+     * codename yet, same convention as the reveal shape.
+     */
+    public static function kringleRecipient(Guest $recipient): array
+    {
+        return [
+            'secret_name' => is_string($recipient->secret_name) && $recipient->secret_name !== ''
+                ? $recipient->secret_name
+                : null,
+        ];
+    }
+
+    /**
+     * Roulette wheel names for the Kringle page: the party's secret
+     * names as a flat list of strings, shuffled, with no guest ids and
+     * no mapping of any kind. The wheel cycles through codenames while
+     * it spins; the list is the whole party's codenames (the same set
+     * the wishlist board already shows any claimed guest), never the
+     * week's remaining pool, so it cannot leak who has or has not
+     * been drawn. Guests without a codename contribute nothing. A
+     * guest's own weekly recipient only ever arrives via
+     * kringleRecipient(), in their own spin/state payloads.
+     *
+     * @return array<int, string>
+     */
+    public static function wheelNames(Party $party): array
+    {
+        $names = $party->guests()
+            ->whereNotNull('secret_name')
+            ->pluck('secret_name')
+            ->filter(fn ($name) => is_string($name) && $name !== '')
+            ->values()
+            ->all();
+
+        shuffle($names);
+
+        return $names;
+    }
+
+    /**
      * Wishlist member shape: id, secret_name.
      *
      * Guest-facing wishlist surfaces (the `wishlist_list` board entries

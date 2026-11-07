@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Guest;
 use App\Models\Party;
 use App\Services\GuestEntryService;
+use App\Services\KringleService;
 use App\Support\Serializers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -81,6 +82,11 @@ class PageController extends Controller
             // never sent to this page. It comes back only from the
             // guest_secret_name_view action, after PIN verification.
             'ownHasSecretName' => is_string($guest->secret_name) && $guest->secret_name !== '',
+            // Monito Monita home card: this week's theme and whether
+            // the guest has spun yet. The drawn codename is NOT here;
+            // it lives on the Kringle page and in the guest's own
+            // kringle payloads only.
+            'kringle' => $this->kringleCard($guest),
             'counts' => [
                 'locked' => $party->guests()->where('claimed', true)->count(),
                 'total' => $party->guests()->count(),
@@ -92,6 +98,47 @@ class PageController extends Controller
     public function guestGifts(Request $request): Response|RedirectResponse
     {
         return $this->guestPage($request, 'Guest/Gifts');
+    }
+
+    /**
+     * Monito Monita page: the week's theme, the roulette, and the
+     * guest's own past weeks. The state payload is the same one the
+     * kringle_current action returns; the wheel names are the party's
+     * codenames with no mapping (Serializers::wheelNames).
+     */
+    public function guestKringle(Request $request): Response|RedirectResponse
+    {
+        $guest = $this->guardedGuest($request);
+        if ($guest instanceof RedirectResponse) {
+            return $guest;
+        }
+
+        return Inertia::render('Guest/Kringle', [
+            'party' => Serializers::partyPublic($guest->party),
+            'guest' => Serializers::publicGuest($guest),
+            'kringle' => app(KringleService::class)->guestState($guest->party, $guest),
+            'wheelNames' => Serializers::wheelNames($guest->party),
+        ]);
+    }
+
+    /**
+     * The home-card slice of the Kringle state: theme and spin flag
+     * only, never the recipient or the history.
+     *
+     * @return array<string, mixed>
+     */
+    private function kringleCard(Guest $guest): array
+    {
+        $state = app(KringleService::class)->guestState($guest->party, $guest);
+
+        return [
+            'active' => $state['active'],
+            'theme' => $state['theme'],
+            'week_start' => $state['week_start'],
+            'week_end' => $state['week_end'],
+            'weeks_left' => $state['weeks_left'],
+            'spun' => $state['spun'],
+        ];
     }
 
     public function guestWishlists(Request $request): Response|RedirectResponse

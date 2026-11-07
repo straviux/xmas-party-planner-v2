@@ -15,6 +15,7 @@ import {
     Settings,
     ShieldAlert,
     Shuffle,
+    Sparkles,
     Trash2,
     Users,
     Wallet,
@@ -73,6 +74,24 @@ const guests = computed(() => (status.value && status.value.guests) || []);
 const counts = computed(
     () => (status.value && status.value.counts) || { guests: 0, locked: 0, awaiting: 0, polls: 0, secret_names_set: 0 },
 );
+// Monito Monita summary from host_status: theme and counts only,
+// never a week's pairings. Absent when no party exists.
+const kringle = computed(() => (status.value && status.value.kringle) || null);
+const kringleWeeksLeftText = computed(() => {
+    const n = kringle.value?.weeks_left;
+    if (n === null || n === undefined) return '';
+    return n === 1 ? 'Last theme week before the party' : `${n} theme weeks to go`;
+});
+
+function formatWeekRange(start, end) {
+    if (!start || !end) return '';
+    const from = new Date(`${start}T00:00:00`);
+    const to = new Date(`${end}T00:00:00`);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return `${start} to ${end}`;
+    const opts = { month: 'short', day: 'numeric' };
+    return `${from.toLocaleDateString(undefined, opts)} to ${to.toLocaleDateString(undefined, opts)}`;
+}
+
 const lockedPercent = computed(() => {
     if (!counts.value.guests) return 0;
     return Math.round((counts.value.locked / counts.value.guests) * 100);
@@ -186,6 +205,28 @@ function askResetOne(guest) {
                 toastError(err.message || 'That reset could not be done.');
             }
         },
+    });
+}
+
+async function regenKringle() {
+    try {
+        const result = await post('host_kringle_regenerate');
+        if (status.value && result.kringle) {
+            status.value.kringle = result.kringle;
+        }
+        toastSuccess('Theme changed');
+    } catch (err) {
+        toastError(err.message || 'The theme could not be changed.');
+    }
+}
+
+function askKringleRegen() {
+    askConfirm({
+        key: 'kringle-regen',
+        title: "Regenerate this week's theme?",
+        body: 'Everyone will see the new theme instead of the current one. The current theme goes back into the pool, so it can come up again in a later week.',
+        confirmLabel: 'Yes, regenerate',
+        run: regenKringle,
     });
 }
 
@@ -431,6 +472,42 @@ async function printQr() {
                 <div class="progress-track">
                     <div class="progress-fill" :style="{ width: `${secretPercent}%` }"></div>
                 </div>
+            </section>
+
+            <section v-if="kringle" class="host-panel">
+                <h2 class="host-panel-title">
+                    <Sparkles :size="19" />
+                    <span>Monito Monita</span>
+                </h2>
+                <template v-if="kringle.active">
+                    <span class="section-label">This week's theme</span>
+                    <p style="font-size: 1.45rem; font-weight: 800; line-height: 1.2; margin: 0 0 10px">
+                        {{ kringle.theme }}
+                    </p>
+                    <p class="muted small" style="margin: 0 0 6px">
+                        {{ formatWeekRange(kringle.week_start, kringle.week_end) }}
+                    </p>
+                    <p class="muted small" style="margin: 0 0 6px">
+                        {{ kringle.spun_count }} of {{ kringle.guest_count }} guests have spun this week
+                    </p>
+                    <p v-if="kringleWeeksLeftText" class="muted small" style="margin: 0 0 14px">
+                        {{ kringleWeeksLeftText }}
+                    </p>
+                    <div class="row-actions">
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            :disabled="!!actionBusy"
+                            @click="askKringleRegen"
+                        >
+                            <Sparkles :size="15" />
+                            <span>Regenerate theme</span>
+                        </button>
+                    </div>
+                </template>
+                <p v-else class="muted" style="margin: 0">
+                    Monito Monita has ended for this year (party week).
+                </p>
             </section>
 
             <section class="host-panel">

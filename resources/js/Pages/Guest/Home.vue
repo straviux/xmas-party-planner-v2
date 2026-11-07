@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CalendarDays, CircleAlert, Eye, Gift, Hourglass, LockKeyhole, LogOut, VenetianMask, Wallet } from 'lucide-vue-next';
+import { CalendarDays, CircleAlert, Eye, Gift, Hourglass, LockKeyhole, LogOut, Sparkles, VenetianMask, Wallet } from 'lucide-vue-next';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import Mascot from '../../Components/Mascot.vue';
 import RevealStrip from '../../Components/RevealStrip.vue';
@@ -28,6 +28,12 @@ const props = defineProps({
     ownHasSecretName: {
         type: Boolean,
         default: false,
+    },
+    // Monito Monita week summary (theme + own spin state only, never a
+    // recipient). May be absent in stale caches, so null by default.
+    kringle: {
+        type: Object,
+        default: null,
     },
 });
 
@@ -415,6 +421,23 @@ onBeforeUnmount(() => {
                 <Link href="/guest/gifts" class="btn btn-secondary" style="margin-top: 14px">
                     <Gift :size="15" />
                     <span>Open my wishes</span>
+                </Link>
+            </div>
+
+            <div v-if="kringle && kringle.active" class="card dash-span">
+                <span class="section-label">
+                    <Sparkles :size="12" style="vertical-align: -1px" />
+                    Monito Monita
+                </span>
+                <p class="dash-sub" style="margin: 10px 0 6px">
+                    This week's theme: {{ kringle.theme }}
+                </p>
+                <p class="dash-sub" style="margin-bottom: 16px">
+                    {{ kringle.spun ? 'You have drawn your Monito for this week.' : 'You have not spun yet this week.' }}
+                </p>
+                <Link href="/guest/kringle" class="btn btn-secondary">
+                    <Sparkles :size="15" />
+                    <span>{{ kringle.spun ? 'See my Monito' : 'Spin for my Monito' }}</span>
                 </Link>
             </div>
 

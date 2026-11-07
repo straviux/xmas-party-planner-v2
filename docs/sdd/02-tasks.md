@@ -508,3 +508,24 @@ all of this: a roulette build briefly landed on the main draw by
 mistake (224c707b) and was fully reverted the same day (8650f550,
 component deleted 8deff854). Design in docs/sdd/03-kringle-design.md;
 still DESIGN ONLY, build awaits the owner's go.
+
+Kringle BUILD (2026-11-07, on the owner's go): Monito Monita shipped
+as designed above. Backend: kringle_themes + kringle_draws
+migrations, KringleService (lazy theme generation, party-week
+cutoff, host regenerate, weekly live-draw spins with the endgame
+guard), actions kringle_current / kringle_spin /
+host_kringle_regenerate (38 dispatch actions), host_status gains a
+counts-only kringle block, AGENTS rule 8 records the boundaries.
+Frontend: Pages/Guest/Kringle.vue + Components/KringleRoulette.vue,
+a Monito Monita card on guest home and on the host dashboard.
+Verified in-slice: 128 tests / 2,812 assertions (12 new Kringle
+tests) and a live E2E (54 checks: full-party weekly derangement,
+second-spin refusal, regenerate, party-week cutoff, leak scans, and
+the main exchange reveal re-verified as pre-drawn on the same
+server). Two bugs were caught by the new tests and fixed in the
+service: week_start is stored as an exact Y-m-d string, never
+date-cast (a date cast stores datetimes on SQLite and broke the
+equality lookups), and week boundaries compare date strings, not
+instants (the Manila current week vs the app-timezone party date).
+Owner checks: the README phone checklist gained Monito Monita
+items. Production deploy needs php artisan migrate.
