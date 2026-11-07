@@ -74,7 +74,9 @@ For guests:
    your real name stays hidden until the gift exchange itself. Secret
    names are unique at the party, so grab yours early.
 5. Slide the strip on the reveal page to see the secret name of the
-   person you are buying for, plus the gift budget. Write it down; if
+   person you are buying for, plus the gift budget. A gift unwraps
+   with their secret name right after the slide, that one time only.
+   Write it down; if
    you forget, your home page can show it again after you re-enter your
    PIN. If your person has not picked a secret name yet, the reveal
    says so, and "Show my recipient again" will show it once they do.
@@ -84,8 +86,8 @@ For guests:
    viewer. Add your own wishes from the star button (text, a shop
    link, notes, and a photo if you like); to change or remove one
    later, use the gear button on it in My wishes and choose Edit wish
-   or Delete wish. Wishlists are for posting and browsing only; there
-   is no reserving.
+   or Delete wish. Each guest can post up to three wishes. Wishlists
+   are for posting and browsing only; there is no reserving.
 7. Vote in the host's polls under Vote. You can change your vote until the
    host closes a poll.
 8. Every week there is also Monito Monita: the app picks a theme every

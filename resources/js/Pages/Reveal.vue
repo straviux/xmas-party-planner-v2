@@ -4,6 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleAlert, Gift, Hourglass, House, LogOut, PenLine, TriangleAlert } from 'lucide-vue-next';
 import GuestLayout from '../Components/GuestLayout.vue';
 import RevealStrip from '../Components/RevealStrip.vue';
+import GiftReveal from '../Components/GiftReveal.vue';
 import { post } from '../lib/api';
 import { toastError } from '../lib/toast';
 
@@ -177,6 +178,15 @@ async function signOut() {
                  real names, and following one would connect this secret
                  name to a real person. -->
             <div v-if="phase === 'done' && recipient" class="pop-in" style="margin-top: 24px">
+                <!-- One-time gift reveal: this block only follows a
+                     fresh reveal in this visit (the strip's completion
+                     slide just uncovered the name), so the unwrap plays
+                     exactly once, at the reveal moment. There is no
+                     replay path: the reveal itself can never run
+                     again, and later checks go through the home page's
+                     reveal-again popup, which has no gift. -->
+                <GiftReveal :name="recipient.secret_name" />
+
                 <div v-if="budget" class="result-card">
                     <p class="result-budget">
                         <Gift :size="17" style="vertical-align: -3px" />

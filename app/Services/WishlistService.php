@@ -15,6 +15,9 @@ use App\Models\WishlistItem;
  */
 class WishlistService
 {
+    /** Each guest may post at most this many wishes (owner's rule). */
+    private const MAX_WISHES = 3;
+
     /** Server cap on the submitted base64 image string (spec). */
     private const IMAGE_CHAR_CAP = 14_000_000;
 
@@ -36,6 +39,14 @@ class WishlistService
      */
     public function addItem(Guest $owner, array $data): WishlistItem
     {
+        // The three-wish cap is a count of what the guest already has;
+        // edits and deletes are never blocked by it, and a guest who
+        // already holds more (from before the cap) simply cannot add
+        // until they are back under it.
+        if ($owner->wishlistItems()->count() >= self::MAX_WISHES) {
+            throw WishlistException::make('wish_limit');
+        }
+
         $text = $this->nullableText($data['text'] ?? null);
         $link = $this->nullableText($data['link'] ?? null);
         $notes = $this->nullableText($data['notes'] ?? null);

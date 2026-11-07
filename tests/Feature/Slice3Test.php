@@ -124,6 +124,9 @@ test('wishlist_add derives kind from what is present and normalizes bare links',
     $both = slice3Add($this, ['text' => 'Headphones', 'link' => 'https://shop.example.com/h']);
     expect($both['kind'])->toBe('link');
 
+    // The three-wish cap: free a slot so the image add can land.
+    $this->postJson('/api/wishlist_delete', ['id' => $text['id']])->assertOk();
+
     $image = slice3Add($this, ['text' => 'This one', 'image' => slice3PngDataUrl(12, 12)]);
     expect($image['kind'])->toBe('image');
 
@@ -513,4 +516,35 @@ test('the member wishlist page renders for a revealed guest and unknown members 
     $this->get('/guest/wishlists/'.$guests['Ben Reyes']->id)->assertOk();
     $this->get('/guest/wishlists/9999')->assertRedirect('/guest/wishlists');
     $this->get('/guest/wishlists/not-a-number')->assertRedirect('/guest/wishlists');
+});
+
+test('a guest can post at most three wishes; edits still work at the cap and deleting frees a slot', function () {
+    [, $guests] = slice3Party();
+    $ana = $guests['Ana Cruz'];
+    slice3Enter($this, $ana);
+
+    slice3Add($this, ['text' => 'One']);
+    slice3Add($this, ['text' => 'Two']);
+    $third = slice3Add($this, ['text' => 'Three']);
+
+    $this->postJson('/api/wishlist_add', ['text' => 'Four'])
+        ->assertStatus(422)
+        ->assertJsonPath('ok', false)
+        ->assertJsonPath('error', 'wish_limit');
+    expect(WishlistItem::where('guest_id', $ana->id)->count())->toBe(3);
+
+    // The cap is per guest: Ben can still post his own wishes.
+    slice3Enter($this, $guests['Ben Reyes']);
+    slice3Add($this, ['text' => 'Ben wish']);
+
+    slice3Enter($this, $ana);
+
+    // Edits are never blocked by the cap.
+    $edited = slice3Update($this, ['item_id' => $third['id'], 'text' => 'Three, edited']);
+    expect($edited['text'])->toBe('Three, edited');
+
+    // Deleting one frees the slot for a new wish.
+    $this->postJson('/api/wishlist_delete', ['id' => $third['id']])->assertOk();
+    slice3Add($this, ['text' => 'Four']);
+    expect(WishlistItem::where('guest_id', $ana->id)->count())->toBe(3);
 });

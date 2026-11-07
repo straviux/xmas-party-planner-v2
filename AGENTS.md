@@ -1,7 +1,8 @@
 # Xmas Party Planner
 
 Christmas party app: Secret Santa with a blind once-only reveal, shared
-wishlists (posting only, there is no reserving), and host polls.
+wishlists (posting only, there is no reserving, and each guest is
+capped at three wishes), and host polls.
 
 **Spec is the source of truth.** The SDD pack lives in `docs/sdd/`
 (SPEC-source.md, 00-spec-review.md, 01-proposal-and-design.md, 02-tasks.md).

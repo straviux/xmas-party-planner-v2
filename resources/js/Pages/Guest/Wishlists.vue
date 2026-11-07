@@ -197,6 +197,12 @@ function openMineQuickView(item) {
 }
 
 function openAddForm() {
+    // The three-wish cap: the server refuses a fourth wish anyway, so
+    // say so here instead of opening a form that cannot save.
+    if (myItems.value.length >= 3) {
+        toastError('You can post up to three wishes. Delete one to add another.');
+        return;
+    }
     editingItem.value = null;
     formOpen.value = true;
 }
@@ -277,7 +283,7 @@ async function confirmDeleteWish() {
     deleteTarget.value = null;
 }
 
-onMounted(() => {
+onMounted(async () => {
     // Deep links: ?view=mine opens the My wishes view (the home card
     // and the old /guest/gifts address land here); ?add=1 is the dock
     // star, which opens the add form on top of it.
@@ -285,8 +291,10 @@ onMounted(() => {
     if (params.get('view') === 'mine' || params.get('add') === '1') {
         view.value = 'mine';
     }
-    loadBoard();
     loadRecipient();
+    // The board loads before the add form opens so openAddForm can
+    // apply the three-wish cap against the guest's real items.
+    await loadBoard();
     if (params.get('add') === '1') {
         openAddForm();
     }
