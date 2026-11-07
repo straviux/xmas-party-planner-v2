@@ -143,7 +143,6 @@ const weeksLeftText = computed(() => {
                     <GiftReveal v-if="justSpun" :name="state.recipient?.name || ''" />
                     <div v-else class="result-card">
                         <p class="buying-for">
-                            <span class="buying-for-label">You are buying for</span>
                             <span class="buying-for-name">
                                 {{ state.recipient?.name }}
                             </span>
@@ -190,8 +189,8 @@ const weeksLeftText = computed(() => {
     color: var(--text-primary);
 }
 
-/* The "You are buying for" result block, in the same shape as the
-   Reveal page's: glass card, accent label, the name big under it. */
+/* The result block, in the same shape as the Reveal page's: glass
+   card, the name big inside it. */
 .result-card {
     border: 1px solid var(--card-border);
     background: var(--glass);
@@ -205,15 +204,6 @@ const weeksLeftText = computed(() => {
     margin: 6px 0 10px;
 }
 
-.buying-for-label {
-    display: block;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--accent, #c427fb);
-}
-
 .buying-for-name {
     display: block;
     font-family: var(--font-display);
@@ -221,7 +211,6 @@ const weeksLeftText = computed(() => {
     font-weight: 800;
     line-height: 1.15;
     color: var(--text-primary);
-    margin-top: 4px;
 }
 
 .history-row {

@@ -1,11 +1,14 @@
 <script setup>
 import { computed } from 'vue';
 
-// Gift reveal for the Monito Monita result: a wrapped gift that
-// wiggles, pops its lid, bursts confetti, and the drawn name rises
-// into view. Played once, when the component mounts right after a
-// fresh spin; a guest who returns later sees the plain result card
-// instead (the page decides which to render).
+// Gift reveal: a wrapped gift that wiggles, pops its lid, bursts
+// confetti, and a name rises into view. Played once, when the
+// component mounts right after a reveal moment: a fresh Monito
+// Monita spin, or the main exchange's once-only reveal. A guest who
+// returns later sees the plain result card instead (the page
+// decides which to render). The name is whatever the page passes:
+// a real name for Monito Monita, a secret name for the main
+// exchange.
 //
 // Pure CSS shapes and theme colours, no images. The base styles are
 // the SETTLED state (lid off, name visible); the animations run on
@@ -41,8 +44,6 @@ const pieces = computed(() =>
 
 <template>
     <div class="gift-reveal">
-        <p class="buying-for-label">You are buying for</p>
-
         <div class="gift-stage">
             <div class="gift-glow"></div>
             <div class="gift">
@@ -58,6 +59,7 @@ const pieces = computed(() =>
                     <span class="body-ribbon"></span>
                 </div>
                 <div class="burst"></div>
+                <p class="gift-name">{{ name }}</p>
                 <span
                     v-for="(piece, i) in pieces"
                     :key="i"
@@ -66,8 +68,6 @@ const pieces = computed(() =>
                 ></span>
             </div>
         </div>
-
-        <p class="gift-name">{{ name }}</p>
     </div>
 </template>
 
@@ -75,15 +75,6 @@ const pieces = computed(() =>
 .gift-reveal {
     text-align: center;
     margin-bottom: 16px;
-}
-
-.buying-for-label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--accent, #c427fb);
-    margin: 6px 0 0;
 }
 
 .gift-stage {
@@ -225,13 +216,25 @@ const pieces = computed(() =>
     pointer-events: none;
 }
 
+/* The name sits in the middle of the box itself: the gift wrapper is
+   exactly the body's box (the lid is out of flow), so centring on the
+   wrapper centres on the box. Wider than the box when a name is long,
+   wrapping centred rather than clipping. */
 .gift-name {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    top: 50%;
+    width: max-content;
+    max-width: 250px;
+    transform: translate(-50%, -50%);
     font-family: var(--font-display);
-    font-size: 1.9rem;
+    font-size: 1.55rem;
     font-weight: 800;
     line-height: 1.15;
+    text-align: center;
     color: var(--text-primary);
-    margin: 14px 0 0;
+    margin: 0;
 }
 
 .gift {
@@ -334,11 +337,11 @@ const pieces = computed(() =>
 @keyframes name-rise {
     from {
         opacity: 0;
-        transform: translateY(14px) scale(0.94);
+        transform: translate(-50%, calc(-50% + 12px)) scale(0.94);
     }
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translate(-50%, -50%) scale(1);
     }
 }
 </style>
