@@ -491,3 +491,10 @@ in, shifting Scor below it. The bubble is now a constant box
 (fixed width, at least two lines tall) with an invisible sizer
 holding the full line's layout and the typed text overlaid, so
 typing changes nothing outside the bubble.
+
+Kris Kringle design (2026-11-07, DESIGN ONLY, not built): an
+open weekly themed exchange. The app generates a theme every
+Monday from a built-in pool of 24; everyone brings a themed
+gift, exchanged by lot at the meetup. Fixed run every Monday
+until the party week (anchored to the party date). Full design
+in docs/sdd/03-kringle-design.md. Build awaits the owner's go.
