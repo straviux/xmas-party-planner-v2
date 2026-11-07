@@ -23,7 +23,8 @@ person they drew.
 
 - Themes are NOT secret: one theme per week, the same for all,
   openly announced. The weekly recipients are per-guest: you see
-  only your own, shown by codename (secret name), and the week's
+  only your own, shown by real name (Kringle is open; the main
+  exchange stays codename-only), and the week's
   pairings are never listed anywhere, the host included, matching
   the app's blindness rules.
 - The app generates the theme, from a built-in pool, at random,
@@ -92,14 +93,14 @@ minty; something that comes in pairs; something golden.
 - Guest action `kringle_current`: the current week's theme, its
   week range, the run state (weeks left until the party week when
   a date is set), the caller's own week state (not spun yet, or
-  their recipient's codename), and the history of past weeks
-  (theme plus the caller's own recipient codename per week).
+  their recipient's real name), and the history of past weeks
+  (theme plus the caller's own recipient name per week).
 - Guest action `kringle_spin`: performs the caller's draw for the
-  current week (once per week) and returns the recipient's
-  codename only.
+  current week (once per week) and returns the recipient's real
+  name only.
 - Guest page `/guest/kringle`: Scor, the current theme big, the
   week dates, the roulette (spin button before the spin, the
-  drawn codename after it), then the past-weeks list.
+  drawn name after it), then the past-weeks list.
 - Guest home: a card showing this week's theme and whether the
   guest has spun yet, linking to the page. No dock change.
 - Host action `host_kringle_regenerate`; host dashboard card
@@ -114,5 +115,5 @@ swaps to another unused theme and frees the old one. Spins:
 a week's spins in any order draw everyone exactly once and never
 the spinner; the second spin in a week is refused; the endgame
 guard forces the saving pick; a new week starts with a clean
-pool; payloads carry only the caller's own recipient codename,
+pool; payloads carry only the caller's own recipient name,
 never another guest's pairing, and no real names.

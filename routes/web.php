@@ -12,7 +12,9 @@ Route::get('/join/{code}', [PageController::class, 'join'])->name('join');
 // Guest session pages (the controller guards redirect to entry / reveal).
 Route::get('/reveal', [PageController::class, 'reveal'])->name('reveal');
 Route::get('/guest', [PageController::class, 'guestHome'])->name('guest.home');
-Route::get('/guest/gifts', [PageController::class, 'guestGifts'])->name('guest.gifts');
+// My wishes used to be its own page here; it now lives inside the
+// Wishlists page as its My wishes view. Old links land there.
+Route::redirect('/guest/gifts', '/guest/wishlists?view=mine');
 Route::get('/guest/wishlists', [PageController::class, 'guestWishlists'])->name('guest.wishlists');
 Route::get('/guest/wishlists/{member}', [PageController::class, 'guestMemberWishlist'])->name('guest.wishlists.member');
 Route::get('/guest/vote', [PageController::class, 'guestVote'])->name('guest.vote');

@@ -78,13 +78,14 @@ For guests:
    you forget, your home page can show it again after you re-enter your
    PIN. If your person has not picked a secret name yet, the reveal
    says so, and "Show my recipient again" will show it once they do.
-6. Add your own wishlist under Gifts (text, a shop link, notes, and a photo
-   if you like). To change or remove one of your wishes later, use the
-   gear button on it and choose Edit wish or Delete wish. The Wishlists
-   tab opens on your recipient's wishes (once you have revealed), or
-   shows everyone's wishes all together, and you can swipe through them
-   in the full-screen viewer. Wishlists are for posting and browsing
-   only; there is no reserving.
+6. The Wishlists tab has three views: your recipient's wishes (once
+   you have revealed), your own list under My wishes, and everyone's
+   wishes all together, which you can swipe through in the full-screen
+   viewer. Add your own wishes from the star button (text, a shop
+   link, notes, and a photo if you like); to change or remove one
+   later, use the gear button on it in My wishes and choose Edit wish
+   or Delete wish. Wishlists are for posting and browsing only; there
+   is no reserving.
 7. Vote in the host's polls under Vote. You can change your vote until the
    host closes a poll.
 8. Every week there is also Monito Monita: the app picks a theme every
@@ -170,11 +171,15 @@ Guest flow:
       scroll position.
 - [ ] Vote in a poll, change your vote, and after the host closes it,
       confirm voting is refused and the winner is shown.
-- [ ] Monito Monita: your home page shows this week's theme. Open the
-      Monito Monita page, spin the roulette, and confirm it lands on a
-      secret name that is not yours and stays shown for the week.
-      Spinning again in the same week must not be possible. If your
-      Monito has not picked a secret name yet, you see ??? instead.
+- [ ] Monito Monita: the dock has a Monito tab, and your home page
+      shows this week's theme. Open the Monito Monita page, spin the
+      roulette, and confirm it lands on a real name that is not yours
+      and stays shown for the week. Spinning again in the same week
+      must not be possible.
+- [ ] The dock no longer has a My wishes tab: your wishes live in the
+      Wishlists tab's My wishes view. The star button opens the add
+      form there, and your home page's "Open my wishes" lands there
+      too. Adding, editing, and deleting wishes all still work.
 - [ ] As the host, confirm the dashboard's Monito Monita card shows the
       same theme, the spun count goes up as guests spin, and Regenerate
       theme swaps the theme for everyone.

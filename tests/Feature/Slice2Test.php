@@ -368,8 +368,14 @@ test('guest pages redirect to entry when there is no guest session', function ()
 
     $this->get('/guest')->assertRedirect('/enter');
     $this->get('/reveal')->assertRedirect('/enter');
-    $this->get('/guest/gifts')->assertRedirect('/enter');
+    $this->get('/guest/kringle')->assertRedirect('/enter');
     $this->get('/enter')->assertOk();
+});
+
+test('the old my-wishes address redirects into the wishlists page', function () {
+    slice2DefaultParty();
+
+    $this->get('/guest/gifts')->assertRedirect('/guest/wishlists?view=mine');
 });
 
 test('an entered guest who has not revealed is sent to the reveal page', function () {
@@ -382,7 +388,7 @@ test('an entered guest who has not revealed is sent to the reveal page', functio
 
     $this->get('/guest')->assertRedirect('/reveal');
     $this->get('/enter')->assertRedirect('/reveal');
-    $this->get('/guest/gifts')->assertRedirect('/reveal');
+    $this->get('/guest/kringle')->assertRedirect('/reveal');
     $this->get('/guest/wishlists')->assertRedirect('/reveal');
     $this->get('/guest/vote')->assertRedirect('/reveal');
     $this->get('/reveal')->assertOk();
@@ -400,7 +406,7 @@ test('a revealed guest goes to guest home and never back to reveal', function ()
     $this->get('/reveal')->assertRedirect('/guest');
     $this->get('/enter')->assertRedirect('/guest');
     $this->get('/guest')->assertOk();
-    $this->get('/guest/gifts')->assertOk();
+    $this->get('/guest/kringle')->assertOk();
     $this->get('/guest/wishlists')->assertOk();
     $this->get('/guest/vote')->assertOk();
 });

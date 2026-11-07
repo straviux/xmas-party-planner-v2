@@ -38,7 +38,7 @@ watch(
 );
 
 // Roulette wiring, mirroring the Reveal page's strip contract: the
-// drawn codename only exists here after the spin call returns it. The
+// drawn name only exists here after the spin call returns it. The
 // component flickers on `commit`, decelerates onto `result`, and the
 // spun view replaces the roulette only when it emits `done`.
 const result = ref(undefined);
@@ -49,7 +49,7 @@ async function onSpinCommit() {
     try {
         const body = await post('kringle_spin');
         pendingState = body.kringle || null;
-        result.value = { name: body.kringle?.recipient?.secret_name ?? null };
+        result.value = { name: body.kringle?.recipient?.name ?? null };
     } catch (err) {
         // Back to the unspun view: the reel resets and the guest can
         // read why in the toast.
@@ -131,24 +131,14 @@ const weeksLeftText = computed(() => {
                 </div>
 
                 <!-- Spun: the result block keeps the app's reveal shape.
-                     A recipient who has not picked a secret name yet
-                     stands in as the muted placeholder, never a blank. -->
+                     Monito Monita is open, so the name is the real one. -->
                 <div v-else class="pop-in" style="margin-top: 22px">
                     <div class="result-card">
                         <p class="buying-for">
                             <span class="buying-for-label">You are buying for</span>
-                            <span v-if="state.recipient?.secret_name" class="buying-for-name">
-                                {{ state.recipient.secret_name }}
+                            <span class="buying-for-name">
+                                {{ state.recipient?.name }}
                             </span>
-                            <span
-                                v-else
-                                class="buying-for-placeholder"
-                                role="img"
-                                aria-label="Secret name not picked yet"
-                            >???</span>
-                        </p>
-                        <p v-if="!state.recipient?.secret_name" class="muted" style="margin: 0; line-height: 1.55">
-                            Your Monito has not picked a secret name yet.
                         </p>
                     </div>
                     <p class="muted" style="margin: 0; line-height: 1.55">
@@ -159,9 +149,8 @@ const weeksLeftText = computed(() => {
         </div>
 
         <!-- Past weeks: theme per week plus who this guest drew, from
-             their own draws only. A null codename is shown neutrally:
-             the payload cannot distinguish "no spin that week" from a
-             drawn recipient who never picked a secret name. -->
+             their own draws only. A null name means no spin that week
+             and is shown neutrally. -->
         <div v-if="state?.history?.length" class="card slide-in" style="margin-top: 16px">
             <span class="section-label">Past weeks</span>
             <div
@@ -173,8 +162,8 @@ const weeksLeftText = computed(() => {
                     <span class="muted small">{{ weekRange(entry.week_start, entry.week_end) }}</span>
                     <span class="history-theme">{{ entry.theme }}</span>
                 </div>
-                <span v-if="entry.recipient_secret_name" class="history-drew">
-                    You drew {{ entry.recipient_secret_name }}
+                <span v-if="entry.recipient_name" class="history-drew">
+                    You drew {{ entry.recipient_name }}
                 </span>
                 <span v-else class="muted">—</span>
             </div>
@@ -194,8 +183,7 @@ const weeksLeftText = computed(() => {
 }
 
 /* The "You are buying for" result block, in the same shape as the
-   Reveal page's: glass card, accent label, the codename big under it,
-   and the muted italic placeholder when there is no codename yet. */
+   Reveal page's: glass card, accent label, the name big under it. */
 .result-card {
     border: 1px solid var(--card-border);
     background: var(--glass);
@@ -226,17 +214,6 @@ const weeksLeftText = computed(() => {
     line-height: 1.15;
     color: var(--text-primary);
     margin-top: 4px;
-}
-
-.buying-for-placeholder {
-    display: block;
-    font-size: 1.38rem;
-    font-weight: 800;
-    font-style: italic;
-    letter-spacing: 0.04em;
-    line-height: 1.15;
-    color: var(--text-tertiary);
-    margin-top: 2px;
 }
 
 .history-row {

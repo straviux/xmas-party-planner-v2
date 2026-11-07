@@ -199,7 +199,7 @@ test('endgame guard: the second-to-last spinner of the week is forced onto the l
         ->and($service->spin($cora)->recipient_id)->toBe($ana->id);
 });
 
-test('a guest spins once per week through the API and sees only their own codename result', function () {
+test('a guest spins once per week through the API and sees only their own result, by real name', function () {
     kringleNow();
     [, $guests] = kringleParty(['Ana Cruz', 'Ben Reyes', 'Cora Diaz']);
     $ana = $guests['Ana Cruz'];
@@ -221,13 +221,16 @@ test('a guest spins once per week through the API and sees only their own codena
 
     $spin = $this->postJson('/api/kringle_spin')->assertOk()->json('kringle');
     expect($spin['spun'])->toBeTrue()
-        ->and($spin['recipient']['secret_name'])->toBeIn(['Code Ben', 'Code Cora']);
+        ->and($spin['recipient']['name'])->toBeIn(['Ben Reyes', 'Cora Diaz']);
 
-    // No real name of any guest appears anywhere in the payload.
+    // Kringle names its Monito by real name (the owner's call), but
+    // the payload carries ONLY the caller's own recipient: neither
+    // the caller's own name nor the undrawn guest's name appears.
     $raw = json_encode($spin);
-    foreach (['Ana Cruz', 'Ben Reyes', 'Cora Diaz'] as $display) {
-        expect($raw)->not->toContain($display);
-    }
+    expect($raw)->toContain($spin['recipient']['name'])
+        ->and($raw)->not->toContain('Ana Cruz');
+    $undrawn = $spin['recipient']['name'] === 'Ben Reyes' ? 'Cora Diaz' : 'Ben Reyes';
+    expect($raw)->not->toContain($undrawn);
 
     $this->postJson('/api/kringle_spin')
         ->assertStatus(409)
@@ -276,7 +279,7 @@ test('a new week starts unspun, and history carries the callers own past recipie
         ->and($state['history'])->toHaveCount(1)
         ->and($state['history'][0]['theme'])->toBe('Something red')
         ->and($state['history'][0]['week_start'])->toBe('2026-11-02')
-        ->and($state['history'][0]['recipient_secret_name'])->toBe('Code Ben');
+        ->and($state['history'][0]['recipient_name'])->toBe('Ben Reyes');
 });
 
 // ----------------------------------------------------------------------

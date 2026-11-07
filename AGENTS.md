@@ -88,12 +88,17 @@ and best practices.
    `KringleService::spin`; draws live in `kringle_draws`, unique per
    (party, week, giver) and per (party, week, recipient), and each
    week is independent. A week's pairings are never listed anywhere:
-   a guest receives only their own recipient's codename
-   (`Serializers::kringleRecipient`, {secret_name}), and the host
-   sees only the current theme and a spun count (`host_status.kringle`).
-   The Kringle page's wheel names (`Serializers::wheelNames`) are the
-   whole party's codenames as plain strings with no mapping, never
-   the week's remaining pool.
+   a guest receives only their own recipient's real name
+   (`Serializers::kringleRecipient`, {name}; Kringle is open by the
+   owner's call, unlike the codename-only main exchange), and the
+   host sees only the current theme and a spun count
+   (`host_status.kringle`). The Kringle page's wheel names
+   (`Serializers::wheelNames`) are the whole party's real display
+   names as plain strings with no mapping, never the week's
+   remaining pool. Guest navigation: the dock is Home / Monito
+   (the Kringle page) / star / Wishlists / Vote; My wishes is a view
+   inside the Wishlists page (`/guest/wishlists?view=mine`), and
+   `/guest/gifts` redirects there.
 
 ## Working notes
 

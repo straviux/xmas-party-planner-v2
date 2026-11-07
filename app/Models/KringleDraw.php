@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * One Monito Monita roulette draw: who a guest is buying for in one
  * week's themed exchange. Server-side only: a draw is ever returned
- * solely as the spinning guest's own recipient codename for that
- * week (see KringleService); the week's pairings are never listed.
+ * solely as the spinning guest's own recipient name for that week
+ * (see KringleService); the week's pairings are never listed.
  */
 class KringleDraw extends Model
 {

@@ -5,17 +5,17 @@ import { RotateCw } from 'lucide-vue-next';
 // Roulette reel for the Monito Monita weekly spin.
 //
 // The reel is pure theatre: it never knows any mapping. While idle it
-// sits on one random codename from `names`. A click emits `commit`
+// sits on one random name from `names`. A click emits `commit`
 // (the parent makes the kringle_spin call) and the reel flickers
-// through random codenames. When the parent sets `result`
-// ({ name }, name null when the recipient has no codename yet), the
+// through random names. When the parent sets `result`
+// ({ name }, the recipient's real name from the spin response), the
 // reel decelerates over about 26 ticks and lands exactly on
 // result.name, pulses once, then emits `done` so the parent can swap
 // in the spun view. If the call fails, the parent bumps `failSignal`
 // and the reel stops back at idle with no `done`.
 //
 // Contract:
-// - names (prop): the party's codenames, display only. No entry is
+// - names (prop): the party's real names, display only. No entry is
 //   ever treated as "the answer" until `result` arrives.
 // - result (prop): undefined while no spin result is in hand; the
 //   parent sets it to { name: string|null } once the spin response
@@ -153,7 +153,7 @@ watch(
 );
 
 // The name list arriving (or changing) while idle: sit on a real
-// codename instead of the placeholder when we can.
+// name instead of the placeholder when we can.
 watch(
     () => props.names,
     (list) => {

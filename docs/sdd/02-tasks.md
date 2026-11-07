@@ -529,3 +529,15 @@ equality lookups), and week boundaries compare date strings, not
 instants (the Manila current week vs the app-timezone party date).
 Owner checks: the README phone checklist gained Monito Monita
 items. Production deploy needs php artisan migrate.
+
+Two owner calls after the Kringle build (2026-11-07): (1) Monito
+Monita names its Monito by REAL name, not codename: kringleRecipient
+is now {name} (the display name), wheelNames lists real display
+names, history key recipient_name; the main exchange is unchanged
+and stays codename-only. (2) Navigation: the dock's My wishes tab
+is replaced by a Monito tab (/guest/kringle), and My wishes moved
+into the Wishlists page as a third toggle view (My recipient / My
+wishes / All wishes) carrying its add/edit/delete machinery with
+it; the dock star and the home page's Open my wishes now land on
+/guest/wishlists (with ?add=1 / ?view=mine), and /guest/gifts
+redirects there. Gifts.vue is deleted.

@@ -36,7 +36,9 @@ use Illuminate\Support\Facades\DB;
  * a guest to themselves.
  *
  * A week's pairings are never listed anywhere: a guest only ever
- * receives their own recipient's codename, the host only a count.
+ * receives their own recipient's real name (Kringle is open, by the
+ * owner's call; the main exchange stays codename-only), the host
+ * only a count.
  */
 class KringleService
 {
@@ -275,7 +277,7 @@ class KringleService
     /**
      * The guest-facing state (kringle_current action and the Kringle
      * page props): the current theme and week, the caller's own spin
-     * state and recipient codename, and their past weeks. Never any
+     * state and recipient name, and their past weeks. Never any
      * other guest's pairing, never a real name.
      *
      * @return array<string, mixed>
@@ -310,9 +312,9 @@ class KringleService
                     'week_start' => $past->week_start,
                     'week_end' => Carbon::parse($past->week_start)->addDays(6)->toDateString(),
                     'theme' => $past->theme,
-                    'recipient_secret_name' => $draw?->recipient === null
+                    'recipient_name' => $draw?->recipient === null
                         ? null
-                        : Serializers::kringleRecipient($draw->recipient)['secret_name'],
+                        : Serializers::kringleRecipient($draw->recipient)['name'],
                 ];
             }
         }

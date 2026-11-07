@@ -95,11 +95,6 @@ class PageController extends Controller
         ]);
     }
 
-    public function guestGifts(Request $request): Response|RedirectResponse
-    {
-        return $this->guestPage($request, 'Guest/Gifts');
-    }
-
     /**
      * Monito Monita page: the week's theme, the roulette, and the
      * guest's own past weeks. The state payload is the same one the

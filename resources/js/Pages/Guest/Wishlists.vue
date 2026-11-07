@@ -2,13 +2,15 @@
 import { computed, onMounted, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Gift, ListChecks } from 'lucide-vue-next';
+import ConfirmModal from '../../Components/ConfirmModal.vue';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import Mascot from '../../Components/Mascot.vue';
+import WishFormModal from '../../Components/WishFormModal.vue';
 import WishlistGrid from '../../Components/WishlistGrid.vue';
 import WishQuickView from '../../Components/WishQuickView.vue';
 import WishReels from '../../Components/WishReels.vue';
 import { post } from '../../lib/api';
-import { toastError } from '../../lib/toast';
+import { toastError, toastSuccess } from '../../lib/toast';
 
 const props = defineProps({
     party: {
@@ -25,7 +27,8 @@ const loading = ref(true);
 const boardParty = ref(undefined);
 const members = ref([]);
 // 'recipient' shows only the wishlist of the person the guest is buying
-// for; 'all' is the combined wishes grid.
+// for; 'mine' is the guest's own list (it used to be its own page, the
+// dock and home links land here now); 'all' is the combined grid.
 const view = ref('recipient');
 const selectedId = ref(null);
 const reelsOpen = ref(false);
@@ -168,9 +171,125 @@ function selectView(next) {
     }
 }
 
+// ---------------------------------------------------------------------
+// My wishes mode: the guest's own list, with the add/edit/delete
+// machinery the old My wishes page had. Own items come from the same
+// board payload (the entry whose id is the session guest).
+// ---------------------------------------------------------------------
+
+const myEntry = computed(() =>
+    members.value.find((member) => String(member.id) === String(props.guest?.id)),
+);
+const myItems = computed(() => myEntry.value?.items || []);
+
+const busyId = ref(null);
+const formOpen = ref(false);
+const editingItem = ref(null);
+const deleteTarget = ref(null);
+const mineSelectedId = ref(null);
+
+const mineSelectedItem = computed(
+    () => myItems.value.find((item) => String(item.id) === String(mineSelectedId.value)) || null,
+);
+
+function openMineQuickView(item) {
+    mineSelectedId.value = item.id;
+}
+
+function openAddForm() {
+    editingItem.value = null;
+    formOpen.value = true;
+}
+
+function openEditForm(item) {
+    // The quick view closes so the form is the only popup on screen; the
+    // grid underneath already shows the saved changes in place.
+    mineSelectedId.value = null;
+    editingItem.value = item;
+    formOpen.value = true;
+}
+
+function closeForm() {
+    formOpen.value = false;
+    editingItem.value = null;
+}
+
+function patchItem(updated) {
+    for (const member of members.value) {
+        const items = member.items || [];
+        const index = items.findIndex((item) => String(item.id) === String(updated.id));
+        if (index >= 0) {
+            items.splice(index, 1, { ...items[index], ...updated });
+            return;
+        }
+    }
+}
+
+async function onFormSaved(savedItem, mode) {
+    closeForm();
+    if (mode === 'edit' && savedItem) {
+        patchItem(savedItem);
+        toastSuccess('Changes saved');
+    } else {
+        toastSuccess('Wish added');
+        await loadBoard();
+    }
+}
+
+async function deleteItem(item) {
+    if (busyId.value) return;
+    busyId.value = item.id;
+    try {
+        await post('wishlist_delete', { id: item.id });
+        if (String(mineSelectedId.value) === String(item.id)) mineSelectedId.value = null;
+        toastSuccess('Wish deleted');
+        await loadBoard();
+    } catch (err) {
+        if (err.code === 'wish_not_found') {
+            toastError('That wish is already gone.');
+            await loadBoard();
+        } else if (err.code === 'forbidden') {
+            toastError('You can only delete your own wishes.');
+        } else {
+            toastError(err.message || 'That wish could not be deleted. Please try again.');
+        }
+    } finally {
+        busyId.value = null;
+    }
+}
+
+function wishDisplayName(item) {
+    if (!item) return 'This wish';
+    if (item.text) return item.text;
+    if (item.kind === 'image') return 'Screenshot wish';
+    if (item.kind === 'link' || item.link) return 'Link wish';
+    return 'Untitled wish';
+}
+
+function requestDelete(item) {
+    deleteTarget.value = item;
+}
+
+async function confirmDeleteWish() {
+    const item = deleteTarget.value;
+    if (!item) return;
+    await deleteItem(item);
+    deleteTarget.value = null;
+}
+
 onMounted(() => {
+    // Deep links: ?view=mine opens the My wishes view (the home card
+    // and the old /guest/gifts address land here); ?add=1 is the dock
+    // star, which opens the add form on top of it.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === 'mine' || params.get('add') === '1') {
+        view.value = 'mine';
+    }
     loadBoard();
     loadRecipient();
+    if (params.get('add') === '1') {
+        openAddForm();
+    }
 });
 </script>
 
@@ -210,6 +329,14 @@ onMounted(() => {
                         @click="selectView('recipient')"
                     >
                         My recipient
+                    </button>
+                    <button
+                        type="button"
+                        class="view-toggle-btn"
+                        :class="{ active: view === 'mine' }"
+                        @click="selectView('mine')"
+                    >
+                        My wishes
                     </button>
                     <button
                         type="button"
@@ -293,6 +420,35 @@ onMounted(() => {
                     </template>
                 </template>
 
+                <template v-else-if="view === 'mine'">
+                    <WishlistGrid
+                        v-if="myItems.length"
+                        :items="myItems"
+                        mode="mine"
+                        :busy-id="busyId"
+                        @delete="deleteItem"
+                        @edit="openEditForm"
+                        @open="openMineQuickView"
+                    />
+                    <div v-else class="empty-state">
+                        <Gift :size="40" />
+                        <p class="empty-state-title">No wishes yet</p>
+                        <p class="empty-state-text">
+                            Tap + to add your first one, so your Secret Santa knows
+                            what to look for.
+                        </p>
+                    </div>
+
+                    <WishQuickView
+                        :item="mineSelectedItem"
+                        mode="mine"
+                        :busy="busyId !== null"
+                        @close="mineSelectedId = null"
+                        @delete="requestDelete"
+                        @edit="openEditForm"
+                    />
+                </template>
+
                 <template v-else>
                     <template v-if="allItems.length">
                         <p class="muted counts-line" style="margin: 0 0 14px">{{ allCountsLine }}</p>
@@ -326,6 +482,25 @@ onMounted(() => {
                 />
             </template>
         </div>
+
+        <WishFormModal
+            v-if="formOpen"
+            :item="editingItem"
+            @close="closeForm"
+            @saved="onFormSaved"
+        />
+
+        <ConfirmModal
+            v-if="deleteTarget"
+            title="Delete this wish?"
+            :body="`${wishDisplayName(deleteTarget)} will be deleted. This cannot be undone.`"
+            confirm-label="Delete wish"
+            cancel-label="Keep wish"
+            danger
+            :busy="busyId !== null"
+            @confirm="confirmDeleteWish"
+            @cancel="deleteTarget = null"
+        />
     </GuestLayout>
 </template>
 

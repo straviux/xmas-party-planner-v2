@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Gift, House, ListChecks, Plus, Star, Vote } from 'lucide-vue-next';
+import { Dices, House, ListChecks, Plus, Star, Vote } from 'lucide-vue-next';
 
 const props = defineProps({
     dock: {
@@ -23,7 +23,7 @@ const page = usePage();
 const current = computed(() => {
     if (props.active) return props.active;
     const url = page.url || '';
-    if (url.startsWith('/guest/gifts')) return 'gifts';
+    if (url.startsWith('/guest/kringle')) return 'kringle';
     if (url.startsWith('/guest/wishlists')) return 'wishlists';
     if (url.startsWith('/guest/vote')) return 'vote';
     return 'home';
@@ -44,11 +44,11 @@ const current = computed(() => {
                 <House :size="22" />
                 <span>Home</span>
             </Link>
-            <Link href="/guest/gifts" class="dock-item" :class="{ active: current === 'gifts' }">
-                <Gift :size="22" />
-                <span>My wishes</span>
+            <Link href="/guest/kringle" class="dock-item" :class="{ active: current === 'kringle' }">
+                <Dices :size="22" />
+                <span>Monito</span>
             </Link>
-            <Link href="/guest/gifts?add=1" class="dock-centre-wrap" aria-label="Add a wishlist item">
+            <Link href="/guest/wishlists?add=1" class="dock-centre-wrap" aria-label="Add a wishlist item">
                 <span class="dock-centre">
                     <Star :size="21" />
                     <Plus class="dock-centre-plus" :size="12" :stroke-width="3.2" />
