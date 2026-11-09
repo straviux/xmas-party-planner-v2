@@ -118,7 +118,6 @@ async function loadBoard() {
 // whose wishlist the signed-in guest is shopping for.
 const recipientStatus = ref('idle');
 const recipient = ref(null);
-const recipientBudget = ref('');
 const recipientItems = ref([]);
 const recipientSelectedId = ref(null);
 
@@ -143,7 +142,6 @@ async function loadRecipient() {
     try {
         const body = await post('guest_recipient_wishlist');
         recipient.value = body.recipient || null;
-        recipientBudget.value = body.budget || '';
         recipientItems.value = body.items || [];
         recipientStatus.value = 'ready';
     } catch (err) {
@@ -393,9 +391,6 @@ onMounted(async () => {
                     </div>
 
                     <template v-else>
-                        <p v-if="recipientBudget" class="muted counts-line" style="margin: 0 0 4px">
-                            Gift budget: <strong>{{ recipientBudget }}</strong>
-                        </p>
                         <p
                             v-if="recipientItems.length"
                             class="muted counts-line"

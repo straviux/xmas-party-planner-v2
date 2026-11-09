@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CircleAlert, Gift, Hourglass, House, LogOut, PenLine, TriangleAlert } from 'lucide-vue-next';
+import { CircleAlert, Hourglass, House, LogOut, PenLine, TriangleAlert } from 'lucide-vue-next';
 import GuestLayout from '../Components/GuestLayout.vue';
 import RevealStrip from '../Components/RevealStrip.vue';
 import GiftReveal from '../Components/GiftReveal.vue';
@@ -25,7 +25,6 @@ const props = defineProps({
 //                on a retryable error
 const phase = ref('idle');
 const recipient = ref(null);
-const budget = ref(null);
 const errorText = ref('');
 const errorAction = ref(''); // '' | 'home'
 const signingOut = ref(false);
@@ -52,7 +51,6 @@ async function tear() {
     }
 
     if (body) {
-        budget.value = body.budget ?? props.party?.budget ?? null;
         const revealed = body.recipient || null;
         if (revealed && revealed.secret_name) {
             recipient.value = revealed;
@@ -160,20 +158,13 @@ async function signOut() {
                     </p>
                 </div>
 
-                <div v-if="budget" class="result-card">
-                    <p class="result-budget">
-                        <Gift :size="17" style="vertical-align: -3px" />
-                        Gift budget: <strong>{{ budget }}</strong>
-                    </p>
-                </div>
-
                 <Link href="/guest" class="btn btn-primary btn-block">
                     <House :size="18" />
                     <span>Go to my home</span>
                 </Link>
             </div>
 
-            <!-- After the reveal: budget, warning, next steps. There is
+            <!-- After the reveal: warning, next steps. There is
                  deliberately no wishlist link here: wishlists sit under
                  real names, and following one would connect this secret
                  name to a real person. -->
@@ -186,13 +177,6 @@ async function signOut() {
                      again, and later checks go through the home page's
                      reveal-again popup, which has no gift. -->
                 <GiftReveal :name="recipient.secret_name" />
-
-                <div v-if="budget" class="result-card">
-                    <p class="result-budget">
-                        <Gift :size="17" style="vertical-align: -3px" />
-                        Gift budget: <strong>{{ budget }}</strong>
-                    </p>
-                </div>
 
                 <p class="warning-card">
                     <TriangleAlert :size="19" style="flex: none; margin-top: 1px" />
@@ -234,11 +218,6 @@ async function signOut() {
     padding: 16px 20px;
     text-align: center;
     margin-bottom: 16px;
-}
-
-.result-budget {
-    color: var(--text-secondary);
-    margin: 0;
 }
 
 .waiting-title {

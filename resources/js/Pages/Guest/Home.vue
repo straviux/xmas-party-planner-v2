@@ -210,7 +210,6 @@ const pinError = ref('');
 const checking = ref(false);
 const pinInput = ref(null);
 const againRecipient = ref(null);
-const againBudget = ref(null);
 // Reset lever for the popup's RevealStrip: bumped on every popup open and
 // close so each use starts with a fresh, covered strip.
 const againReset = ref(0);
@@ -224,7 +223,6 @@ function openPopup() {
     pinError.value = '';
     popupStep.value = 'pin';
     againRecipient.value = null;
-    againBudget.value = null;
     againReset.value++;
     stripDone.value = false;
     popupOpen.value = true;
@@ -240,7 +238,6 @@ function closePopup() {
     pinError.value = '';
     checking.value = false;
     againRecipient.value = null;
-    againBudget.value = null;
     againReset.value++;
     stripDone.value = false;
 }
@@ -262,7 +259,6 @@ async function submitPin() {
     try {
         const body = await post('reveal_again', { pin: pin.value });
         againRecipient.value = body.recipient || null;
-        againBudget.value = body.budget ?? props.party?.budget ?? null;
         pin.value = '';
         popupStep.value = 'result';
     } catch (err) {
@@ -522,10 +518,6 @@ onBeforeUnmount(() => {
                             my recipient again.
                         </p>
                     </div>
-                    <p v-if="againBudget" class="again-budget" style="text-align: center">
-                        <Gift :size="17" style="vertical-align: -3px" />
-                        Gift budget: <strong>{{ againBudget }}</strong>
-                    </p>
                     <div class="modal-actions">
                         <button type="button" class="btn btn-primary" @click="closePopup">
                             <span>Close</span>
@@ -544,10 +536,6 @@ onBeforeUnmount(() => {
                         @done="stripDone = true"
                     />
                     <template v-if="stripDone">
-                        <p v-if="againBudget" class="again-budget">
-                            <Gift :size="17" style="vertical-align: -3px" />
-                            Gift budget: <strong>{{ againBudget }}</strong>
-                        </p>
                         <p class="muted" style="margin: 18px 0 0; line-height: 1.55">
                             Write this down somewhere private.
                         </p>
@@ -727,11 +715,6 @@ onBeforeUnmount(() => {
     font-size: 1.5rem;
     letter-spacing: 0.35em;
     user-select: none;
-}
-
-.again-budget {
-    color: var(--text-secondary);
-    margin: 16px 0 0;
 }
 
 /* The "You are buying for" result block, shared in shape with the
