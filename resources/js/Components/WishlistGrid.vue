@@ -152,7 +152,6 @@ function confirmDelete() {
                         @click="!hasImage(item) && emit('open', item, visibleItems)"
                     >
                         <p class="wish-name clamp-2">{{ displayName(item) }}</p>
-                        <p v-if="item.notes" class="wish-notes clamp-3">{{ item.notes }}</p>
                         <p v-if="item.owner" class="wish-owner">
                             by <template v-if="item.owner.secret_name">{{ item.owner.secret_name }}</template><span
                                 v-else

@@ -2094,14 +2094,6 @@ button {
     overflow-wrap: anywhere;
 }
 
-.wish-notes {
-    margin: 6px 0 0;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-}
-
 .clamp-2,
 .clamp-3 {
     display: -webkit-box;
@@ -2543,10 +2535,6 @@ button.poll-option:hover:not(:disabled) {
 
     .wish-name {
         font-size: 0.88rem;
-    }
-
-    .wish-notes {
-        font-size: 0.77rem;
     }
 
     .wish-search .input {
