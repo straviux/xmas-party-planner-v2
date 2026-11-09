@@ -1998,45 +1998,6 @@ button {
     padding-left: 42px;
 }
 
-.chip-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
-.chip {
-    min-height: 36px;
-    padding: 7px 15px;
-    border-radius: 999px;
-    border: 1px solid var(--card-border);
-    background: var(--glass);
-    color: var(--text-secondary);
-    font-size: 0.84rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.chip:hover {
-    background: var(--glass-strong);
-    color: var(--text-primary);
-}
-
-.chip.active {
-    background: rgba(196, 39, 251, 0.18);
-    border-color: rgba(196, 39, 251, 0.55);
-    color: #f3b8ff;
-}
-
-.sort-select {
-    min-height: 26px;
-    padding: 3px 8px;
-    border-radius: 8px;
-    margin-left: auto;
-    width: auto;
-}
-
 .wish-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2582,7 +2543,6 @@ button.poll-option:hover:not(:disabled) {
     .progress-fill,
     .btn,
     .wish-tile,
-    .chip,
     .member-row,
     .poll-option,
     .guest-row {
@@ -2613,12 +2573,6 @@ button.poll-option:hover:not(:disabled) {
         font-size: 0.77rem;
     }
 
-    .chip {
-        min-height: 32px;
-        padding: 6px 13px;
-        font-size: 0.76rem;
-    }
-
     /* Helper/intro line under guest page titles. */
     .card-subtitle {
         font-size: 0.85rem;
@@ -2639,10 +2593,6 @@ button.poll-option:hover:not(:disabled) {
         padding-bottom: 10px;
     }
 
-    .sort-select {
-        min-height: 26px;
-        padding: 3px 8px;
-    }
 }
 
 /* iOS focus auto-zoom guard: below 16px, Safari zooms the page in when a

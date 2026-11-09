@@ -30,16 +30,9 @@ const props = defineProps({
 const emit = defineEmits(['add', 'delete', 'edit', 'open']);
 
 const query = ref('');
-const filter = ref('all');
-const sort = ref('newest');
 const broken = ref({});
 const deleteTarget = ref(null);
 
-const FILTERS = [
-    { value: 'all', label: 'All' },
-    { value: 'photos', label: 'With photos' },
-    { value: 'text', label: 'Text only' },
-];
 
 function hasImage(item) {
     return Boolean(item.image) && !broken.value[item.id];
@@ -57,48 +50,20 @@ function displayName(item) {
 }
 
 const visibleItems = computed(() => {
+    // Items arrive newest first from the server and keep that order;
+    // the only filtering left is the search box (owner's call,
+    // 2026-11-09: the filter chips and sort dropdown are gone).
     const q = normalizeText(query.value);
-    const withIndex = props.items.map((item, index) => ({ item, index }));
+    if (!q) return props.items;
 
-    const filtered = withIndex.filter(({ item }) => {
-        if (q) {
-            const parts = [item.text, item.notes, item.link];
-            // Combined views attach the wisher; searching their secret
-            // name finds their wishes too. Absent elsewhere, so inert.
-            if (item.owner) parts.push(item.owner.secret_name);
-            const haystack = normalizeText(parts.filter(Boolean).join(' '));
-            if (!haystack.includes(q)) return false;
-        }
-        switch (filter.value) {
-            case 'photos':
-                return item.kind === 'image' && hasImage(item);
-            case 'text':
-                return item.kind !== 'image' || !hasImage(item);
-            default:
-                return true;
-        }
+    return props.items.filter((item) => {
+        const parts = [item.text, item.notes, item.link];
+        // Combined views attach the wisher; searching their secret
+        // name finds their wishes too. Absent elsewhere, so inert.
+        if (item.owner) parts.push(item.owner.secret_name);
+        const haystack = normalizeText(parts.filter(Boolean).join(' '));
+        return haystack.includes(q);
     });
-
-    const dateOf = (item) => {
-        const parsed = item.created_at ? Date.parse(item.created_at) : NaN;
-        return Number.isNaN(parsed) ? null : parsed;
-    };
-
-    filtered.sort((a, b) => {
-        if (sort.value === 'az' || sort.value === 'za') {
-            const order = displayName(a.item).localeCompare(displayName(b.item));
-            return sort.value === 'az' ? order : -order;
-        }
-        const da = dateOf(a.item);
-        const db = dateOf(b.item);
-        if (da !== null && db !== null && da !== db) {
-            return sort.value === 'newest' ? db - da : da - db;
-        }
-        // Items arrive newest first from the server.
-        return sort.value === 'newest' ? a.index - b.index : b.index - a.index;
-    });
-
-    return filtered.map(({ item }) => item);
 });
 
 function handleAction(item) {
@@ -115,24 +80,6 @@ function confirmDelete() {
 <template>
     <div>
         <div class="wish-controls">
-            <div class="chip-row">
-                <button
-                    v-for="chip in FILTERS"
-                    :key="chip.value"
-                    type="button"
-                    class="chip"
-                    :class="{ active: filter === chip.value }"
-                    @click="filter = chip.value"
-                >
-                    {{ chip.label }}
-                </button>
-                <select v-model="sort" class="select sort-select" aria-label="Sort wishes">
-                    <option value="newest">Newest</option>
-                    <option value="oldest">Oldest</option>
-                    <option value="az">A-Z</option>
-                    <option value="za">Z-A</option>
-                </select>
-            </div>
             <label class="wish-search">
                 <Search :size="18" />
                 <input
