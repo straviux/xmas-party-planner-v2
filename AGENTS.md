@@ -107,7 +107,7 @@ and best practices.
    (`Serializers::wheelNames`) are the whole party's real display
    names as plain strings with no mapping, never the week's
    remaining pool. Guest navigation: the dock is Home / Monito
-   (the Kringle page) / star / Wishlists / Vote; My wishes is a view
+   (the Kringle page) / plus button / Wishlists / Vote; My wishes is a view
    inside the Wishlists page (`/guest/wishlists?view=mine`), and
    `/guest/gifts` redirects there. The roulette scroll and the gift
    reveal always animate: the owner exempted them from the

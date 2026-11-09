@@ -411,7 +411,6 @@ button {
 }
 
 .dock-centre {
-    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -423,14 +422,6 @@ button {
     color: #ffffff;
     border: 3px solid #232046;
     box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.45), 0 10px 26px rgba(184, 134, 11, 0.55);
-}
-
-.dock-centre .dock-centre-plus {
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
-    background: var(--gold);
-    border-radius: 999px;
 }
 
 @media (max-width: 1023.98px) {

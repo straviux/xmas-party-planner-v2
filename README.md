@@ -86,7 +86,7 @@ For guests:
 6. The Wishlists tab has three views: your recipient's wishes (once
    you have revealed), your own list under My wishes, and everyone's
    wishes all together, which you can swipe through in the full-screen
-   viewer. Add your own wishes from the star button (text, a shop
+   viewer. Add your own wishes from the plus button (text, a shop
    link, notes, and a photo if you like); to change or remove one
    later, use the gear button on it in My wishes and choose Edit wish
    or Delete wish. Each guest can post up to three wishes. Wishlists
@@ -184,7 +184,7 @@ Guest flow:
       week (without replaying the gift when you come back). Spinning
       again in the same week must not be possible.
 - [ ] The dock no longer has a My wishes tab: your wishes live in the
-      Wishlists tab's My wishes view. The star button opens the add
+      Wishlists tab's My wishes view. The plus button opens the add
       form there, and your home page's "Open my wishes" lands there
       too. Adding, editing, and deleting wishes all still work.
 - [ ] As the host, confirm the dashboard's Monito Monita card shows the

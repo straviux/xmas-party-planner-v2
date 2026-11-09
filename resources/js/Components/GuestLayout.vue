@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Dices, House, ListChecks, Plus, Star, Vote } from 'lucide-vue-next';
+import { Dices, House, ListChecks, Plus, Vote } from 'lucide-vue-next';
 
 const props = defineProps({
     dock: {
@@ -50,8 +50,7 @@ const current = computed(() => {
             </Link>
             <Link href="/guest/wishlists?add=1" class="dock-centre-wrap" aria-label="Add a wishlist item">
                 <span class="dock-centre">
-                    <Star :size="21" />
-                    <Plus class="dock-centre-plus" :size="12" :stroke-width="3.2" />
+                    <Plus :size="24" :stroke-width="2.6" />
                 </span>
             </Link>
             <Link href="/guest/wishlists" class="dock-item" :class="{ active: current === 'wishlists' }">
