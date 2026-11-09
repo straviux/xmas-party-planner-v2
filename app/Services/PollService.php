@@ -6,6 +6,8 @@ use App\Models\Guest;
 use App\Models\Party;
 use App\Models\Poll;
 use App\Models\Vote;
+use App\Support\ImageToWebp;
+use App\Support\ImageUploadException;
 use App\Support\Serializers;
 use Illuminate\Support\Facades\DB;
 
@@ -14,6 +16,9 @@ use Illuminate\Support\Facades\DB;
  *
  * Rules that live here (spec, Polls):
  * - A poll needs a question and at least two non-empty options.
+ * - An option may carry one photo, uploaded and stored through the
+ *   shared WebP pipeline (Hard Rule 7). On edit, an absent image key
+ *   keeps the photo, null removes it, a string replaces it.
  * - One vote per guest per poll, enforced by the UNIQUE(poll_id, guest_id)
  *   constraint; voting again while the poll is open changes the vote.
  * - A closed poll refuses all vote changes and exposes its winner(s):
@@ -26,22 +31,23 @@ class PollService
 {
     /**
      * @param  array<int, mixed>  $options  option strings (entries may also be
-     *                                      ['text' => string] arrays)
+     *                                      ['text' => string, 'image' => ?string] arrays)
      */
     public function create(Party $party, mixed $question, array $options): Poll
     {
         $question = $this->cleanQuestion($question);
-        $texts = $this->cleanOptionTexts($options);
+        $entries = $this->convertImages($this->cleanOptionEntries($options));
 
-        return DB::transaction(function () use ($party, $question, $texts) {
+        return DB::transaction(function () use ($party, $question, $entries) {
             $poll = $party->polls()->create([
                 'question' => $question,
                 'open' => true,
             ]);
 
-            foreach ($texts as $position => $text) {
+            foreach ($entries as $position => $entry) {
                 $poll->options()->create([
-                    'text' => $text,
+                    'text' => $entry['text'],
+                    'image' => $entry['image'],
                     'sort_order' => $position,
                 ]);
             }
@@ -63,7 +69,7 @@ class PollService
     public function update(Poll $poll, mixed $question, array $options): Poll
     {
         $question = $this->cleanQuestion($question);
-        $entries = $this->cleanOptionEntries($options);
+        $entries = $this->convertImages($this->cleanOptionEntries($options));
 
         return DB::transaction(function () use ($poll, $question, $entries) {
             $existing = $poll->options()->get()->keyBy('id');
@@ -81,14 +87,22 @@ class PollService
             $keepIds = [];
             foreach ($entries as $position => $entry) {
                 if ($entry['id'] !== null) {
-                    $existing[$entry['id']]->update([
+                    $changes = [
                         'text' => $entry['text'],
                         'sort_order' => $position,
-                    ]);
+                    ];
+                    // The image key follows the wishlist edit rule: an
+                    // absent key keeps the current photo, null removes
+                    // it, and a string replaces it (already converted).
+                    if ($entry['has_image']) {
+                        $changes['image'] = $entry['image'];
+                    }
+                    $existing[$entry['id']]->update($changes);
                     $keepIds[] = $entry['id'];
                 } else {
                     $created = $poll->options()->create([
                         'text' => $entry['text'],
+                        'image' => $entry['image'],
                         'sort_order' => $position,
                     ]);
                     $keepIds[] = $created->id;
@@ -153,7 +167,7 @@ class PollService
      * winner list. This method only gathers the viewer's own vote and
      * the per-option counts; it never exposes who else voted.
      *
-     * Shape: {id, question, open, total, options:[{id, text, votes}],
+     * Shape: {id, question, open, total, options:[{id, text, image, votes}],
      *         my_vote, winners}
      */
     public function shape(Poll $poll, ?Guest $viewer): array
@@ -189,38 +203,34 @@ class PollService
     }
 
     /**
-     * Option texts for create: strings (or ['text' => ...] arrays), trimmed,
-     * empties dropped, at least two required.
+     * Normalized option entries: [{id: ?int, text: string,
+     * has_image: bool, image: ?string}] in the order given, empties
+     * dropped, at least two required. The image value is still the raw
+     * upload at this point (null when the entry carries no photo, or
+     * the key arrives as null); convertImages() turns non-null values
+     * into stored WebP data URLs. has_image records whether the key
+     * was present at all, which is what update() needs to tell "keep
+     * the current photo" apart from "remove it".
      *
      * @param  array<int, mixed>  $options
-     * @return array<int, string>
-     */
-    private function cleanOptionTexts(array $options): array
-    {
-        return array_map(
-            fn (array $entry) => $entry['text'],
-            $this->cleanOptionEntries($options),
-        );
-    }
-
-    /**
-     * Normalized option entries: [{id: ?int, text: string}] in the order
-     * given, empties dropped, at least two required.
-     *
-     * @param  array<int, mixed>  $options
-     * @return array<int, array{id: ?int, text: string}>
+     * @return array<int, array{id: ?int, text: string, has_image: bool, image: ?string}>
      */
     private function cleanOptionEntries(array $options): array
     {
         $entries = [];
         foreach ($options as $option) {
             if (is_string($option)) {
-                $entry = ['id' => null, 'text' => trim($option)];
+                $entry = ['id' => null, 'text' => trim($option), 'has_image' => false, 'image' => null];
             } elseif (is_array($option)) {
                 $id = $option['id'] ?? null;
+                $hasImage = array_key_exists('image', $option);
+                $image = $option['image'] ?? null;
                 $entry = [
                     'id' => is_numeric($id) ? (int) $id : null,
                     'text' => is_string($option['text'] ?? null) ? trim($option['text']) : '',
+                    'has_image' => $hasImage,
+                    // A blank string means no photo, same as null.
+                    'image' => is_string($image) && trim($image) !== '' ? $image : null,
                 ];
             } else {
                 continue;
@@ -233,6 +243,33 @@ class PollService
 
         if (count($entries) < 2) {
             throw PollException::make('poll_needs_options');
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Convert every non-null entry image through the shared upload
+     * pipeline (Hard Rule 7), before any database work happens. An
+     * entry whose image was already stored (it round-trips as a WebP
+     * data URL and converts cleanly) is equally fine here.
+     *
+     * @param  array<int, array{id: ?int, text: string, has_image: bool, image: ?string}>  $entries
+     * @return array<int, array{id: ?int, text: string, has_image: bool, image: ?string}>
+     *
+     * @throws PollException
+     */
+    private function convertImages(array $entries): array
+    {
+        foreach ($entries as $index => $entry) {
+            if ($entry['image'] === null) {
+                continue;
+            }
+            try {
+                $entries[$index]['image'] = ImageToWebp::convert($entry['image']);
+            } catch (ImageUploadException $e) {
+                throw PollException::make($e->errorCode);
+            }
         }
 
         return $entries;

@@ -2434,6 +2434,15 @@ button.poll-option:hover:not(:disabled) {
     line-height: 1.4;
 }
 
+/* The option's photo on the guest Vote page, beside its label. */
+.poll-option-photo {
+    width: 46px;
+    height: 46px;
+    object-fit: cover;
+    border-radius: 11px;
+    flex: none;
+}
+
 .poll-option-result {
     display: block;
     margin: 9px 0 0 33px;
@@ -2461,6 +2470,15 @@ button.poll-option:hover:not(:disabled) {
 
 .poll-option-row .input {
     flex: 1;
+}
+
+/* The option's photo thumbnail in the host poll form. */
+.poll-option-thumb {
+    width: 38px;
+    height: 38px;
+    object-fit: cover;
+    border-radius: 9px;
+    flex: none;
 }
 
 /* ---------- Reduced motion ---------- */

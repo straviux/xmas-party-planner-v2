@@ -52,7 +52,8 @@ For the host:
    only until the first guest locks their name. After that, guest changes
    are blocked until claims are reset.
 5. Create polls on the Polls page (for example, voting on a party theme).
-   Guests can change their vote until you close the poll.
+   Each option can carry a photo, handy for colour swatches. Guests can
+   change their vote until you close the poll.
 6. The dashboard's Admin controls and Danger zone handle the fixes: reset
    one guest, reset a forgotten PIN, unclaim all names (this does not
    redraw), redraw recipients, clear wishlists, or delete the whole party.

@@ -20,6 +20,8 @@ class PollException extends DomainException
         'poll_not_found' => 'That poll could not be found.',
         'option_not_found' => 'That option could not be found in this poll.',
         'poll_closed' => 'This poll is closed, so votes can no longer be changed.',
+        'image_too_large' => 'That image is too large. Try a smaller photo.',
+        'image_invalid' => 'That image could not be read. Try a PNG, JPEG, GIF, or WebP image.',
     ];
 
     public function __construct(

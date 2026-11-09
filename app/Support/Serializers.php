@@ -99,6 +99,7 @@ class Serializers
         $shapedOptions = $options->map(fn ($option) => [
             'id' => $option->id,
             'text' => $option->text,
+            'image' => $option->image ?? null,
             'votes' => (int) ($option->votes_count ?? $option->votes()->count()),
         ])->values()->all();
 

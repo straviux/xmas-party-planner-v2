@@ -394,3 +394,102 @@ test('host_poll_delete removes the poll, its options, and its votes; poll_get is
         ->assertStatus(404)
         ->assertJsonPath('error', 'poll_not_found');
 });
+
+if (! function_exists('slice4PngDataUrl')) {
+    /** A solid blue PNG of the given size, as a data URL. */
+    function slice4PngDataUrl(int $width, int $height): string
+    {
+        $image = imagecreatetruecolor($width, $height);
+        imagefilledrectangle($image, 0, 0, $width, $height, imagecolorallocate($image, 30, 60, 220));
+
+        ob_start();
+        imagepng($image);
+        $png = ob_get_clean();
+
+        return 'data:image/png;base64,'.base64_encode($png);
+    }
+}
+
+test('a poll option can carry a photo, stored as a WebP data URL like wishlist images', function () {
+    slice4LoginHost($this);
+    slice4Party();
+
+    $poll = slice4CreatePoll($this, 'Which dress colour?', [
+        ['text' => 'Cloud Dancer', 'image' => slice4PngDataUrl(24, 24)],
+        ['text' => 'Viva Magenta'],
+    ]);
+
+    $withPhoto = $poll['options'][0];
+    $plain = $poll['options'][1];
+    expect($withPhoto['image'])->toStartWith('data:image/webp;base64,')
+        ->and($plain['image'])->toBeNull();
+
+    // Guests voting see the same shape (and therefore the photo).
+    $listed = $this->postJson('/api/poll_get')->json('polls');
+    $guestPoll = collect($listed)->firstWhere('id', $poll['id']);
+    expect($guestPoll['options'][0]['image'])->toBe($withPhoto['image']);
+
+    // Broken and oversized uploads are refused with the image codes.
+    $this->postJson('/api/host_poll_create', [
+        'question' => 'Bad photo?',
+        'options' => [
+            ['text' => 'A', 'image' => '!!!not-base64!!!'],
+            ['text' => 'B'],
+        ],
+    ])->assertStatus(422)->assertJsonPath('error', 'image_invalid');
+
+    $this->postJson('/api/host_poll_create', [
+        'question' => 'Huge photo?',
+        'options' => [
+            ['text' => 'A', 'image' => str_repeat('A', 14_000_001)],
+            ['text' => 'B'],
+        ],
+    ])->assertStatus(422)->assertJsonPath('error', 'image_too_large');
+});
+
+test('editing a poll keeps an untouched photo, null removes it, and a new upload replaces it', function () {
+    slice4LoginHost($this);
+    slice4Party();
+
+    $poll = slice4CreatePoll($this, 'Pick a swatch', [
+        ['text' => 'Red', 'image' => slice4PngDataUrl(16, 16)],
+        ['text' => 'Blue'],
+    ]);
+    $red = $poll['options'][0];
+    $blue = $poll['options'][1];
+    $original = $red['image'];
+
+    // No image key on the Red entry: the stored photo survives the edit.
+    $kept = $this->postJson('/api/host_poll_update', [
+        'id' => $poll['id'],
+        'question' => 'Pick a swatch!',
+        'options' => [
+            ['id' => $red['id'], 'text' => 'Deep Red'],
+            ['id' => $blue['id'], 'text' => 'Blue'],
+        ],
+    ])->assertOk()->json('poll');
+    expect($kept['options'][0]['image'])->toBe($original)
+        ->and($kept['options'][0]['text'])->toBe('Deep Red');
+
+    // A null image removes it.
+    $removed = $this->postJson('/api/host_poll_update', [
+        'id' => $poll['id'],
+        'question' => 'Pick a swatch!',
+        'options' => [
+            ['id' => $red['id'], 'text' => 'Deep Red', 'image' => null],
+            ['id' => $blue['id'], 'text' => 'Blue'],
+        ],
+    ])->assertOk()->json('poll');
+    expect($removed['options'][0]['image'])->toBeNull();
+
+    // A fresh upload replaces it, again stored as WebP.
+    $replaced = $this->postJson('/api/host_poll_update', [
+        'id' => $poll['id'],
+        'question' => 'Pick a swatch!',
+        'options' => [
+            ['id' => $red['id'], 'text' => 'Deep Red', 'image' => slice4PngDataUrl(20, 20)],
+            ['id' => $blue['id'], 'text' => 'Blue'],
+        ],
+    ])->assertOk()->json('poll');
+    expect($replaced['options'][0]['image'])->toStartWith('data:image/webp;base64,');
+});

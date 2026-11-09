@@ -175,6 +175,7 @@ async function vote(poll, option) {
                         <span class="poll-radio" :class="{ filled: isMine(poll, option) }">
                             <span v-if="isMine(poll, option)" class="poll-radio-dot"></span>
                         </span>
+                        <img v-if="option.image" class="poll-option-photo" :src="option.image" alt="" />
                         <span class="poll-option-text">{{ option.text }}</span>
                         <span v-if="isWinner(poll, option)" class="badge badge-locked">Winner</span>
                     </span>

@@ -2,7 +2,10 @@
 
 Christmas party app: Secret Santa with a blind once-only reveal, shared
 wishlists (posting only, there is no reserving, and each guest is
-capped at three wishes), and host polls.
+capped at three wishes), and host polls (an option may carry one
+photo, converted and stored as WebP by the same shared pipeline as
+wishlist images; on edit an absent image key keeps the photo, null
+removes it, a string replaces it).
 
 **Spec is the source of truth.** The SDD pack lives in `docs/sdd/`
 (SPEC-source.md, 00-spec-review.md, 01-proposal-and-design.md, 02-tasks.md).

@@ -4,6 +4,7 @@ import { Head } from '@inertiajs/vue3';
 import {
     ChartColumn,
     CircleAlert,
+    ImagePlus,
     Lock,
     LockOpen,
     Pencil,
@@ -39,10 +40,74 @@ const formOpen = ref(false);
 const formMode = ref('create');
 const editingId = ref(null);
 const formQuestion = ref('');
-const formOptions = ref([{ text: '' }, { text: '' }]);
+const formOptions = ref([blankOption(), blankOption()]);
 const formError = ref('');
 const saving = ref(false);
 const questionInput = ref(null);
+
+// One photo per option, mirroring the wishlist photo rules: the row
+// tracks the photo it shows (preview), what the server already has,
+// and whether the host changed it, so saving only sends the image
+// key for rows the host actually touched.
+const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const photoInput = ref(null);
+const photoTarget = ref(null);
+
+function blankOption() {
+    return { text: '', image: '', serverImage: null, photoState: 'unchanged' };
+}
+
+function pickPhoto(index) {
+    photoTarget.value = index;
+    photoInput.value?.click();
+}
+
+function onPhotoChange(event) {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = '';
+    const index = photoTarget.value;
+    photoTarget.value = null;
+    if (!file || index === null || !formOptions.value[index]) return;
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        formError.value = 'That file type is not allowed. Use a PNG, JPEG, GIF, or WebP image.';
+        return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+        formError.value = 'That image is too big. The limit is 10 MB.';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+        if (typeof reader.result !== 'string' || !formOptions.value[index]) return;
+        formOptions.value[index].image = reader.result;
+        formOptions.value[index].photoState = 'replaced';
+        formError.value = '';
+    };
+    reader.onerror = () => {
+        formError.value = 'That image could not be read. Try a different one.';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removePhoto(option) {
+    option.image = '';
+    // Removing an unsaved pick just goes back to untouched; removing
+    // a stored photo has to be sent as an explicit null on save.
+    option.photoState = option.serverImage ? 'removed' : 'unchanged';
+}
+
+// The option entry to send on save: the image key rides along only
+// when the host changed the photo (a data URL for a new pick, null
+// for a removal), so untouched stored photos are never re-uploaded.
+function optionPayload(option, withId) {
+    const entry = {};
+    if (withId && option.id !== undefined && option.id !== null) entry.id = option.id;
+    entry.text = option.text.trim();
+    if (option.photoState === 'replaced') entry.image = option.image;
+    if (option.photoState === 'removed') entry.image = null;
+    return entry;
+}
 
 const busyPollId = ref(null);
 const deleteTarget = ref(null);
@@ -94,7 +159,7 @@ function openCreate() {
     formMode.value = 'create';
     editingId.value = null;
     formQuestion.value = '';
-    formOptions.value = [{ text: '' }, { text: '' }];
+    formOptions.value = [blankOption(), blankOption()];
     formError.value = '';
     formOpen.value = true;
     focusQuestion();
@@ -104,9 +169,15 @@ function openEdit(poll) {
     formMode.value = 'edit';
     editingId.value = poll.id;
     formQuestion.value = poll.question || '';
-    formOptions.value = (poll.options || []).map((option) => ({ id: option.id, text: option.text }));
+    formOptions.value = (poll.options || []).map((option) => ({
+        id: option.id,
+        text: option.text,
+        image: option.image || '',
+        serverImage: option.image || null,
+        photoState: 'unchanged',
+    }));
     if (formOptions.value.length < 2) {
-        while (formOptions.value.length < 2) formOptions.value.push({ text: '' });
+        while (formOptions.value.length < 2) formOptions.value.push(blankOption());
     }
     formError.value = '';
     formOpen.value = true;
@@ -122,7 +193,7 @@ function closeForm() {
 }
 
 function addOptionRow() {
-    formOptions.value.push({ text: '' });
+    formOptions.value.push(blankOption());
 }
 
 function removeOptionRow(index) {
@@ -160,18 +231,14 @@ async function save() {
         if (formMode.value === 'create') {
             await post('host_poll_create', {
                 question,
-                options: formOptions.value.map((option) => option.text.trim()),
+                options: formOptions.value.map((option) => optionPayload(option, false)),
             });
             toastSuccess('Poll created. Guests can vote now.');
         } else {
             await post('host_poll_update', {
                 id: editingId.value,
                 question,
-                options: formOptions.value.map((option) =>
-                    option.id !== undefined && option.id !== null
-                        ? { id: option.id, text: option.text.trim() }
-                        : { text: option.text.trim() },
-                ),
+                options: formOptions.value.map((option) => optionPayload(option, true)),
             });
             toastSuccess('Poll saved.');
         }
@@ -355,6 +422,7 @@ async function deletePoll() {
                     <span class="field-label" style="display: block; margin: 16px 0 8px">Options</span>
                     <div class="stack" style="gap: 9px">
                         <div v-for="(option, index) in formOptions" :key="index" class="poll-option-row">
+                            <img v-if="option.image" class="poll-option-thumb" :src="option.image" alt="" />
                             <input
                                 v-model="option.text"
                                 class="input"
@@ -362,6 +430,20 @@ async function deletePoll() {
                                 :placeholder="`Option ${index + 1}`"
                                 :aria-label="`Option ${index + 1}`"
                             />
+                            <button type="button" class="btn btn-secondary btn-sm" @click="pickPhoto(index)">
+                                <ImagePlus :size="14" />
+                                <span>{{ option.image ? 'Change' : 'Photo' }}</span>
+                            </button>
+                            <button
+                                v-if="option.image"
+                                type="button"
+                                class="btn btn-secondary btn-sm"
+                                title="Remove this option's photo"
+                                :aria-label="`Remove photo from option ${index + 1}`"
+                                @click="removePhoto(option)"
+                            >
+                                <X :size="14" />
+                            </button>
                             <button
                                 type="button"
                                 class="btn btn-secondary btn-sm"
@@ -374,7 +456,17 @@ async function deletePoll() {
                             </button>
                         </div>
                     </div>
-                    <p class="muted small" style="margin: 9px 0 0">A poll needs at least 2 options.</p>
+                    <p class="muted small" style="margin: 9px 0 0">
+                        A poll needs at least 2 options. A photo is optional per option; a colour
+                        swatch or a sample outfit helps guests picture the choice.
+                    </p>
+                    <input
+                        ref="photoInput"
+                        type="file"
+                        accept="image/png,image/jpeg,image/gif,image/webp"
+                        style="display: none"
+                        @change="onPhotoChange"
+                    />
 
                     <div class="row-actions" style="margin-top: 18px">
                         <button type="button" class="btn btn-secondary btn-sm" @click="addOptionRow">
