@@ -504,27 +504,6 @@ button {
     cursor: pointer;
 }
 
-.mascot-root {
-    position: relative;
-}
-
-/* Page content slotted beside Scor (the Wishlists Add a wish
-   button): anchored to the root's bottom, beside her right side,
-   so the chat bubble resizing above her can never move it. */
-.mascot-slot {
-    position: absolute;
-    left: calc(50% + 69px);
-    bottom: 64px;
-    z-index: 3;
-}
-
-@media (max-width: 560px) {
-    .mascot-slot {
-        left: auto;
-        right: 0;
-    }
-}
-
 .mascot-bubble {
     position: relative;
     /* A constant box, so a new line can never reposition anything:
@@ -2113,6 +2092,46 @@ button {
 
 .wish-tile-body {
     padding: 12px 14px 10px;
+}
+
+/* The My wishes grid opens with an add card (owner's call,
+   2026-11-09): a dashed tile in the same grid, so adding a wish is
+   the first thing the view offers. */
+.wish-add-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 190px;
+    padding: 22px 14px;
+    border: 1.5px dashed rgba(196, 39, 251, 0.5);
+    background: rgba(196, 39, 251, 0.07);
+    color: var(--text-primary);
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.wish-add-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    background: var(--gold);
+    color: #ffffff;
+}
+
+.wish-add-label {
+    font-weight: 800;
+    font-size: 1rem;
+}
+
+.wish-add-sub {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
 }
 
 .wish-open-area {

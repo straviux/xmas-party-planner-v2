@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Search } from 'lucide-vue-next';
+import { Plus, Search } from 'lucide-vue-next';
 import ConfirmModal from './ConfirmModal.vue';
 import WishActionsMenu from './WishActionsMenu.vue';
 import { normalizeText } from '../lib/normalize';
@@ -20,9 +20,14 @@ const props = defineProps({
         type: [Number, String],
         default: null,
     },
+    // My wishes only: open the grid with an add-a-wish card.
+    addCard: {
+        type: Boolean,
+        default: false,
+    },
 });
 
-const emit = defineEmits(['delete', 'edit', 'open']);
+const emit = defineEmits(['add', 'delete', 'edit', 'open']);
 
 const query = ref('');
 const filter = ref('all');
@@ -141,7 +146,17 @@ function confirmDelete() {
             </label>
         </div>
 
-        <div v-if="visibleItems.length" class="wish-grid">
+        <div v-if="visibleItems.length || props.addCard" class="wish-grid">
+            <button
+                v-if="props.addCard"
+                type="button"
+                class="wish-tile wish-add-card"
+                @click="emit('add')"
+            >
+                <span class="wish-add-icon"><Plus :size="26" /></span>
+                <span class="wish-add-label">Add a wish</span>
+                <span class="wish-add-sub">Post up to three wishes</span>
+            </button>
             <article v-for="item in visibleItems" :key="item.id" class="wish-tile">
                 <WishActionsMenu
                     v-if="props.mode === 'mine'"
@@ -180,7 +195,7 @@ function confirmDelete() {
             </article>
         </div>
 
-        <p v-else class="muted" style="margin: 6px 0 0">
+        <p v-else-if="!props.addCard" class="muted" style="margin: 6px 0 0">
             No wishes match that search. Try a different word or filter.
         </p>
 
