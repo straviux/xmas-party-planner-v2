@@ -514,7 +514,9 @@ onMounted(async () => {
 
 <style scoped>
 .view-toggle {
-    display: inline-flex;
+    display: flex;
+    width: fit-content;
+    margin-inline: auto;
     gap: 4px;
     padding: 4px;
     margin-bottom: 18px;
