@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { CircleAlert, VenetianMask } from 'lucide-vue-next';
+import { CircleAlert, Dices, VenetianMask } from 'lucide-vue-next';
 import { post } from '../lib/api';
 import { toastError } from '../lib/toast';
 
@@ -23,6 +23,37 @@ const secretName = ref(props.initial || '');
 const error = ref('');
 const busy = ref(false);
 
+// Random suggestions for guests who do not want to invent a name:
+// a festive first word plus a character or thing, 256 combinations,
+// every one inside the 2 to 30 character rule. Purely a suggestion
+// typed into the field: the guest can re-roll, edit it, or ignore it,
+// and the save below still runs the server's uniqueness check, so a
+// suggestion that happens to be taken just gets the taken message.
+const NAME_FIRST = [
+    'Jolly', 'Frosty', 'Twinkle', 'Cozy', 'Merry', 'Peppy', 'Holly',
+    'Ginger', 'Sugar', 'Snowy', 'Tinsel', 'Pudding', 'Waffle',
+    'Noodle', 'Mumble', 'Pickle',
+];
+const NAME_SECOND = [
+    'Reindeer', 'Elf', 'Pixie', 'Fox', 'Penguin', 'Snowman', 'Cookie',
+    'Cocoa', 'Candle', 'Mittens', 'Sleigh', 'Star', 'Bell', 'Moose',
+    'Panda', 'Sprout',
+];
+
+const lastSuggestion = ref('');
+
+function suggestName() {
+    let candidate = '';
+    do {
+        const first = NAME_FIRST[Math.floor(Math.random() * NAME_FIRST.length)];
+        const second = NAME_SECOND[Math.floor(Math.random() * NAME_SECOND.length)];
+        candidate = `${first} ${second}`;
+    } while (candidate === lastSuggestion.value);
+    lastSuggestion.value = candidate;
+    secretName.value = candidate;
+    error.value = '';
+}
+
 async function submit() {
     error.value = '';
     const value = secretName.value.trim();
@@ -37,7 +68,7 @@ async function submit() {
         emit('saved', body.secret_name || value);
     } catch (err) {
         if (err.code === 'secret_name_taken') {
-            error.value = 'That secret name is already taken. Try another one.';
+            error.value = 'That secret name is already taken. Try another one, or tap Suggest one for me.';
         } else if (err.code === 'secret_name_invalid') {
             error.value = err.message || 'That secret name cannot be used. Try another one.';
         } else if (err.code === 'not_claimed') {
@@ -76,6 +107,16 @@ async function submit() {
                 :disabled="busy"
             />
         </label>
+        <button
+            type="button"
+            class="btn btn-secondary btn-block"
+            :disabled="busy"
+            style="margin-bottom: 10px"
+            @click="suggestName"
+        >
+            <Dices :size="18" />
+            <span>Suggest one for me</span>
+        </button>
         <button type="submit" class="btn btn-primary btn-block" :disabled="busy">
             <VenetianMask :size="18" />
             <span>{{ busy ? 'Saving...' : 'Save my secret name' }}</span>

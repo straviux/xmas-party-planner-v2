@@ -70,9 +70,11 @@ For guests:
 2. Search for your name (nicknames and aliases work, and a small typo is
    fine), tap your name, and confirm it is you.
 3. Create a 4-digit PIN you will remember. This locks your name to you.
-4. Pick a secret name. It is the only name your Secret Santa will see;
-   your real name stays hidden until the gift exchange itself. Secret
-   names are unique at the party, so grab yours early.
+4. Pick a secret name, or tap "Suggest one for me" and the app will
+   fill in a random one you can keep, shuffle, or edit. It is the only
+   name your Secret Santa will see; your real name stays hidden until
+   the gift exchange itself. Secret names are unique at the party, so
+   grab yours early.
 5. Slide the strip on the reveal page to see the secret name of the
    person you are buying for, plus the gift budget. A gift unwraps
    with their secret name right after the slide, that one time only.

@@ -54,7 +54,11 @@ and best practices.
    `guest_set_secret_name` {secret_name} lets a claimed guest set their
    codename (trimmed, 2 to 30 characters, unique per party compared
    case-insensitively; errors `secret_name_invalid` 422 and
-   `secret_name_taken` 409). Public payloads carry only the
+   `secret_name_taken` 409). The secret name form also offers a
+   "Suggest one for me" button that fills the field with a random
+   client-side suggestion (festive word pairs); it is only a
+   suggestion, and the same set action validates it like typed
+   input. Public payloads carry only the
    `has_secret_name` flag, never the value; the host shape carries the
    value, and `host_status` counts `secret_names_set`. One exception:
    guest-facing wishlist surfaces identify wishers by codename, so
