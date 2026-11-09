@@ -153,13 +153,17 @@ function confirmDelete() {
                 />
                 <div v-if="hasImage(item)" class="wish-tile-media" @click="emit('open', item, visibleItems)">
                     <img :src="item.image" :alt="displayName(item)" loading="lazy" @error="markBroken(item)" />
+                    <div class="wish-photo-foot" :class="{ 'has-chip': item.mine }">
+                        <p class="wish-name clamp-2">{{ displayName(item) }}</p>
+                        <span v-if="item.mine" class="wish-mine-chip wish-mine-on-photo">Me</span>
+                    </div>
                 </div>
                 <div class="wish-tile-body">
                     <div
                         :class="{ 'wish-open-area': !hasImage(item) }"
                         @click="!hasImage(item) && emit('open', item, visibleItems)"
                     >
-                        <p class="wish-name clamp-2">{{ displayName(item) }}</p>
+                        <p v-if="!hasImage(item)" class="wish-name clamp-2">{{ displayName(item) }}</p>
                         <p v-if="item.owner" class="wish-owner">
                             by <template v-if="item.owner.secret_name">{{ item.owner.secret_name }}</template><span
                                 v-else
@@ -169,7 +173,7 @@ function confirmDelete() {
                             >???</span>
                         </p>
                     </div>
-                    <div v-if="item.mine" class="wish-tile-actions">
+                    <div v-if="item.mine && !hasImage(item)" class="wish-tile-actions">
                         <span class="wish-mine-chip">Me</span>
                     </div>
                 </div>
