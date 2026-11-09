@@ -364,6 +364,40 @@ button {
     margin: 0 0 16px;
 }
 
+/* Pull-to-refresh badge: dragged in from above the top edge by
+   the shell gesture (see GuestLayout), spins while the reload
+   fires. Fixed to the viewport so it floats over the top dock too. */
+.ptr-indicator {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    background: rgba(31, 29, 71, 0.92);
+    border: 1px solid var(--card-border);
+    color: #ffffff;
+    pointer-events: none;
+}
+
+.ptr-indicator.snapping {
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.ptr-indicator.refreshing svg {
+    animation: ptr-spin 0.7s linear infinite;
+}
+
+@keyframes ptr-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* ---------- Guest dock / desktop top nav ---------- */
 
 .dock {
