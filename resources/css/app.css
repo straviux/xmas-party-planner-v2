@@ -424,6 +424,17 @@ button {
     box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.45), 0 10px 26px rgba(184, 134, 11, 0.55);
 }
 
+/* The centre button carries the same icon-plus-word shape as its
+   sibling dock items: guests could not tell what the bare plus
+   meant (user feedback, 2026-11-09). */
+.dock-centre-label {
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 0.66rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 @media (max-width: 1023.98px) {
     /* Mobile: the dock is a full-width bar fixed flush to the TOP of the
        screen (owner's pick, 2026-11-04), not a floating centred pill. No

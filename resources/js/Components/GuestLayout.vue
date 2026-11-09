@@ -52,6 +52,7 @@ const current = computed(() => {
                 <span class="dock-centre">
                     <Plus :size="24" :stroke-width="2.6" />
                 </span>
+                <span class="dock-centre-label">Add a wish</span>
             </Link>
             <Link href="/guest/wishlists" class="dock-item" :class="{ active: current === 'wishlists' }">
                 <ListChecks :size="22" />
