@@ -410,18 +410,20 @@ button {
     text-decoration: none;
 }
 
+/* Sized to sit level with the other dock buttons (owner's call,
+   2026-11-09: the 48px disc dwarfed its neighbours). */
 .dock-centre {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    margin-top: -26px;
+    width: 36px;
+    height: 36px;
+    margin-top: -16px;
     border-radius: 999px;
     background: var(--gold);
     color: #ffffff;
-    border: 3px solid #232046;
-    box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.45), 0 10px 26px rgba(184, 134, 11, 0.55);
+    border: 2px solid #232046;
+    box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.45), 0 8px 18px rgba(184, 134, 11, 0.5);
 }
 
 /* The centre button carries the same icon-plus-word shape as its
@@ -487,7 +489,7 @@ button {
     /* The raised centre button must not clip above the viewport when the
        dock sits at the top: keep a small raise instead of the full one. */
     .dock-centre {
-        margin-top: -8px;
+        margin-top: -6px;
     }
 }
 

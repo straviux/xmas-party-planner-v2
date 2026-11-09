@@ -50,7 +50,7 @@ const current = computed(() => {
             </Link>
             <Link href="/guest/wishlists?add=1" class="dock-centre-wrap" aria-label="Add a wishlist item">
                 <span class="dock-centre">
-                    <Plus :size="24" :stroke-width="2.6" />
+                    <Plus :size="20" :stroke-width="2.6" />
                 </span>
                 <span class="dock-centre-label">Add a wish</span>
             </Link>
