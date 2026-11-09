@@ -2244,6 +2244,16 @@ button {
     flex: 1;
 }
 
+/* The quick view's settings gear sits at the row's right end as a
+   bare icon with no disc, same treatment as the card gear
+   (owner's call, 2026-11-09). */
+.qv-actions .qv-settings {
+    margin-left: auto;
+    margin-right: 4px;
+    background: transparent;
+    border-color: transparent;
+}
+
 /* Member board rows */
 
 .member-list {

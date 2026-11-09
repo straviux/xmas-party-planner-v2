@@ -157,6 +157,7 @@ onBeforeUnmount(() => {
                     <!-- Parents gate the delete emit with a confirmation popup. -->
                     <WishActionsMenu
                         v-if="showMenu"
+                        class="qv-settings"
                         :item="item"
                         :busy="busy"
                         @edit="emit('edit', $event)"
