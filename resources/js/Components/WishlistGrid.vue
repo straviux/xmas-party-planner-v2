@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { ExternalLink, Search } from 'lucide-vue-next';
+import { Search } from 'lucide-vue-next';
 import ConfirmModal from './ConfirmModal.vue';
 import WishActionsMenu from './WishActionsMenu.vue';
 import { normalizeText } from '../lib/normalize';
@@ -143,6 +143,14 @@ function confirmDelete() {
 
         <div v-if="visibleItems.length" class="wish-grid">
             <article v-for="item in visibleItems" :key="item.id" class="wish-tile">
+                <WishActionsMenu
+                    v-if="props.mode === 'mine'"
+                    class="wish-tile-settings"
+                    :item="item"
+                    :busy="props.busyId === item.id"
+                    @edit="emit('edit', $event)"
+                    @delete="handleAction"
+                />
                 <div v-if="hasImage(item)" class="wish-tile-media" @click="emit('open', item, visibleItems)">
                     <img :src="item.image" :alt="displayName(item)" loading="lazy" @error="markBroken(item)" />
                 </div>
@@ -161,27 +169,8 @@ function confirmDelete() {
                             >???</span>
                         </p>
                     </div>
-                    <div v-if="item.link || item.mine || props.mode === 'mine'" class="wish-tile-actions">
-                        <a
-                            v-if="item.link"
-                            class="icon-btn wish-tile-link"
-                            :href="item.link"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            :aria-label="`Open the shop link for ${displayName(item)}`"
-                            @click.stop
-                        >
-                            <ExternalLink :size="16" />
-                        </a>
-                        <span v-if="item.mine" class="wish-mine-chip">Me</span>
-                        <WishActionsMenu
-                            v-else-if="props.mode === 'mine'"
-                            class="wish-tile-settings"
-                            :item="item"
-                            :busy="props.busyId === item.id"
-                            @edit="emit('edit', $event)"
-                            @delete="handleAction"
-                        />
+                    <div v-if="item.mine" class="wish-tile-actions">
+                        <span class="wish-mine-chip">Me</span>
                     </div>
                 </div>
             </article>
