@@ -284,8 +284,17 @@ async function confirmDeleteWish() {
 onMounted(async () => {
     // Deep links: ?view=mine opens the My wishes view (the home card
     // and the old /guest/gifts address land here); ?add=1 is the dock
-    // star, which opens the add form on top of it.
+    // centre button, which opens the add form on top of it. Both are
+    // one-shot: the parameters are stripped from the address bar as
+    // soon as they are read, so a later remount, refresh, or return
+    // visit on the same URL never reopens the form unasked.
     const params = new URLSearchParams(window.location.search);
+    if (params.has('view') || params.has('add')) {
+        const clean = new URL(window.location.href);
+        clean.searchParams.delete('view');
+        clean.searchParams.delete('add');
+        window.history.replaceState(window.history.state, '', clean);
+    }
     if (params.get('view') === 'mine' || params.get('add') === '1') {
         view.value = 'mine';
     }
