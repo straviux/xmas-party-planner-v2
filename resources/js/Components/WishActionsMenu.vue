@@ -11,6 +11,14 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    // Extra class for the trigger button. This component has two root
+    // nodes (the button and the teleported menu), so a class passed by
+    // the parent does NOT fall through onto the button on its own; it
+    // must travel through this prop and be bound explicitly.
+    buttonClass: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits(['edit', 'delete']);
@@ -105,6 +113,7 @@ onBeforeUnmount(removeListeners);
         ref="buttonEl"
         type="button"
         class="icon-btn"
+        :class="buttonClass"
         :disabled="busy"
         aria-label="Wish settings"
         aria-haspopup="menu"

@@ -145,7 +145,7 @@ function confirmDelete() {
             <article v-for="item in visibleItems" :key="item.id" class="wish-tile">
                 <WishActionsMenu
                     v-if="props.mode === 'mine'"
-                    class="wish-tile-settings"
+                    button-class="wish-tile-settings"
                     :item="item"
                     :busy="props.busyId === item.id"
                     @edit="emit('edit', $event)"
