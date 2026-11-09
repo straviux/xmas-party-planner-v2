@@ -182,9 +182,13 @@ test('an uploaded PNG is stored as a WebP data URL at its original size', functi
 
     $item = slice3Add($this, ['image' => slice3PngDataUrl(40, 20)]);
 
-    expect($item['image'])->toStartWith('data:image/webp;base64,');
+    // The payload carries the image URL, never the stored blob.
+    expect($item['image'])->toStartWith("/wishlist-items/{$item['id']}/image?v=");
 
-    $info = slice3StoredImageInfo($item['image']);
+    $stored = WishlistItem::find($item['id'])->image;
+    expect($stored)->toStartWith('data:image/webp;base64,');
+
+    $info = slice3StoredImageInfo($stored);
     expect($info[0])->toBe(40)
         ->and($info[1])->toBe(20)
         ->and($info[2])->toBe(IMAGETYPE_WEBP);
@@ -192,7 +196,7 @@ test('an uploaded PNG is stored as a WebP data URL at its original size', functi
     // Raw base64 without a data-URL prefix is accepted too.
     $raw = substr(slice3PngDataUrl(10, 10), strlen('data:image/png;base64,'));
     $second = slice3Add($this, ['image' => $raw]);
-    expect($second['image'])->toStartWith('data:image/webp;base64,');
+    expect(WishlistItem::find($second['id'])->image)->toStartWith('data:image/webp;base64,');
 });
 
 test('a large image is resized so its longest side is 1600', function () {
@@ -201,10 +205,35 @@ test('a large image is resized so its longest side is 1600', function () {
 
     $item = slice3Add($this, ['image' => slice3PngDataUrl(2000, 100)]);
 
-    $info = slice3StoredImageInfo($item['image']);
+    $info = slice3StoredImageInfo(WishlistItem::find($item['id'])->image);
     expect($info[0])->toBe(1600)
         ->and($info[1])->toBe(80)
         ->and($info[2])->toBe(IMAGETYPE_WEBP);
+});
+
+test('wishlist photos serve as cacheable WebP bytes; payloads carry only the URL', function () {
+    [, $guests] = slice3Party();
+    slice3Enter($this, $guests['Ana Cruz']);
+
+    $item = slice3Add($this, ['text' => 'Photo wish', 'image' => slice3PngDataUrl(24, 24)]);
+    $stored = WishlistItem::find($item['id'])->image;
+
+    $response = $this->get($item['image']);
+    $response->assertOk();
+    expect($response->headers->get('Content-Type'))->toContain('image/webp')
+        ->and($response->headers->get('Cache-Control'))->toContain('immutable')
+        ->and($response->getContent())
+        ->toBe(base64_decode(substr($stored, strlen('data:image/webp;base64,'))));
+
+    // The board payload holds the URL and no base64 blob anywhere.
+    $boardJson = json_encode($this->postJson('/api/wishlist_list')->assertOk()->json(), JSON_UNESCAPED_SLASHES);
+    expect($boardJson)->toContain('/wishlist-items/'.$item['id'].'/image?v=')
+        ->and($boardJson)->not->toContain('base64,');
+
+    // A wish without a photo has no image to serve.
+    $plain = slice3Add($this, ['text' => 'No photo']);
+    expect($plain['image'])->toBeNull();
+    $this->get('/wishlist-items/'.$plain['id'].'/image')->assertNotFound();
 });
 
 test('broken and non-image uploads are image_invalid', function () {
@@ -277,9 +306,11 @@ test('the owner can attach and replace the photo, stored as WebP like an add', f
 
     $withPhoto = slice3Update($this, ['item_id' => $item['id'], 'image' => slice3PngDataUrl(40, 20)]);
     expect($withPhoto['kind'])->toBe('image')
-        ->and($withPhoto['image'])->toStartWith('data:image/webp;base64,');
+        ->and($withPhoto['image'])->toStartWith("/wishlist-items/{$item['id']}/image?v=");
 
-    $info = slice3StoredImageInfo($withPhoto['image']);
+    $storedWithPhoto = WishlistItem::findOrFail($item['id'])->image;
+    expect($storedWithPhoto)->toStartWith('data:image/webp;base64,');
+    $info = slice3StoredImageInfo($storedWithPhoto);
     expect($info[0])->toBe(40)
         ->and($info[1])->toBe(20)
         ->and($info[2])->toBe(IMAGETYPE_WEBP);
@@ -288,12 +319,13 @@ test('the owner can attach and replace the photo, stored as WebP like an add', f
     $this->postJson('/api/wishlist_update', ['item_id' => $item['id'], 'image' => '!!!not-base64!!!'])
         ->assertStatus(422)
         ->assertJsonPath('error', 'image_invalid');
-    expect(WishlistItem::findOrFail($item['id'])->image)->toBe($withPhoto['image']);
+    expect(WishlistItem::findOrFail($item['id'])->image)->toBe($storedWithPhoto);
 
-    // Replacing with a different photo swaps the stored WebP.
+    // Replacing with a different photo swaps the stored WebP (and so
+    // the payload URL, whose version hash follows the stored data).
     $replaced = slice3Update($this, ['item_id' => $item['id'], 'image' => slice3PngDataUrl(12, 12)]);
     expect($replaced['image'])->not->toBe($withPhoto['image']);
-    $info = slice3StoredImageInfo($replaced['image']);
+    $info = slice3StoredImageInfo(WishlistItem::findOrFail($item['id'])->image);
     expect($info[0])->toBe(12)
         ->and($info[1])->toBe(12);
 });
@@ -318,7 +350,7 @@ test('image null removes the photo and kind falls back to link, then text', func
     $item = slice3Add($this, ['image' => slice3PngDataUrl(10, 10)]);
     $renamed = slice3Update($this, ['item_id' => $item['id'], 'text' => 'That mug']);
     expect($renamed['kind'])->toBe('image')
-        ->and($renamed['image'])->toStartWith('data:image/webp;base64,');
+        ->and($renamed['image'])->toBe($item['image']);
 });
 
 test('an edit that would leave the wish empty is wish_empty and saves nothing', function () {

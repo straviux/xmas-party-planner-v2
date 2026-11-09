@@ -217,6 +217,12 @@ class Serializers
      * Wishlist board item shape (spec): id, text, link, notes, kind, image.
      * Wishlists are posting only, so there is no reserve state. Never
      * reserved_by_id.
+     *
+     * `image` is a URL, never the stored data URL: the photo bytes live
+     * behind the wishlist.image route (see WishlistImageController), so
+     * a board full of photo wishes ships a small JSON payload and each
+     * photo loads and caches separately. The `v` value hashes the
+     * stored data, so editing the photo changes the URL.
      */
     public static function wishlistItem(WishlistItem $item): array
     {
@@ -226,7 +232,19 @@ class Serializers
             'link' => $item->link,
             'notes' => $item->notes,
             'kind' => $item->kind,
-            'image' => $item->image,
+            'image' => self::wishlistImageUrl($item),
         ];
+    }
+
+    private static function wishlistImageUrl(WishlistItem $item): ?string
+    {
+        if (! is_string($item->image) || $item->image === '') {
+            return null;
+        }
+
+        return route('wishlist.image', [
+            'item' => $item->id,
+            'v' => substr(md5($item->image), 0, 12),
+        ], absolute: false);
     }
 }

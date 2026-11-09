@@ -49,7 +49,10 @@ and best practices.
 3. The host is blind too: dashboards show locked/awaiting counts and names,
    never who got whom.
 4. Images are WebP only, never AVIF. Screenshots are converted to WebP on
-   save (max side 1600px) and stored as data URLs.
+   save (max side 1600px) and stored as data URLs. Payloads never ship
+   the stored wishlist blob: `wishlistItem`'s image is the
+   `/wishlist-items/{id}/image?v=<hash>` URL and that route serves the
+   bytes with immutable caching, so the board payload stays small.
 5. Guests changes (add/edit/remove) are blocked once any name is claimed;
    the draw is a derangement and re-runs automatically while unclaimed.
 6. API is a single dispatch route, `POST /api/{action}`; action names and

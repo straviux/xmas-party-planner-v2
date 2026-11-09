@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\WishlistImageController;
 use Illuminate\Support\Facades\Route;
 
 // Guest pages (public, public party info only).
@@ -25,6 +26,10 @@ Route::get('/host', [PageController::class, 'hostDashboard'])->name('host.dashbo
 Route::get('/host/guests', [PageController::class, 'hostGuests'])->name('host.guests');
 Route::get('/host/polls', [PageController::class, 'hostPolls'])->name('host.polls');
 Route::get('/host/settings', [PageController::class, 'hostSettings'])->name('host.settings');
+
+// Wishlist photo bytes. Payloads carry this URL instead of the stored
+// data URL, so the board JSON stays small and photos cache per item.
+Route::get('/wishlist-items/{item}/image', WishlistImageController::class)->name('wishlist.image');
 
 // Single dispatch API. Deliberately on the web routes so the session and
 // CSRF protection apply; action names are a stable contract (spec).
