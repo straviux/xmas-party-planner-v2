@@ -56,8 +56,9 @@ and best practices.
    error codes are a stable contract, do not rename them. Guest secrets:
    `guest_set_secret_name` {secret_name} lets a claimed guest set their
    codename (trimmed, 2 to 30 characters, unique per party compared
-   case-insensitively; errors `secret_name_invalid` 422 and
-   `secret_name_taken` 409). The secret name form also offers a
+   case-insensitively, enforced under a lock on the party row so
+   simultaneous saves cannot duplicate it; errors
+   `secret_name_invalid` 422 and `secret_name_taken` 409). The secret name form also offers a
    "Suggest one for me" button that fills the field with a random
    client-side suggestion (festive word pairs); it is only a
    suggestion, and the same set action validates it like typed

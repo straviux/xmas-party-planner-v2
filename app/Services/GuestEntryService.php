@@ -244,7 +244,9 @@ class GuestEntryService
      * must be 2 to 30 characters, and must be unique within the party
      * under a case-insensitive comparison (re-setting your own current
      * value, in any letter case, is always fine). The trimmed value is
-     * stored as typed, display case preserved.
+     * stored as typed, display case preserved. Uniqueness is enforced
+     * under a lock on the party row, so no two saves in the same party
+     * can both pass the check with the same name, even simultaneously.
      *
      * @return array{secret_name: string}
      *
@@ -265,6 +267,12 @@ class GuestEntryService
         }
 
         return DB::transaction(function () use ($guest, $name) {
+            // Lock the party row first: every secret-name save in this
+            // party serializes on it, so the uniqueness check below and
+            // the save cannot interleave with another guest's save.
+            // (Locking only the setter's own row would let two guests
+            // pass the check at the same instant with the same name.)
+            Party::query()->whereKey($guest->party_id)->lockForUpdate()->firstOrFail();
             $guest = Guest::query()->whereKey($guest->id)->lockForUpdate()->firstOrFail();
 
             $taken = $guest->party->guests()

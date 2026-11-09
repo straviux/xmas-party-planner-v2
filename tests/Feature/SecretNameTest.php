@@ -172,6 +172,25 @@ test('re-setting your own secret name in any letter case is fine', function () {
     expect($ana->fresh()->secret_name)->toBe('ELF ONE');
 });
 
+test('changing your secret name frees the old one for another guest', function () {
+    [, $guests] = secretNameDefaultParty();
+    $ana = $guests['Ana Cruz'];
+    $ben = $guests['Ben Reyes'];
+
+    secretNameEnter($this, $ana);
+    $this->postJson('/api/guest_set_secret_name', ['secret_name' => 'Elf One'])->assertOk();
+    $this->postJson('/api/guest_set_secret_name', ['secret_name' => 'Elf Two'])->assertOk();
+    $this->postJson('/api/guest_logout')->assertOk();
+
+    secretNameEnter($this, $ben);
+    $this->postJson('/api/guest_set_secret_name', ['secret_name' => 'Elf One'])
+        ->assertOk()
+        ->assertJsonPath('secret_name', 'Elf One');
+
+    expect($ana->fresh()->secret_name)->toBe('Elf Two')
+        ->and($ben->fresh()->secret_name)->toBe('Elf One');
+});
+
 test('setting a secret name needs a claimed session guest', function () {
     [, $guests] = secretNameDefaultParty();
     $ana = $guests['Ana Cruz'];
