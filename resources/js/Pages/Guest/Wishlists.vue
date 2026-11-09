@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Gift, ListChecks } from 'lucide-vue-next';
+import { Gift, ListChecks, Plus } from 'lucide-vue-next';
 import ConfirmModal from '../../Components/ConfirmModal.vue';
 import GuestLayout from '../../Components/GuestLayout.vue';
 import Mascot from '../../Components/Mascot.vue';
@@ -194,6 +194,14 @@ function openMineQuickView(item) {
     mineSelectedId.value = item.id;
 }
 
+// The header button beside Scor: adding a wish is about your own
+// list, so it lands on My wishes with the form open, exactly like
+// the dock centre button's deep link.
+function addWishFromHeader() {
+    view.value = 'mine';
+    openAddForm();
+}
+
 function openAddForm() {
     // The three-wish cap: the server refuses a fourth wish anyway, so
     // say so here instead of opening a form that cannot save.
@@ -311,8 +319,15 @@ onMounted(async () => {
 <template>
     <Head title="Everyone's wishlists" />
     <GuestLayout dock wide>
-        <!-- Scor stands on the page background, outside any card. -->
-        <Mascot message="Hunting for gift ideas?" />
+        <!-- Scor stands on the page background, outside any card,
+             with the page's add-a-wish button beside her. -->
+        <div class="scor-row">
+            <Mascot message="Hunting for gift ideas?" />
+            <button type="button" class="btn btn-primary scor-add-btn" :disabled="loading" @click="addWishFromHeader">
+                <Plus :size="18" />
+                <span>Add a wish</span>
+            </button>
+        </div>
 
         <div class="slide-in" style="margin-top: 10px">
             <p v-if="loading" class="muted">Loading wishlists...</p>
@@ -517,6 +532,20 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* Scor's row: the mascot block keeps its natural width and the
+   add-a-wish button sits beside her, wrapping underneath on
+   screens too narrow for both. */
+.scor-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.scor-add-btn {
+    flex: none;
+}
+
 .view-toggle {
     display: flex;
     width: fit-content;
