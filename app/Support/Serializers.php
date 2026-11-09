@@ -38,17 +38,17 @@ class Serializers
     }
 
     /**
-     * Host guest shape: the public shape plus pin_set, the guest's secret
-     * name (the host hands out nudges and checks coverage, so the value
-     * itself is visible here), and a plain status. The host is blind to
-     * recipients too, so still no recipient data.
+     * Host guest shape: the public shape plus pin_set and a plain
+     * status. Like everyone else, the host is blind to secret names:
+     * only the inherited has_secret_name flag rides along, never the
+     * value; coverage is the secret_names_set count in host_status.
+     * The host is blind to recipients too, so no recipient data either.
      */
     public static function hostGuest(Guest $guest): array
     {
         return [
             ...self::publicGuest($guest),
             'pin_set' => ! empty($guest->pin_hash),
-            'secret_name' => $guest->secret_name,
             'status' => $guest->claimed ? 'locked' : 'awaiting',
         ];
     }

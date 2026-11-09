@@ -62,9 +62,11 @@ and best practices.
    "Suggest one for me" button that fills the field with a random
    client-side suggestion (festive word pairs); it is only a
    suggestion, and the same set action validates it like typed
-   input. Public payloads carry only the
-   `has_secret_name` flag, never the value; the host shape carries the
-   value, and `host_status` counts `secret_names_set`. One exception:
+   input. Public AND host payloads carry only the
+   `has_secret_name` flag, never the value: the host is blind to
+   secret names too (coverage comes from the `secret_names_set`
+   count in `host_status`, and the host UI shows only picked or not
+   picked). One exception:
    guest-facing wishlist surfaces identify wishers by codename, so
    `wishlist_list` entries and the member-wishlist page's `member` prop
    use `Serializers::wishlistMember` ({id, secret_name}, null when

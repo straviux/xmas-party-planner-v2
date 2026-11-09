@@ -330,7 +330,7 @@ test('reveal_again mirrors the secret name shape', function () {
 // Host visibility and the guest home prop
 // ----------------------------------------------------------------------
 
-test('the host sees secret names and counts them while the public list hides the values', function () {
+test('the host is blind to secret names: counts and flags only, never the values', function () {
     [, $guests] = secretNameDefaultParty();
     $ana = $guests['Ana Cruz'];
     $ben = $guests['Ben Reyes'];
@@ -351,13 +351,19 @@ test('the host sees secret names and counts them while the public list hides the
         ->assertJsonPath('counts.guests', 3);
 
     $shapes = collect($status->json('guests'))->keyBy('id');
-    expect($shapes[$ana->id]['secret_name'])->toBe('ReindeerGames')
-        ->and($shapes[$ben->id]['secret_name'])->toBe('Snow Fox')
-        ->and($shapes[$cora->id]['secret_name'])->toBeNull()
+    expect($shapes[$ana->id])->not->toHaveKey('secret_name')
+        ->and($shapes[$ben->id])->not->toHaveKey('secret_name')
+        ->and($shapes[$cora->id])->not->toHaveKey('secret_name')
         ->and($shapes[$ana->id]['has_secret_name'])->toBeTrue()
+        ->and($shapes[$ben->id]['has_secret_name'])->toBeTrue()
         ->and($shapes[$cora->id]['has_secret_name'])->toBeFalse();
 
-    // The public list, on the same data, contains neither value anywhere.
+    // Neither value appears anywhere in the host payload...
+    $statusJson = json_encode($status->json());
+    expect($statusJson)->not->toContain('ReindeerGames')
+        ->and($statusJson)->not->toContain('Snow Fox');
+
+    // ...nor in the public list, on the same data.
     $listJson = json_encode($this->postJson('/api/list')->assertOk()->json());
     expect($listJson)->not->toContain('ReindeerGames')
         ->and($listJson)->not->toContain('Snow Fox');

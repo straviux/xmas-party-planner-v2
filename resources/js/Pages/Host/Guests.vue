@@ -75,7 +75,7 @@ const filtered = computed(() => {
     const needle = search.value.trim().toLowerCase();
     if (!needle) return guests.value;
     return guests.value.filter((guest) => {
-        const haystack = [guest.display, guest.nickname, guest.secret_name, ...aliasesList(guest)]
+        const haystack = [guest.display, guest.nickname, ...aliasesList(guest)]
             .filter(Boolean)
             .join(' ')
             .toLowerCase();
@@ -287,8 +287,8 @@ async function removeGuest(guest) {
                         <tr v-for="guest in filtered" :key="guest.id">
                             <td>
                                 {{ guest.display }}
-                                <span v-if="guest.secret_name" class="muted small" style="display: block; margin-top: 2px">
-                                    Secret name: {{ guest.secret_name }}
+                                <span v-if="guest.has_secret_name" class="muted small" style="display: block; margin-top: 2px">
+                                    Secret name picked
                                 </span>
                                 <span v-else class="muted small" style="display: block; margin-top: 2px">
                                     No secret name yet
