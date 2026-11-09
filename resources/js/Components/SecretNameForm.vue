@@ -24,20 +24,24 @@ const error = ref('');
 const busy = ref(false);
 
 // Random suggestions for guests who do not want to invent a name:
-// a festive first word plus a character or thing, 256 combinations,
-// every one inside the 2 to 30 character rule. Purely a suggestion
-// typed into the field: the guest can re-roll, edit it, or ignore it,
-// and the save below still runs the server's uniqueness check, so a
-// suggestion that happens to be taken just gets the taken message.
+// a festive or funny first word plus a character, thing, or fruit,
+// 676 combinations, every one inside the 2 to 30 character rule.
+// Purely a suggestion typed into the field: the guest can re-roll,
+// edit it, or ignore it, and the save below still runs the server's
+// uniqueness check, so a suggestion that happens to be taken just
+// gets the taken message.
 const NAME_FIRST = [
     'Jolly', 'Frosty', 'Twinkle', 'Cozy', 'Merry', 'Peppy', 'Holly',
     'Ginger', 'Sugar', 'Snowy', 'Tinsel', 'Pudding', 'Waffle',
-    'Noodle', 'Mumble', 'Pickle',
+    'Noodle', 'Mumble', 'Pickle', 'Wobbly', 'Giggly', 'Goofy',
+    'Chunky', 'Sleepy', 'Clumsy', 'Cheeky', 'Bouncy', 'Dizzy',
+    'Snazzy',
 ];
 const NAME_SECOND = [
     'Reindeer', 'Elf', 'Pixie', 'Fox', 'Penguin', 'Snowman', 'Cookie',
     'Cocoa', 'Candle', 'Mittens', 'Sleigh', 'Star', 'Bell', 'Moose',
-    'Panda', 'Sprout',
+    'Panda', 'Sprout', 'Mango', 'Pineapple', 'Coconut', 'Banana',
+    'Papaya', 'Cherry', 'Melon', 'Lemon', 'Guava', 'Durian',
 ];
 
 const lastSuggestion = ref('');
