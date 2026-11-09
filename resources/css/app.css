@@ -504,6 +504,27 @@ button {
     cursor: pointer;
 }
 
+.mascot-root {
+    position: relative;
+}
+
+/* Page content slotted beside Scor (the Wishlists Add a wish
+   button): anchored to the root's bottom, beside her right side,
+   so the chat bubble resizing above her can never move it. */
+.mascot-slot {
+    position: absolute;
+    left: calc(50% + 69px);
+    bottom: 64px;
+    z-index: 3;
+}
+
+@media (max-width: 560px) {
+    .mascot-slot {
+        left: auto;
+        right: 0;
+    }
+}
+
 .mascot-bubble {
     position: relative;
     /* A constant box, so a new line can never reposition anything:

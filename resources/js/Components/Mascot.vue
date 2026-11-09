@@ -176,6 +176,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+    <div class="mascot-root">
     <div class="mascot-wrap" aria-hidden="true" @click="react">
         <Transition name="snow-fade">
             <div v-if="snowing" class="scor-snow" aria-hidden="true">
@@ -251,5 +252,14 @@ onBeforeUnmount(() => {
                 </div>
             </div>
         </div>
+    </div>
+    <!-- Slotted page content (the Wishlists page's Add a wish button)
+         lives OUTSIDE the aria-hidden wrap but inside the component
+         root, anchored to Scor herself: she is the wrap's last item,
+         so a bottom-anchored slot tracks her exactly and never moves
+         when the chat bubble above her changes height. -->
+    <div v-if="$slots.default" class="mascot-slot">
+        <slot />
+    </div>
     </div>
 </template>

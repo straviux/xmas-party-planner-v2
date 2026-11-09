@@ -319,15 +319,16 @@ onMounted(async () => {
 <template>
     <Head title="Everyone's wishlists" />
     <GuestLayout dock wide>
-        <!-- Scor stands on the page background, outside any card,
-             with the page's add-a-wish button beside her. -->
-        <div class="scor-row">
-            <Mascot message="Hunting for gift ideas?" />
-            <button type="button" class="btn btn-primary scor-add-btn" :disabled="loading" @click="addWishFromHeader">
+        <!-- Scor stands on the page background, outside any card;
+             the add-a-wish button is slotted inside her container,
+             anchored beside her so it never shifts when her chat
+             bubble changes size. -->
+        <Mascot message="Hunting for gift ideas?">
+            <button type="button" class="btn btn-primary" :disabled="loading" @click="addWishFromHeader">
                 <Plus :size="18" />
                 <span>Add a wish</span>
             </button>
-        </div>
+        </Mascot>
 
         <div class="slide-in" style="margin-top: 10px">
             <p v-if="loading" class="muted">Loading wishlists...</p>
@@ -532,20 +533,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* Scor's row: the mascot block keeps its natural width and the
-   add-a-wish button sits beside her, wrapping underneath on
-   screens too narrow for both. */
-.scor-row {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    flex-wrap: wrap;
-}
-
-.scor-add-btn {
-    flex: none;
-}
-
 .view-toggle {
     display: flex;
     width: fit-content;
