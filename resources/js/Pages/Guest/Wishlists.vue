@@ -34,6 +34,10 @@ const selectedId = ref(null);
 const reelsOpen = ref(false);
 const reelsSequence = ref([]);
 const reelsStartIndex = ref(0);
+// Which list the open reels resolve against: the board (All wishes)
+// or the recipient's own items (My recipient uses the same viewer,
+// owner's call 2026-11-10).
+const reelsSource = ref('board');
 
 const party = computed(() =>
     boardParty.value === undefined ? props.party : boardParty.value,
@@ -74,14 +78,18 @@ const selectedItem = computed(
     () => allItems.value.find((item) => String(item.id) === String(selectedId.value)) || null,
 );
 
-// The reels keep the exact sequence the guest saw in the filtered and
-// sorted grid, while each entry is resolved back to the live combined
-// item so the viewer always reflects the latest posted wish details.
+// The reels keep the exact sequence the guest saw in the grid,
+// while each entry is resolved back to the live item in its source
+// list so the viewer always reflects the latest posted wish details.
 const reelsItems = computed(() =>
-    reelsSequence.value.map(
-        (snapshot) =>
-            allItems.value.find((item) => String(item.id) === String(snapshot.id)) || snapshot,
-    ),
+    reelsSequence.value.map((snapshot) => {
+        const pool = reelsSource.value === 'recipient' ? recipientItems.value : allItems.value;
+        const live = pool.find((item) => String(item.id) === String(snapshot.id));
+        if (!live) return snapshot;
+        // Recipient items carry no owner of their own; the viewer
+        // header names the recipient from the snapshot's owner.
+        return snapshot.owner && !live.owner ? { ...live, owner: snapshot.owner } : live;
+    }),
 );
 
 function openQuickView(item) {
@@ -91,6 +99,20 @@ function openQuickView(item) {
 function openReels(item, visibleItems) {
     const sequence = Array.isArray(visibleItems) && visibleItems.length ? visibleItems : [item];
     const index = sequence.findIndex((candidate) => String(candidate.id) === String(item.id));
+    reelsSource.value = 'board';
+    reelsSequence.value = sequence;
+    reelsStartIndex.value = index === -1 ? 0 : index;
+    reelsOpen.value = true;
+}
+
+// My recipient opens in the same full-screen viewer as All wishes;
+// the recipient's codename rides along as each item's owner, since
+// the recipient payload itself names nobody.
+function openRecipientReels(item, visibleItems) {
+    const base = Array.isArray(visibleItems) && visibleItems.length ? visibleItems : [item];
+    const sequence = base.map((entry) => ({ ...entry, owner: recipient.value }));
+    const index = sequence.findIndex((candidate) => String(candidate.id) === String(item.id));
+    reelsSource.value = 'recipient';
     reelsSequence.value = sequence;
     reelsStartIndex.value = index === -1 ? 0 : index;
     reelsOpen.value = true;
@@ -119,23 +141,11 @@ async function loadBoard() {
 const recipientStatus = ref('idle');
 const recipient = ref(null);
 const recipientItems = ref([]);
-const recipientSelectedId = ref(null);
 
 const recipientCountsLine = computed(() => {
     const count = recipientItems.value.length;
     return `${count} wish${count === 1 ? '' : 'es'} from your recipient`;
 });
-
-const recipientSelectedItem = computed(
-    () =>
-        recipientItems.value.find(
-            (item) => String(item.id) === String(recipientSelectedId.value),
-        ) || null,
-);
-
-function openRecipientQuickView(item) {
-    recipientSelectedId.value = item.id;
-}
 
 async function loadRecipient() {
     recipientStatus.value = 'loading';
@@ -412,7 +422,7 @@ onMounted(async () => {
                             v-if="recipientItems.length"
                             :items="recipientItems"
                             mode="member"
-                            @open="openRecipientQuickView"
+                            @open="openRecipientReels"
                         />
                         <div v-else class="empty-state">
                             <Gift :size="40" />
@@ -424,11 +434,6 @@ onMounted(async () => {
                             </p>
                         </div>
 
-                        <WishQuickView
-                            :item="recipientSelectedItem"
-                            mode="member"
-                            @close="recipientSelectedId = null"
-                        />
                     </template>
                 </template>
 
