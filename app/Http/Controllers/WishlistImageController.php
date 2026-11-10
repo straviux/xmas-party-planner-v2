@@ -25,7 +25,7 @@ use Illuminate\Http\Response;
  */
 class WishlistImageController
 {
-    public function __invoke(Request $request, WishlistItem $item): Response
+    public function __invoke(Request $request, WishlistItem $item, int $index = 0): Response
     {
         $signedIn = $request->session()->get('pin_verified') === true
             && app(GuestEntryService::class)->sessionGuest($request) !== null;
@@ -33,8 +33,11 @@ class WishlistImageController
             abort(404);
         }
 
+        // Which of the wish's photos (up to three); the cover is 0,
+        // and the bare /image address from before keeps meaning it.
+
         $prefix = 'data:image/webp;base64,';
-        $image = $item->image;
+        $image = $item->photos()[$index] ?? null;
 
         if (! is_string($image) || ! str_starts_with($image, $prefix)) {
             abort(404);

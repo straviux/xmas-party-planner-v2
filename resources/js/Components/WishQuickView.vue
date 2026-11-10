@@ -37,7 +37,16 @@ const displayName = computed(() => {
     return 'Untitled wish';
 });
 
-const showImage = computed(() => Boolean(props.item?.image) && !broken.value);
+// A wish carries up to three photos; the quick view shows one at a
+// time with a thumbnail strip to switch (payload `images`, cover
+// first; `image` alone remains the fallback for older payloads).
+const photoIndex = ref(0);
+const photos = computed(() => {
+    const list = props.item?.images;
+    if (Array.isArray(list) && list.length) return list;
+    return props.item?.image ? [props.item.image] : [];
+});
+const showImage = computed(() => photos.value.length > 0 && !broken.value);
 
 const stateLine = computed(() => {
     if (!props.item) return '';
@@ -81,6 +90,7 @@ watch(
     () => props.item,
     async (item) => {
         broken.value = false;
+        photoIndex.value = 0;
         if (item) {
             lockScroll();
             await nextTick();
@@ -122,7 +132,21 @@ onBeforeUnmount(() => {
             </button>
 
             <div v-if="showImage" class="qv-media">
-                <img :src="item.image" :alt="displayName" @error="broken = true" />
+                <img :src="photos[photoIndex]" :alt="displayName" @error="broken = true" />
+            </div>
+
+            <div v-if="showImage && photos.length > 1" class="qv-thumbs">
+                <button
+                    v-for="(photo, i) in photos"
+                    :key="photo"
+                    type="button"
+                    class="qv-thumb"
+                    :class="{ active: i === photoIndex }"
+                    :aria-label="`Show photo ${i + 1}`"
+                    @click="photoIndex = i"
+                >
+                    <img :src="photo" alt="" />
+                </button>
             </div>
 
             <div class="qv-body">

@@ -223,11 +223,13 @@ class Serializers
      * Wishlists are posting only, so there is no reserve state. Never
      * reserved_by_id.
      *
-     * `image` is a URL, never the stored data URL: the photo bytes live
-     * behind the wishlist.image route (see WishlistImageController), so
-     * a board full of photo wishes ships a small JSON payload and each
-     * photo loads and caches separately. The `v` value hashes the
-     * stored data, so editing the photo changes the URL.
+     * `image` is the cover (first) photo's URL and `images` all of
+     * them (up to three), never stored data URLs: the photo bytes
+     * live behind the wishlist.image route (see
+     * WishlistImageController), so a board full of photo wishes
+     * ships a small JSON payload and each photo loads and caches
+     * separately. The `v` value hashes the stored data, so editing
+     * a photo changes its URL.
      */
     public static function wishlistItem(WishlistItem $item): array
     {
@@ -237,19 +239,29 @@ class Serializers
             'link' => $item->link,
             'notes' => $item->notes,
             'kind' => $item->kind,
-            'image' => self::wishlistImageUrl($item),
+            'image' => self::wishlistImageUrl($item, 0),
+            'images' => array_map(
+                fn (int $index) => self::wishlistImageUrl($item, $index),
+                array_keys($item->photos()),
+            ),
         ];
     }
 
-    private static function wishlistImageUrl(WishlistItem $item): ?string
+    private static function wishlistImageUrl(WishlistItem $item, int $index): ?string
     {
-        if (! is_string($item->image) || $item->image === '') {
+        $photo = $item->photos()[$index] ?? null;
+        if ($photo === null) {
             return null;
         }
 
-        return route('wishlist.image', [
-            'item' => $item->id,
-            'v' => substr(md5($item->image), 0, 12),
-        ], absolute: false);
+        // The cover keeps the bare address it has always had, so
+        // URLs and caches from before the photo list stay valid;
+        // later photos carry their index.
+        $params = ['item' => $item->id, 'v' => substr(md5($photo), 0, 12)];
+        if ($index > 0) {
+            $params['index'] = $index;
+        }
+
+        return route('wishlist.image', $params, absolute: false);
     }
 }

@@ -635,6 +635,7 @@ class ApiController extends Controller
                 'link' => $request->input('link'),
                 'notes' => $request->input('notes'),
                 'image' => $request->input('image'),
+                'images' => $request->input('images'),
             ]);
         } catch (WishlistException $e) {
             return $this->wishlistError($e);
@@ -663,7 +664,7 @@ class ApiController extends Controller
             $item = app(WishlistService::class)->updateItem(
                 $guest,
                 $item,
-                $request->only(['text', 'link', 'notes', 'image']),
+                $request->only(['text', 'link', 'notes', 'image', 'images']),
             );
         } catch (WishlistException $e) {
             return $this->wishlistError($e);

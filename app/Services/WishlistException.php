@@ -17,6 +17,7 @@ class WishlistException extends DomainException
     private const MESSAGES = [
         'wish_empty' => 'Add some text, a link, or a screenshot first.',
         'wish_limit' => 'You can post up to three wishes. Delete one to add another.',
+        'too_many_images' => 'A wish can have up to three photos.',
         'image_too_large' => 'That image is too large. Try a smaller screenshot.',
         'image_invalid' => 'That image could not be read. Try a PNG, JPEG, GIF, or WebP image.',
         'forbidden' => 'You can only change your own wishlist.',

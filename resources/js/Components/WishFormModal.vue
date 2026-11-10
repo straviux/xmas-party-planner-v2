@@ -24,40 +24,42 @@ const text = ref(props.item?.text || '');
 const link = ref(props.item?.link || '');
 const notes = ref(props.item?.notes || '');
 
-// Photo handling. 'unchanged' keeps the item's current photo (or, in add
-// mode, no photo yet); 'replaced' holds a fresh data URL in imageData;
-// 'removed' drops the item's photo on save. The image key is only sent to
-// wishlist_update when the state is 'replaced' (data URL) or 'removed'
-// (null); an untouched photo is omitted entirely.
-const photoState = ref('unchanged');
-const imageData = ref('');
+// Photos: up to three per wish. Slots are either 'existing' (a photo
+// the wish already has, referenced by its server index, previewed by
+// its URL) or 'new' (a fresh data URL from the picker). On save the
+// images key is sent only when the set changed (edits), as the full
+// desired set: "keep:N" for existing slots, the data URL for new
+// ones, and dropped slots simply absent. Adds send their data URLs.
+const MAX_PHOTOS = 3;
+const photos = ref(
+    (props.item?.images || []).map((src, index) => ({ kind: 'existing', index, src })),
+);
 const imageError = ref('');
 const fileInput = ref(null);
 const wishTextInput = ref(null);
+const replaceTarget = ref(null);
+
+const initialPhotoKey = (props.item?.images || []).map((_, index) => `e${index}`).join(',');
+const photosChanged = computed(
+    () =>
+        photos.value
+            .map((slot) => (slot.kind === 'existing' ? `e${slot.index}` : 'new'))
+            .join(',') !== initialPhotoKey,
+);
+const hasPhoto = computed(() => photos.value.length > 0);
 
 const submitting = ref(false);
 const formError = ref('');
 
 const FORM_ERRORS = {
     wish_empty: 'Add a short description, a link, or a screenshot, at least one.',
+    too_many_images: 'A wish can have up to three photos.',
     image_too_large: 'That image is too large to save. Try a smaller screenshot.',
     image_invalid: 'That image could not be saved. Try a different screenshot.',
     not_claimed: 'You need to enter the party first before adding wishes.',
     wish_not_found: 'That wish is already gone.',
     forbidden: 'You can only edit your own wishes.',
 };
-
-const previewSrc = computed(() => {
-    if (photoState.value === 'replaced') return imageData.value;
-    if (photoState.value === 'unchanged') return props.item?.image || '';
-    return '';
-});
-
-const hasPhoto = computed(() => {
-    if (photoState.value === 'replaced') return Boolean(imageData.value);
-    if (photoState.value === 'removed') return false;
-    return Boolean(props.item?.image);
-});
 
 function requestClose() {
     if (submitting.value) return;
@@ -78,7 +80,12 @@ onBeforeUnmount(() => {
     window.removeEventListener('keydown', onKeydown);
 });
 
-function openFilePicker() {
+function openFilePicker(target = null) {
+    if (target === null && photos.value.length >= MAX_PHOTOS) {
+        imageError.value = 'A wish can have up to three photos. Remove one first.';
+        return;
+    }
+    replaceTarget.value = target;
     fileInput.value?.click();
 }
 
@@ -98,8 +105,15 @@ function onFileChange(event) {
     }
     const reader = new FileReader();
     reader.onload = () => {
-        imageData.value = typeof reader.result === 'string' ? reader.result : '';
-        if (imageData.value) photoState.value = 'replaced';
+        const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+        if (!dataUrl) return;
+        const slot = { kind: 'new', src: dataUrl, dataUrl };
+        if (replaceTarget.value !== null && photos.value[replaceTarget.value]) {
+            photos.value.splice(replaceTarget.value, 1, slot);
+        } else if (photos.value.length < MAX_PHOTOS) {
+            photos.value.push(slot);
+        }
+        replaceTarget.value = null;
     };
     reader.onerror = () => {
         imageError.value = 'That image could not be read. Try a different one.';
@@ -107,16 +121,9 @@ function onFileChange(event) {
     reader.readAsDataURL(file);
 }
 
-function removePhoto() {
-    imageData.value = '';
+function removeSlot(index) {
+    photos.value.splice(index, 1);
     imageError.value = '';
-    photoState.value = isEdit.value && props.item?.image ? 'removed' : 'unchanged';
-}
-
-function undoPhotoChange() {
-    imageData.value = '';
-    imageError.value = '';
-    photoState.value = 'unchanged';
 }
 
 async function submit() {
@@ -134,15 +141,19 @@ async function submit() {
     try {
         if (isEdit.value) {
             const body = { item_id: props.item.id, ...payload };
-            if (photoState.value === 'replaced') body.image = imageData.value;
-            else if (photoState.value === 'removed') body.image = null;
+            if (photosChanged.value) {
+                body.images = photos.value.map((slot) =>
+                    slot.kind === 'existing' ? `keep:${slot.index}` : slot.dataUrl,
+                );
+            }
             const res = await post('wishlist_update', body);
             emit('saved', res.item ?? null, 'edit');
         } else {
-            const res = await post('wishlist_add', {
-                ...payload,
-                image: imageData.value || null,
-            });
+            const body = { ...payload };
+            if (photos.value.length) {
+                body.images = photos.value.map((slot) => slot.dataUrl);
+            }
+            const res = await post('wishlist_add', body);
             emit('saved', res.item ?? null, 'add');
         }
     } catch (err) {
@@ -208,45 +219,40 @@ async function submit() {
                 </label>
 
                 <div class="field">
-                    <span class="field-label">Screenshot (optional)</span>
-                    <div v-if="previewSrc" class="wish-preview">
-                        <img :src="previewSrc" alt="Your screenshot preview" />
+                    <span class="field-label">Photos (optional, up to 3)</span>
+                    <div class="wish-photo-slots">
+                        <div v-for="(slot, i) in photos" :key="i" class="wish-photo-slot">
+                            <img :src="slot.src" alt="Wish photo" />
+                            <span v-if="i === 0" class="wish-photo-cover">Cover</span>
+                            <button
+                                type="button"
+                                class="icon-btn wish-photo-slot-x"
+                                aria-label="Remove this photo"
+                                @click="removeSlot(i)"
+                            >
+                                <X :size="14" />
+                            </button>
+                            <button
+                                type="button"
+                                class="wish-photo-slot-replace"
+                                @click="openFilePicker(i)"
+                            >
+                                Replace
+                            </button>
+                        </div>
                         <button
+                            v-if="photos.length < MAX_PHOTOS"
                             type="button"
-                            class="icon-btn wish-preview-remove"
-                            :aria-label="
-                                photoState === 'replaced' && item?.image
-                                    ? 'Undo the new photo and keep the current one'
-                                    : 'Remove screenshot'
-                            "
-                            @click="photoState === 'replaced' && item?.image ? undoPhotoChange() : removePhoto()"
+                            class="wish-photo-add"
+                            @click="openFilePicker()"
                         >
-                            <X :size="17" />
-                        </button>
-                    </div>
-                    <p v-if="photoState === 'removed'" class="small muted" style="margin: 0 0 10px">
-                        The photo will be removed when you save.
-                        <button type="button" class="wish-photo-undo" @click="undoPhotoChange">
-                            Undo
-                        </button>
-                    </p>
-                    <div class="wish-photo-actions">
-                        <button type="button" class="btn btn-secondary" @click="openFilePicker">
-                            <ImagePlus :size="18" />
-                            <span>{{ previewSrc ? 'Replace photo' : 'Add a screenshot' }}</span>
-                        </button>
-                        <button
-                            v-if="previewSrc && photoState === 'unchanged' && item?.image"
-                            type="button"
-                            class="btn btn-secondary"
-                            @click="removePhoto"
-                        >
-                            <X :size="18" />
-                            <span>Remove photo</span>
+                            <ImagePlus :size="20" />
+                            <span>Add photo</span>
                         </button>
                     </div>
                     <p class="small muted" style="margin: 8px 0 0">
-                        PNG, JPEG, GIF, or WebP, up to 10 MB.
+                        PNG, JPEG, GIF, or WebP, up to 10 MB each. The first photo
+                        is the one shown on the board.
                     </p>
                     <input
                         ref="fileInput"
@@ -287,21 +293,82 @@ async function submit() {
 </template>
 
 <style scoped>
-.wish-photo-actions {
+.wish-photo-slots {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
 }
 
-.wish-photo-undo {
-    border: 0;
-    background: none;
-    padding: 0;
-    font: inherit;
+.wish-photo-slot {
+    position: relative;
+    width: 92px;
+    height: 92px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    flex: none;
+}
+
+.wish-photo-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.wish-photo-cover {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(20, 18, 46, 0.85);
+    color: #f7e8c9;
+    font-size: 0.64rem;
     font-weight: 700;
-    color: var(--lavender);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.wish-photo-slot-x {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    background: rgba(20, 18, 46, 0.8);
+    color: #ffffff;
+}
+
+.wish-photo-slot-replace {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 4px 0;
+    border: 0;
+    background: rgba(20, 18, 46, 0.78);
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
     cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 3px;
+}
+
+.wish-photo-add {
+    width: 92px;
+    height: 92px;
+    border-radius: 12px;
+    border: 1.5px dashed rgba(196, 39, 251, 0.55);
+    background: rgba(196, 39, 251, 0.07);
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    flex: none;
 }
 </style>

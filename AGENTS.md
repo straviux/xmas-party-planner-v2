@@ -49,10 +49,16 @@ and best practices.
 3. The host is blind too: dashboards show locked/awaiting counts and names,
    never who got whom.
 4. Images are WebP only, never AVIF. Screenshots are converted to WebP on
-   save (max side 1600px) and stored as data URLs. Payloads never ship
-   the stored wishlist blob: `wishlistItem`'s image is the
-   `/wishlist-items/{id}/image?v=<hash>` URL and that route serves the
-   bytes with immutable caching, so the board payload stays small.
+   save (max side 1600px) and stored as data URLs. A wish carries up
+   to three photos (2026-11-10): the store is the `images` JSON list
+   of data URLs and the legacy `image` column mirrors the first
+   (cover) photo. Adds/edits take an `images` array (fresh data URLs;
+   on edit also "keep:N" markers for the Nth current photo; absent
+   key keeps the set); more than three is `too_many_images` 422.
+   Payloads never ship the stored blobs: `wishlistItem`'s `image`
+   (cover) and `images` are the `/wishlist-items/{id}/image?v=<hash>` URL (cover; later photos add `/{index}`)
+   URLs and that route serves the bytes with private immutable
+   caching to signed-in guests, so the board payload stays small.
 5. Guests changes (add/edit/remove) are blocked once any name is claimed;
    the draw is a derangement and re-runs automatically while unclaimed.
    The one sanctioned way to change assignments after claims is the

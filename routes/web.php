@@ -29,7 +29,7 @@ Route::get('/host/settings', [PageController::class, 'hostSettings'])->name('hos
 
 // Wishlist photo bytes. Payloads carry this URL instead of the stored
 // data URL, so the board JSON stays small and photos cache per item.
-Route::get('/wishlist-items/{item}/image', WishlistImageController::class)->name('wishlist.image');
+Route::get('/wishlist-items/{item}/image/{index?}', WishlistImageController::class)->name('wishlist.image');
 
 // Single dispatch API. Deliberately on the web routes so the session and
 // CSRF protection apply; action names are a stable contract (spec).

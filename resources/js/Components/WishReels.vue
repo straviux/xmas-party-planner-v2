@@ -20,7 +20,6 @@ const currentIndex = ref(0);
 const dragOffset = ref(0);
 const dragging = ref(false);
 const entryDirection = ref('');
-const brokenImageId = ref(null);
 const closeButton = ref(null);
 
 let dragPointerId = null;
@@ -30,6 +29,17 @@ let previousOverflow = '';
 let lockedScroller = null;
 
 const currentItem = computed(() => props.items[currentIndex.value] || null);
+
+// Up to three photos per wish: the viewer flips through them with
+// the chevrons/dots under the photo, separately from moving between
+// wishes. The index and the broken flag reset on every wish change.
+const photoIndex = ref(0);
+const photoBroken = ref(false);
+const photos = computed(() => {
+    const list = currentItem.value?.images;
+    if (Array.isArray(list) && list.length) return list;
+    return currentItem.value?.image ? [currentItem.value.image] : [];
+});
 const canPrevious = computed(() => currentIndex.value > 0);
 const canNext = computed(() => currentIndex.value < props.items.length - 1);
 
@@ -44,9 +54,7 @@ const displayName = computed(() => {
 
 const ownerSecretName = computed(() => currentItem.value?.owner?.secret_name || null);
 const ownerInitial = computed(() => ownerSecretName.value?.trim().charAt(0).toUpperCase() || '?');
-const showImage = computed(
-    () => Boolean(currentItem.value?.image) && brokenImageId.value !== currentItem.value?.id,
-);
+const showImage = computed(() => photos.value.length > 0 && !photoBroken.value);
 
 const slideClass = computed(() => ({
     dragging: dragging.value,
@@ -179,6 +187,11 @@ watch(
     },
 );
 
+watch(currentIndex, () => {
+    photoIndex.value = 0;
+    photoBroken.value = false;
+});
+
 onMounted(async () => {
     lockScroll();
     window.addEventListener('keydown', onKeydown);
@@ -227,7 +240,6 @@ onBeforeUnmount(() => {
                             aria-label="Secret name not picked yet"
                         >???</span>
                     </span>
-                    <span v-if="currentItem.mine" class="reel-mine-chip">Me</span>
                 </div>
 
                 <span class="reel-counter">{{ currentIndex + 1 }} / {{ items.length }}</span>
@@ -246,10 +258,36 @@ onBeforeUnmount(() => {
             <main class="reel-main">
                 <figure v-if="showImage" class="reel-media">
                     <img
-                        :src="currentItem.image"
+                        :src="photos[photoIndex]"
                         :alt="displayName"
-                        @error="brokenImageId = currentItem.id"
+                        @error="photoBroken = true"
                     />
+                    <template v-if="photos.length > 1">
+                        <button
+                            type="button"
+                            class="reel-photo-nav reel-photo-prev"
+                            aria-label="Previous photo"
+                            @click="photoIndex = (photoIndex + photos.length - 1) % photos.length"
+                        >
+                            <ChevronLeft :size="18" />
+                        </button>
+                        <button
+                            type="button"
+                            class="reel-photo-nav reel-photo-next"
+                            aria-label="Next photo"
+                            @click="photoIndex = (photoIndex + 1) % photos.length"
+                        >
+                            <ChevronRight :size="18" />
+                        </button>
+                        <span class="reel-photo-dots">
+                            <span
+                                v-for="(photo, i) in photos"
+                                :key="photo"
+                                class="reel-photo-dot"
+                                :class="{ active: i === photoIndex }"
+                            ></span>
+                        </span>
+                    </template>
                 </figure>
 
                 <h2 v-else class="reel-wish-text">{{ displayName }}</h2>
@@ -392,17 +430,6 @@ onBeforeUnmount(() => {
     color: var(--text-tertiary);
 }
 
-.reel-mine-chip {
-    flex: none;
-    padding: 6px 10px;
-    border: 1px solid var(--card-border);
-    border-radius: 999px;
-    background: var(--glass);
-    color: var(--text-secondary);
-    font-size: 0.76rem;
-    font-weight: 800;
-}
-
 .reel-counter {
     color: var(--text-secondary);
     font-size: 0.88rem;
@@ -430,6 +457,7 @@ onBeforeUnmount(() => {
 .reel-media {
     /* The visual fills the slide's flexible middle row; the caption and
        notes take only the height they need below it. */
+    position: relative;
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
@@ -437,6 +465,50 @@ onBeforeUnmount(() => {
     justify-content: center;
     width: 100%;
     margin: 0;
+}
+
+.reel-photo-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: rgba(20, 18, 46, 0.72);
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.reel-photo-prev {
+    left: 10px;
+}
+
+.reel-photo-next {
+    right: 10px;
+}
+
+.reel-photo-dots {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+}
+
+.reel-photo-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.45);
+}
+
+.reel-photo-dot.active {
+    background: #ffffff;
 }
 
 .reel-media img {
