@@ -152,6 +152,11 @@ and best practices.
 
 ## Working notes
 
-- Delivery: pushed to the GitHub repo, the owner pulls, installs, builds,
+- Delivery: pushed to the GitHub repo, the owner pulls, migrates,
   and runs the checklist. State plainly what you could not run.
+  The compiled frontend is committed (public/build is NOT ignored
+  since 2026-11-10): whoever changes frontend code builds it and
+  pushes the fresh public/build with the change, because the
+  production server does not run npm at all. The owner's deploy is
+  `./deploy.sh` (pull + migrate).
 - Build in the SDD pack's slices, in order, and list what to test after each.
