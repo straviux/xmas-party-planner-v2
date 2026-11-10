@@ -286,6 +286,9 @@ class GuestEntryService
             }
 
             $guest->secret_name = $name;
+            // Picking your own name retires the temporary one the app
+            // assigned when the guest was added.
+            $guest->secret_name_temp = false;
             $guest->save();
 
             return ['secret_name' => $name];
@@ -462,7 +465,7 @@ class GuestEntryService
      * response carries the secret name value: it is only read off the
      * guest after every gate has passed.
      *
-     * @return array{secret_name: string}
+     * @return array{secret_name: string, secret_name_temp: bool}
      *
      * @throws GuestEntryException
      */
@@ -491,7 +494,10 @@ class GuestEntryService
             throw GuestEntryException::make('pin_incorrect');
         }
 
-        return ['secret_name' => $guest->secret_name];
+        return [
+            'secret_name' => $guest->secret_name,
+            'secret_name_temp' => (bool) $guest->secret_name_temp,
+        ];
     }
 
     /**

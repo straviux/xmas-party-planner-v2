@@ -13,6 +13,7 @@ class Guest extends Model
         'display',
         'nickname',
         'secret_name',
+        'secret_name_temp',
         'aliases',
         'pin_hash',
         'recipient_id',
@@ -30,6 +31,7 @@ class Guest extends Model
         return [
             'aliases' => 'array',
             'claimed' => 'boolean',
+            'secret_name_temp' => 'boolean',
             'revealed' => 'boolean',
             'claimed_at' => 'datetime',
         ];

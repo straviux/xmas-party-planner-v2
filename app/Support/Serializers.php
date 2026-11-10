@@ -22,6 +22,11 @@ class Serializers
      * The secret name's VALUE never ships in this shape either: only the
      * has_secret_name flag, so guests can be nudged to pick one without
      * anyone's codename leaking into the public list.
+     *
+     * has_secret_name means the guest PICKED their codename: a guest
+     * still on their app-assigned temporary name (secret_name_temp)
+     * reads false here, so the pick-one prompts keep reaching them
+     * even though a codename already displays everywhere else.
      */
     public static function publicGuest(Guest $guest): array
     {
@@ -33,7 +38,7 @@ class Serializers
             'claimed' => (bool) $guest->claimed,
             'needs_pin' => empty($guest->pin_hash),
             'revealed' => (bool) $guest->revealed,
-            'has_secret_name' => is_string($guest->secret_name) && $guest->secret_name !== '',
+            'has_secret_name' => is_string($guest->secret_name) && $guest->secret_name !== '' && ! $guest->secret_name_temp,
         ];
     }
 

@@ -18,6 +18,7 @@ use App\Services\PollService;
 use App\Services\WishlistException;
 use App\Services\WishlistService;
 use App\Support\Serializers;
+use App\Support\TempSecretName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -72,6 +73,7 @@ class ApiController extends Controller
         'reset_one' => 'resetOne',
         'host_unclaim_all' => 'hostUnclaimAll',
         'host_redraw' => 'hostRedraw',
+        'host_reshuffle' => 'hostReshuffle',
         'host_reset_pin' => 'hostResetPin',
         'host_clear_wishlists' => 'hostClearWishlists',
         'reset_all' => 'resetAll',
@@ -164,7 +166,7 @@ class ApiController extends Controller
                 'locked' => $locked,
                 'awaiting' => $guests->count() - $locked,
                 'secret_names_set' => $guests
-                    ->filter(fn (Guest $guest) => is_string($guest->secret_name) && $guest->secret_name !== '')
+                    ->filter(fn (Guest $guest) => is_string($guest->secret_name) && $guest->secret_name !== '' && ! $guest->secret_name_temp)
                     ->count(),
                 'polls' => $party->polls()->count(),
             ],
@@ -266,6 +268,11 @@ class ApiController extends Controller
                 'aliases' => $this->normalizeAliases($request->input('aliases')),
                 'pin_hash' => $this->hashPin($request->input('pin')),
             ]);
+
+            // Everyone starts with a temporary secret name so no guest
+            // is ever left showing as "still choosing"; they replace
+            // it with their own after claiming (TempSecretName).
+            TempSecretName::assign($guest);
 
             $draw->redraw($party);
 
@@ -887,6 +894,27 @@ class ApiController extends Controller
 
         // No recipient data in the response: the host stays blind.
         return $this->ok();
+    }
+
+    private function hostReshuffle(Request $request, DrawService $draw): JsonResponse
+    {
+        $party = $this->requireParty();
+        if ($party instanceof JsonResponse) {
+            return $party;
+        }
+
+        // Guests whose current recipient must be kept (for example,
+        // one who already bought the gift). Ids that do not belong to
+        // this party are ignored by the service's party-scoped query.
+        $except = $request->input('except_guest_ids', []);
+        $exceptIds = is_array($except)
+            ? array_values(array_filter(array_map('intval', $except)))
+            : [];
+
+        $result = $draw->reshuffle($party, $exceptIds);
+
+        // Counts only: the host stays blind to who got whom.
+        return $this->ok($result);
     }
 
     private function hostResetPin(Request $request): JsonResponse

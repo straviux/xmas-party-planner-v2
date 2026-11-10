@@ -101,6 +101,10 @@ const showPinError = ref('');
 const showChecking = ref(false);
 const showPinInput = ref(null);
 const shownSecretName = ref(null);
+// Whether the shown name is the app-assigned temporary one, so the
+// popup can say so and point at Edit (guest_secret_name_view reports
+// it alongside the value).
+const shownSecretTemp = ref(false);
 // Remount lever for the edit step's SecretNameForm: bumped on every
 // popup open and every entry into the edit step, so the form always
 // mounts fresh from shownSecretName and a value typed in a previous
@@ -112,6 +116,7 @@ function openShowPopup() {
     showPinError.value = '';
     showStep.value = 'pin';
     shownSecretName.value = null;
+    shownSecretTemp.value = false;
     showEditKey.value++;
     showPopupOpen.value = true;
     nextTick(() => {
@@ -126,6 +131,7 @@ function closeShowPopup() {
     showPinError.value = '';
     showChecking.value = false;
     shownSecretName.value = null;
+    shownSecretTemp.value = false;
     showEditKey.value++;
 }
 
@@ -166,6 +172,7 @@ async function submitShowPin() {
     try {
         const body = await post('guest_secret_name_view', { pin: showPin.value });
         shownSecretName.value = body.secret_name || null;
+        shownSecretTemp.value = !!body.secret_name_temp;
         showPin.value = '';
         showStep.value = 'result';
     } catch (err) {
@@ -627,7 +634,12 @@ onBeforeUnmount(() => {
                             Your secret name
                         </span>
                         <p class="dash-value" style="font-size: 2rem; margin: 12px 0 8px">{{ shownSecretName }}</p>
-                        <p class="muted" style="margin: 0; line-height: 1.55">
+                        <p v-if="shownSecretTemp" class="muted" style="margin: 0; line-height: 1.55">
+                            This is a temporary name we picked for you, so
+                            no one is left without one. Tap Edit secret
+                            name below to make it your own.
+                        </p>
+                        <p v-else class="muted" style="margin: 0; line-height: 1.55">
                             This is the only name your Secret Santa sees. It
                             hides again as soon as you close this.
                         </p>

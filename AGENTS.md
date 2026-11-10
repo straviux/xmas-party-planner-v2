@@ -55,13 +55,34 @@ and best practices.
    bytes with immutable caching, so the board payload stays small.
 5. Guests changes (add/edit/remove) are blocked once any name is claimed;
    the draw is a derangement and re-runs automatically while unclaimed.
+   The one sanctioned way to change assignments after claims is the
+   host's reshuffle (`host_reshuffle` {except_guest_ids}, 2026-11-10):
+   givers listed as exceptions keep their current recipient exactly;
+   everyone else with a recipient is re-dealt from the remaining
+   recipients (never themselves, never a kept recipient, still
+   one-to-one). A single guest left over simply keeps their recipient.
+   Claims and reveals are untouched, so a reshuffled guest who had
+   revealed sees the new recipient via reveal-again. The response is
+   counts only ({kept, reshuffled}); the host never sees a mapping.
 6. API is a single dispatch route, `POST /api/{action}`; action names and
    error codes are a stable contract, do not rename them. Guest secrets:
    `guest_set_secret_name` {secret_name} lets a claimed guest set their
    codename (trimmed, 2 to 30 characters, unique per party compared
    case-insensitively, enforced under a lock on the party row so
    simultaneous saves cannot duplicate it; errors
-   `secret_name_invalid` 422 and `secret_name_taken` 409). The secret name form also offers a
+   `secret_name_invalid` 422 and `secret_name_taken` 409).
+   Temporary secret names (2026-11-10): every guest is assigned a
+   codename from the festive pair pools (`App\Support\TempSecretName`)
+   when the host adds them, and migration 000013 backfilled all
+   existing guests, so nobody displays as "still choosing"; the
+   assignment is flagged (`guests.secret_name_temp`) until the guest
+   picks their own via `guest_set_secret_name`, which clears the flag.
+   `has_secret_name` in public and host payloads and the
+   `secret_names_set` count mean PICKED, so the pick-one nudges keep
+   reaching guests on a temporary name, while reveal and wishlist
+   surfaces show the temporary value like any codename.
+   `guest_secret_name_view` also returns `secret_name_temp` so the
+   guest's own popup can label a temporary name. The secret name form also offers a
    "Suggest one for me" button that fills the field with a random
    client-side suggestion (festive word pairs); it is only a
    suggestion, and the same set action validates it like typed
