@@ -321,11 +321,7 @@ onBeforeUnmount(() => {
                     </button>
                 </div>
 
-                <h2 v-else class="reel-wish-text">{{ displayName }}</h2>
-
-                <p v-if="showImage && currentItem.text" class="reel-caption">
-                    {{ currentItem.text }}
-                </p>
+                <p v-if="currentItem" class="reel-caption">{{ displayName }}</p>
 
                 <p v-if="visibleNotes" class="reel-notes">{{ visibleNotes }}</p>
             </main>
@@ -581,16 +577,6 @@ onBeforeUnmount(() => {
     border-radius: 20px;
     object-fit: contain;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
-}
-
-.reel-wish-text {
-    max-width: 620px;
-    margin: 0;
-    font-size: clamp(2rem, 8vw, 4.4rem);
-    font-weight: 850;
-    line-height: 1.04;
-    letter-spacing: -0.035em;
-    overflow-wrap: anywhere;
 }
 
 .reel-caption {
