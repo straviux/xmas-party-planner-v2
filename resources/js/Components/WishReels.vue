@@ -192,6 +192,12 @@ watch(currentIndex, () => {
     photoBroken.value = false;
 });
 
+function stepPhoto(delta) {
+    const count = photos.value.length;
+    if (count < 2) return;
+    photoIndex.value = (photoIndex.value + delta + count) % count;
+}
+
 onMounted(async () => {
     lockScroll();
     window.addEventListener('keydown', onKeydown);
@@ -262,33 +268,34 @@ onBeforeUnmount(() => {
                         :alt="displayName"
                         @error="photoBroken = true"
                     />
-                    <template v-if="photos.length > 1">
-                        <button
-                            type="button"
-                            class="reel-photo-nav reel-photo-prev"
-                            aria-label="Previous photo"
-                            @click="photoIndex = (photoIndex + photos.length - 1) % photos.length"
-                        >
-                            <ChevronLeft :size="18" />
-                        </button>
-                        <button
-                            type="button"
-                            class="reel-photo-nav reel-photo-next"
-                            aria-label="Next photo"
-                            @click="photoIndex = (photoIndex + 1) % photos.length"
-                        >
-                            <ChevronRight :size="18" />
-                        </button>
-                        <span class="reel-photo-dots">
-                            <span
-                                v-for="(photo, i) in photos"
-                                :key="photo"
-                                class="reel-photo-dot"
-                                :class="{ active: i === photoIndex }"
-                            ></span>
-                        </span>
-                    </template>
                 </figure>
+
+                <div v-if="showImage && photos.length > 1" class="reel-photo-controls">
+                    <button
+                        type="button"
+                        class="reel-photo-btn"
+                        aria-label="Previous photo"
+                        @click="stepPhoto(-1)"
+                    >
+                        <ChevronLeft :size="17" />
+                    </button>
+                    <span class="reel-photo-dots">
+                        <span
+                            v-for="(photo, i) in photos"
+                            :key="photo"
+                            class="reel-photo-dot"
+                            :class="{ active: i === photoIndex }"
+                        ></span>
+                    </span>
+                    <button
+                        type="button"
+                        class="reel-photo-btn"
+                        aria-label="Next photo"
+                        @click="stepPhoto(1)"
+                    >
+                        <ChevronRight :size="17" />
+                    </button>
+                </div>
 
                 <h2 v-else class="reel-wish-text">{{ displayName }}</h2>
 
@@ -457,7 +464,6 @@ onBeforeUnmount(() => {
 .reel-media {
     /* The visual fills the slide's flexible middle row; the caption and
        notes take only the height they need below it. */
-    position: relative;
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
@@ -467,48 +473,45 @@ onBeforeUnmount(() => {
     margin: 0;
 }
 
-.reel-photo-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+.reel-photo-controls {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    gap: 16px;
+    margin-top: 14px;
+}
+
+.reel-photo-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
     border-radius: 999px;
     border: 1px solid var(--card-border);
-    background: rgba(20, 18, 46, 0.72);
-    color: #ffffff;
+    background: var(--glass);
+    color: var(--text-primary);
     cursor: pointer;
-}
-
-.reel-photo-prev {
-    left: 10px;
-}
-
-.reel-photo-next {
-    right: 10px;
+    flex: none;
 }
 
 .reel-photo-dots {
-    position: absolute;
-    left: 50%;
-    bottom: 10px;
-    transform: translateX(-50%);
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 7px;
 }
 
 .reel-photo-dot {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.35);
+    transition: width 0.18s ease, background 0.18s ease;
 }
 
 .reel-photo-dot.active {
-    background: #ffffff;
+    width: 18px;
+    background: var(--magenta);
 }
 
 .reel-media img {
