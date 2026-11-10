@@ -6,6 +6,7 @@ import {
     Calendar,
     CircleAlert,
     Copy,
+    Dices,
     Eraser,
     KeyRound,
     PartyPopper,
@@ -246,6 +247,48 @@ function askRedraw() {
             }
         },
     });
+}
+
+/* ---------- Reshuffle recipients, with keeps ----------
+   Works after names are locked (unlike Redraw). The host ticks the
+   guests who keep their current recipient (someone who already
+   bought their gift, say); the rest are re-dealt. The list shows
+   giver names only, never anyone's recipient. */
+const reshuffleOpen = ref(false);
+const reshuffleKeep = ref([]);
+const reshuffleBusy = ref(false);
+const reshuffleError = ref('');
+
+function openReshuffle() {
+    reshuffleKeep.value = [];
+    reshuffleError.value = '';
+    reshuffleOpen.value = true;
+}
+
+function closeReshuffle() {
+    if (reshuffleBusy.value) return;
+    reshuffleOpen.value = false;
+}
+
+function toggleKeep(id) {
+    const index = reshuffleKeep.value.indexOf(id);
+    if (index >= 0) reshuffleKeep.value.splice(index, 1);
+    else reshuffleKeep.value.push(id);
+}
+
+async function doReshuffle() {
+    reshuffleError.value = '';
+    reshuffleBusy.value = true;
+    try {
+        const result = await post('host_reshuffle', { except_guest_ids: reshuffleKeep.value });
+        reshuffleOpen.value = false;
+        toastSuccess(`Recipients reshuffled (${result.reshuffled} changed, ${result.kept} kept)`);
+        await load();
+    } catch (err) {
+        reshuffleError.value = err.message || 'The reshuffle could not be done.';
+    } finally {
+        reshuffleBusy.value = false;
+    }
 }
 
 function askUnclaimAll() {
@@ -648,6 +691,28 @@ async function printQr() {
                         <span>Redraw recipients</span>
                     </button>
                 </div>
+
+                <div v-if="party" class="admin-row">
+                    <div class="admin-row-text">
+                        <p class="admin-row-title">Reshuffle recipients</p>
+                        <p class="admin-row-sub">
+                            Re-deals recipients even when names are locked, for when the
+                            draw has to change mid-party. You choose who keeps their
+                            current recipient, for example a guest who already bought
+                            their gift. Guests who already revealed will see their new
+                            recipient when they check again.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="btn btn-secondary btn-sm"
+                        :disabled="!!actionBusy || counts.guests < 2"
+                        @click="openReshuffle"
+                    >
+                        <Dices :size="15" />
+                        <span>Reshuffle recipients</span>
+                    </button>
+                </div>
             </section>
 
             <section v-if="party" class="host-panel danger-zone">
@@ -715,6 +780,50 @@ async function printQr() {
                 </div>
             </section>
         </template>
+
+        <div v-if="reshuffleOpen" class="modal-backdrop" @click.self="closeReshuffle">
+            <div
+                class="modal-card pop-in"
+                style="width: min(94vw, 620px)"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Reshuffle recipients"
+            >
+                <h3 class="modal-title">Reshuffle recipients</h3>
+                <p class="muted small" style="margin: 0 0 6px">
+                    Everyone gets a new recipient, except the guests you keep
+                    below. Tick a guest to keep their current recipient, for
+                    example someone who already bought their gift. You are
+                    never shown who anyone's recipient is.
+                </p>
+                <p v-if="reshuffleError" class="error-text" style="margin-top: 12px">
+                    <CircleAlert :size="18" style="flex: none; margin-top: 1px" />
+                    <span>{{ reshuffleError }}</span>
+                </p>
+                <div class="reshuffle-list">
+                    <label v-for="guest in guests" :key="guest.id" class="reshuffle-item">
+                        <input
+                            type="checkbox"
+                            :checked="reshuffleKeep.includes(guest.id)"
+                            @change="toggleKeep(guest.id)"
+                        />
+                        <span>{{ guest.display }}</span>
+                        <span v-if="reshuffleKeep.includes(guest.id)" class="reshuffle-kept">
+                            Keeps current recipient
+                        </span>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" :disabled="reshuffleBusy" @click="closeReshuffle">
+                        <span>Cancel</span>
+                    </button>
+                    <button type="button" class="btn btn-teal" :disabled="reshuffleBusy" @click="doReshuffle">
+                        <Dices :size="15" />
+                        <span>{{ reshuffleBusy ? 'Reshuffling' : 'Reshuffle the rest' }}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <div v-if="pwOpen" class="modal-backdrop" @click.self="closePasswordModal">
             <div

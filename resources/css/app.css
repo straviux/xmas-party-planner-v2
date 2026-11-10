@@ -364,6 +364,42 @@ button {
     margin: 0 0 16px;
 }
 
+/* Reshuffle popup: the keep-list of giver names. */
+.reshuffle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 14px;
+}
+
+.reshuffle-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    background: var(--glass);
+    cursor: pointer;
+    font-size: 0.92rem;
+}
+
+.reshuffle-item input {
+    width: 17px;
+    height: 17px;
+    flex: none;
+    accent-color: var(--host-teal);
+}
+
+.reshuffle-kept {
+    margin-left: auto;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--host-teal);
+}
+
 /* Pull-to-refresh badge: dragged in from above the top edge by
    the shell gesture (see GuestLayout), spins while the reload
    fires. Fixed to the viewport so it floats over the top dock too. */
