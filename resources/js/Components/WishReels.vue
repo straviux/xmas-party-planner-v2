@@ -297,6 +297,20 @@ onBeforeUnmount(() => {
                     </button>
                 </div>
 
+                <div v-if="showImage && photos.length > 1" class="reel-photo-thumbs">
+                    <button
+                        v-for="(photo, i) in photos"
+                        :key="photo"
+                        type="button"
+                        class="reel-photo-thumb"
+                        :class="{ active: i === photoIndex }"
+                        :aria-label="`Show photo ${i + 1}`"
+                        @click="photoIndex = i"
+                    >
+                        <img :src="photo" alt="" />
+                    </button>
+                </div>
+
                 <h2 v-else class="reel-wish-text">{{ displayName }}</h2>
 
                 <p v-if="showImage && currentItem.text" class="reel-caption">
@@ -499,6 +513,36 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     gap: 7px;
+}
+
+.reel-photo-thumbs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.reel-photo-thumb {
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    background: none;
+    cursor: pointer;
+    flex: none;
+}
+
+.reel-photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.reel-photo-thumb.active {
+    border-color: var(--magenta);
 }
 
 .reel-photo-dot {
