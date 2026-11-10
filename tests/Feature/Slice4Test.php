@@ -144,13 +144,19 @@ test('host poll actions need the host session', function () {
         ->assertJsonPath('error', 'forbidden');
 });
 
-test('poll_get with no party is an empty list, and host create needs a party', function () {
+test('poll_get with no party is an empty list for the host, and host create needs a party', function () {
+    // Signed out, poll_get is refused (2026-11-10: polls sit behind
+    // the guest sign-in or the host session, never public).
+    $this->postJson('/api/poll_get')
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'not_claimed');
+
+    slice4LoginHost($this);
+
     $this->postJson('/api/poll_get')
         ->assertOk()
         ->assertJsonPath('ok', true)
         ->assertJsonPath('polls', []);
-
-    slice4LoginHost($this);
 
     $this->postJson('/api/host_poll_create', ['question' => 'Theme?', 'options' => ['A', 'B']])
         ->assertStatus(422)

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\WishlistItem;
+use App\Services\GuestEntryService;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
@@ -16,13 +18,21 @@ use Illuminate\Http\Response;
  * of the stored data, so a replaced photo gets a fresh URL while an
  * unchanged one may be cached forever (immutable).
  *
- * Public on purpose: the wishlist board itself is a public action,
- * so the photos it shows are not more restricted than the board.
+ * Signed-in guests only, like the board it feeds (2026-11-10):
+ * the check is the PIN-verified guest session, and anything else
+ * gets the same 404 as a missing photo, so item ids cannot be
+ * probed for photos from outside.
  */
 class WishlistImageController
 {
-    public function __invoke(WishlistItem $item): Response
+    public function __invoke(Request $request, WishlistItem $item): Response
     {
+        $signedIn = $request->session()->get('pin_verified') === true
+            && app(GuestEntryService::class)->sessionGuest($request) !== null;
+        if (! $signedIn) {
+            abort(404);
+        }
+
         $prefix = 'data:image/webp;base64,';
         $image = $item->image;
 
@@ -37,7 +47,7 @@ class WishlistImageController
 
         return response($bytes, 200, [
             'Content-Type' => 'image/webp',
-            'Cache-Control' => 'public, max-age=31536000, immutable',
+            'Cache-Control' => 'private, max-age=31536000, immutable',
         ]);
     }
 }

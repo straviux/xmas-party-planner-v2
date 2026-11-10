@@ -234,6 +234,11 @@ test('wishlist photos serve as cacheable WebP bytes; payloads carry only the URL
     $plain = slice3Add($this, ['text' => 'No photo']);
     expect($plain['image'])->toBeNull();
     $this->get('/wishlist-items/'.$plain['id'].'/image')->assertNotFound();
+
+    // Signed out, even a real photo is a 404: the image route follows
+    // the board's sign-in rule, so ids cannot be probed from outside.
+    $this->postJson('/api/guest_logout')->assertOk();
+    $this->get($item['image'])->assertNotFound();
 });
 
 test('broken and non-image uploads are image_invalid', function () {
@@ -513,11 +518,12 @@ test('wishlist payloads carry no reserve state, even over a populated dormant co
 // Board read + member page
 // ----------------------------------------------------------------------
 
-test('wishlist_list with no party is an empty board, not an error', function () {
+test('wishlist_list needs the guest sign-in (the PIN-verified session)', function () {
+    // Since 2026-11-10 the board is not a public read: signed out,
+    // there is no board at all, with or without a party.
     $this->postJson('/api/wishlist_list')
-        ->assertOk()
-        ->assertJsonPath('party', null)
-        ->assertJsonPath('guests', []);
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'not_claimed');
 });
 
 test('wishlist_list groups items under their owners, newest first', function () {

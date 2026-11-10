@@ -91,6 +91,8 @@ test('wishlist_list identifies wishers by secret name only', function () {
     $zeb->wishlistItems()->create(['text' => 'Zeb Second Wish', 'kind' => 'text']);
     $yolanda->wishlistItems()->create(['text' => 'Yolanda Wish', 'kind' => 'text']);
 
+    // The board is a signed-in read (2026-11-10): enter as Zeb first.
+    wishlistIdentityEnter($this, $zeb, '1111');
     $response = $this->postJson('/api/wishlist_list')->assertOk();
     $board = collect($response->json('guests'));
 

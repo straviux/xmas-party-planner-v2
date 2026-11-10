@@ -80,8 +80,13 @@ class ApiController extends Controller
         'host_change_password' => 'hostChangePassword',
     ];
 
-    /** Actions reachable while signed out. Everything else requires the host session. */
-    private array $publicActions = ['host_login', 'invite_check', 'list', 'wishlist_list', 'poll_get'];
+    /** Actions reachable while signed out: only what the entry flow
+     * itself needs before anyone can sign in. Everything else requires
+     * the host session or (for guest actions) the PIN-verified guest
+     * session, which is the guest sign-in (owner's call, 2026-11-10:
+     * the wishlist board and the polls used to be public reads; they
+     * now sit behind the same sign-in as everything else). */
+    private array $publicActions = ['host_login', 'invite_check', 'list'];
 
     /**
      * Guest actions are gated by the guest session (guest_id + pin_verified),
@@ -92,6 +97,7 @@ class ApiController extends Controller
         'guest_set_secret_name', 'guest_secret_name_view', 'guest_recipient_wishlist', 'guest_logout',
         'kringle_current', 'kringle_spin',
         'wishlist_add', 'wishlist_update', 'wishlist_delete', 'poll_vote',
+        'wishlist_list', 'poll_get',
     ];
 
     public function __invoke(Request $request, string $action, DrawService $draw): JsonResponse
@@ -695,6 +701,15 @@ class ApiController extends Controller
      */
     private function wishlistList(Request $request): JsonResponse
     {
+        // The board carries every wisher's codename, so it is NOT a
+        // host read (the host stays blind to codenames) and not a
+        // public one either: a signed-in guest only.
+        if ($this->signedInGuest($request) === null) {
+            return $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+        }
+
         $party = $this->currentParty();
 
         if ($party === null) {
@@ -794,6 +809,15 @@ class ApiController extends Controller
      */
     private function pollGet(Request $request): JsonResponse
     {
+        // Polls are read by signed-in guests (Vote page) and by the
+        // host (Polls page); counts carry no codenames, so the host
+        // allowance costs nothing.
+        if (! Auth::check() && $this->signedInGuest($request) === null) {
+            return $this->error('not_claimed', 422, [
+                'message' => 'Find and confirm your name first.',
+            ]);
+        }
+
         $party = $this->currentParty();
 
         if ($party === null) {
@@ -1023,6 +1047,21 @@ class ApiController extends Controller
         return $this->error($e->errorCode, $e->status, [
             'message' => $e->getMessage(),
         ]);
+    }
+
+    /**
+     * The guest sign-in: a session guest whose PIN has been verified.
+     * The entry flow sets guest_id and pin_verified together, so this
+     * is the state every entered guest is in (owner's framing,
+     * 2026-11-10: the PIN is the sign-in session).
+     */
+    private function signedInGuest(Request $request): ?Guest
+    {
+        if ($request->session()->get('pin_verified') !== true) {
+            return null;
+        }
+
+        return app(GuestEntryService::class)->sessionGuest($request);
     }
 
     private function sessionGuestOrError(Request $request): Guest|JsonResponse

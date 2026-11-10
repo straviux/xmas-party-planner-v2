@@ -65,7 +65,14 @@ and best practices.
    revealed sees the new recipient via reveal-again. The response is
    counts only ({kept, reshuffled}); the host never sees a mapping.
 6. API is a single dispatch route, `POST /api/{action}`; action names and
-   error codes are a stable contract, do not rename them. Guest secrets:
+   error codes are a stable contract, do not rename them. The guest
+   sign-in is the PIN-verified session (owner's framing, 2026-11-10):
+   only `host_login`, `invite_check`, and `list` are public (the entry
+   flow's own needs). `wishlist_list` requires the signed-in guest
+   (never the host: the board carries codenames) and `poll_get` the
+   signed-in guest or the host; both answer 422 `not_claimed` when
+   signed out. The wishlist photo route follows the board: signed-in
+   guests only, 404 otherwise, `private` caching. Guest secrets:
    `guest_set_secret_name` {secret_name} lets a claimed guest set their
    codename (trimmed, 2 to 30 characters, unique per party compared
    case-insensitively, enforced under a lock on the party row so
