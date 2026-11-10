@@ -53,6 +53,16 @@ const displayName = computed(() => {
 });
 
 const ownerSecretName = computed(() => currentItem.value?.owner?.secret_name || null);
+
+// Guests often paste the product name into both the wish and the
+// notes (shop pages put it in both), which showed the name twice in
+// a row. A note that just repeats the wish name adds nothing: hide it.
+const visibleNotes = computed(() => {
+    const notes = (currentItem.value?.notes || '').trim();
+    if (!notes) return '';
+    const name = (currentItem.value?.text || '').trim().toLowerCase();
+    return notes.toLowerCase() === name ? '' : currentItem.value.notes;
+});
 const ownerInitial = computed(() => ownerSecretName.value?.trim().charAt(0).toUpperCase() || '?');
 const showImage = computed(() => photos.value.length > 0 && !photoBroken.value);
 
@@ -317,7 +327,7 @@ onBeforeUnmount(() => {
                     {{ currentItem.text }}
                 </p>
 
-                <p v-if="currentItem.notes" class="reel-notes">{{ currentItem.notes }}</p>
+                <p v-if="visibleNotes" class="reel-notes">{{ visibleNotes }}</p>
             </main>
 
             <footer v-if="currentItem.link" class="reel-footer">
@@ -586,10 +596,10 @@ onBeforeUnmount(() => {
 .reel-caption {
     flex: none;
     max-width: 580px;
-    margin: 22px 0 0;
-    font-size: clamp(1.25rem, 4vw, 2rem);
-    font-weight: 750;
-    line-height: 1.2;
+    margin: 18px 0 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.3;
     overflow-wrap: anywhere;
 }
 

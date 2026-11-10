@@ -48,6 +48,15 @@ const photos = computed(() => {
 });
 const showImage = computed(() => photos.value.length > 0 && !broken.value);
 
+// Same duplicate guard as the viewer: a note that only repeats the
+// wish name (pasted into both fields) is not shown twice.
+const visibleNotes = computed(() => {
+    const notes = (props.item?.notes || '').trim();
+    if (!notes) return '';
+    const name = (props.item?.text || '').trim().toLowerCase();
+    return notes.toLowerCase() === name ? '' : props.item.notes;
+});
+
 const stateLine = computed(() => {
     if (!props.item) return '';
     // Combined views flag the viewer's own items.
@@ -151,7 +160,7 @@ onBeforeUnmount(() => {
 
             <div class="qv-body">
                 <h2 class="qv-name">{{ displayName }}</h2>
-                <p v-if="item.notes" class="qv-notes">{{ item.notes }}</p>
+                <p v-if="visibleNotes" class="qv-notes">{{ visibleNotes }}</p>
                 <p v-if="item.owner && !item.mine" class="qv-wisher">
                     Wished by <template v-if="item.owner.secret_name">{{ item.owner.secret_name }}</template><span
                         v-else
