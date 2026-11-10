@@ -471,14 +471,18 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     min-height: 0;
-    padding: 28px 38px;
+    padding: 16px 6px;
     text-align: center;
 }
 
 .reel-media {
-    /* The visual fills the slide's flexible middle row; the caption and
-       notes take only the height they need below it. */
-    flex: 1 1 auto;
+    /* The photo gets a deliberate stage: the full column width and a
+       tall fixed share of the screen, instead of whatever height is
+       left over (which shrank photos to a fraction of the screen).
+       It may still shrink on short screens (flex shrink, min-height
+       0) so the caption and controls below are never pushed out. */
+    flex: 0 1 auto;
+    height: min(58dvh, 620px);
     min-height: 0;
     display: flex;
     align-items: center;
@@ -488,6 +492,7 @@ onBeforeUnmount(() => {
 }
 
 .reel-photo-controls {
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -516,6 +521,7 @@ onBeforeUnmount(() => {
 }
 
 .reel-photo-thumbs {
+    flex: none;
     display: flex;
     justify-content: center;
     gap: 8px;
@@ -560,8 +566,8 @@ onBeforeUnmount(() => {
 
 .reel-media img {
     display: block;
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
     border-radius: 20px;
     object-fit: contain;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
@@ -578,6 +584,7 @@ onBeforeUnmount(() => {
 }
 
 .reel-caption {
+    flex: none;
     max-width: 580px;
     margin: 22px 0 0;
     font-size: clamp(1.25rem, 4vw, 2rem);
@@ -587,6 +594,7 @@ onBeforeUnmount(() => {
 }
 
 .reel-notes {
+    flex: none;
     max-width: 560px;
     margin: 18px 0 0;
     color: var(--text-secondary);
@@ -673,8 +681,8 @@ onBeforeUnmount(() => {
     }
 
     .reel-main {
-        padding-right: 30px;
-        padding-left: 30px;
+        padding-right: 6px;
+        padding-left: 6px;
     }
 
     .reel-nav {
