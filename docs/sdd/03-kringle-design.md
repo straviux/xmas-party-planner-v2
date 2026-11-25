@@ -13,10 +13,10 @@ Amended 2026-11-07: the exchange is run by a roulette in the app
 
 A Kris Kringle (Monito Monita) alongside the Secret Santa flow,
 with the main exchange gift completely untouched. The app generates
-one theme every Monday, the same theme for everyone, openly
+one theme every Thursday, the same theme for everyone, openly
 announced. Each week, every guest spins the roulette once to draw
 who they are buying for that week: a fresh recipient for every
-Monday theme. Everyone brings a gift matching the theme for the
+Thursday theme. Everyone brings a gift matching the theme for the
 person they drew.
 
 ## Rules (owner's calls, 2026-11-07)
@@ -29,7 +29,7 @@ person they drew.
   the app's blindness rules.
 - The app generates the theme, from a built-in pool, at random,
   never repeating a theme for a party until the pool has cycled.
-- Fixed run: a theme for every Monday week until the party week.
+- Fixed run: a theme for every Thursday week until the party week.
   The anchor is the party's existing `date` field: the week
   containing the party date gets NO theme (the party is that week's
   event). If no party date is set, themes simply continue weekly.
@@ -70,7 +70,7 @@ person they drew.
   once and stored. Unique (party_id, week_start) guarantees it can
   never double-generate or change mid-week, even with two guests
   opening the app at the same moment.
-- Weeks are Monday-start, Asia/Manila. Only the current week is
+- Weeks are Thursday-start, Asia/Manila. Only the current week is
   ever generated; there is no backfill of weeks before the feature
   ships. History is exactly the stored rows, newest first.
 - Regenerate (host): replaces the current week's theme with a

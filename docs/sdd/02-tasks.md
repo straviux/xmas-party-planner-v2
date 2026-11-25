@@ -494,14 +494,14 @@ typing changes nothing outside the bubble.
 
 Kris Kringle design (2026-11-07, DESIGN ONLY, not built): an
 open weekly themed exchange. The app generates a theme every
-Monday from a built-in pool of 24; everyone brings a themed
-gift, exchanged by lot at the meetup. Fixed run every Monday
+Thursday from a built-in pool of 24; everyone brings a themed
+gift, exchanged by lot at the meetup. Fixed run every Thursday
 until the party week (anchored to the party date). Full design
 in docs/sdd/03-kringle-design.md. Build awaits the owner's go.
 
 Kringle amendment (2026-11-07): the in-person lot is replaced by an
 in-app roulette. Each week every guest spins once to draw a fresh
-recipient for that Monday's theme (per-week live draw, never self,
+recipient for that Thursday's theme (per-week live draw, never self,
 everyone drawn once per week, endgame guard; recipient shown to the
 spinner only, by codename). The main exchange gift is untouched by
 all of this: a roulette build briefly landed on the main draw by

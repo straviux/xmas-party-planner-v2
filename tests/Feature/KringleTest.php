@@ -7,12 +7,12 @@ use App\Services\KringleService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
-// Monday 9 November 2026, Asia/Manila: the "current week" for every
-// test here starts 2026-11-09 and ends 2026-11-15.
+// Thursday 12 November 2026, Asia/Manila: the "current week" for every
+// test here starts 2026-11-12 and ends 2026-11-18.
 if (! function_exists('kringleNow')) {
     function kringleNow(): void
     {
-        Carbon::setTestNow(Carbon::parse('2026-11-09 10:00:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2026-11-12 10:00:00', 'Asia/Manila'));
     }
 }
 
@@ -68,7 +68,7 @@ test('the weekly theme is generated once, stored, and stable', function () {
     expect($first)->not->toBeNull()
         ->and($first->id)->toBe($second->id)
         ->and($first->theme)->toBeIn(KringleService::THEMES)
-        ->and($first->week_start)->toBe('2026-11-09')
+        ->and($first->week_start)->toBe('2026-11-12')
         ->and($party->kringleThemes()->count())->toBe(1);
 });
 
@@ -80,7 +80,7 @@ test('theme generation never repeats a theme until the pool cycles', function ()
     $used = array_slice(KringleService::THEMES, 0, 23);
     foreach ($used as $i => $theme) {
         $party->kringleThemes()->create([
-            'week_start' => Carbon::parse('2026-11-09')->subWeeks($i + 1)->toDateString(),
+            'week_start' => Carbon::parse('2026-11-12')->subWeeks($i + 1)->toDateString(),
             'theme' => $theme,
         ]);
     }
@@ -90,11 +90,11 @@ test('theme generation never repeats a theme until the pool cycles', function ()
 
     // The current row completes the pool of 24; a fresh week still
     // gets a pool theme (the cycle restarts).
-    Carbon::setTestNow(Carbon::parse('2026-11-16 10:00:00', 'Asia/Manila'));
+    Carbon::setTestNow(Carbon::parse('2026-11-19 10:00:00', 'Asia/Manila'));
     $next = app(KringleService::class)->currentTheme($party);
     expect($next)->not->toBeNull()
         ->and($next->theme)->toBeIn(KringleService::THEMES)
-        ->and($next->week_start)->toBe('2026-11-16');
+        ->and($next->week_start)->toBe('2026-11-19');
 });
 
 test('the party week gets no theme and the run reports itself over', function () {
@@ -109,9 +109,9 @@ test('the party week gets no theme and the run reports itself over', function ()
 
 test('weeks left counts theme weeks up to the party week', function () {
     kringleNow();
-    // Party is in the week of Monday 2026-11-23: two theme weeks run
-    // before it (Nov 9 and Nov 16), so from Nov 9 there are 2 left.
-    [$party] = kringleParty(['Ana Cruz', 'Ben Reyes'], '2026-11-25');
+    // Party is in the week of Thursday 2026-11-26: two theme weeks run
+    // before it (Nov 12 and Nov 19), so from Nov 12 there are 2 left.
+    [$party] = kringleParty(['Ana Cruz', 'Ben Reyes'], '2026-11-28');
 
     $service = app(KringleService::class);
     expect($service->currentTheme($party))->not->toBeNull()
@@ -135,7 +135,7 @@ test('regenerate swaps to the one unused theme, and the freed theme can come bac
     $others = collect(KringleService::THEMES)->reject(fn ($t) => $t === $current->theme || $t === $spare)->values();
     foreach ($others as $i => $theme) {
         $party->kringleThemes()->create([
-            'week_start' => Carbon::parse('2026-11-09')->subWeeks($i + 1)->toDateString(),
+            'week_start' => Carbon::parse('2026-11-12')->subWeeks($i + 1)->toDateString(),
             'theme' => $theme,
         ]);
     }
@@ -169,7 +169,7 @@ test('a week of spins in any order draws everyone exactly once, never themselves
                 $service->spin($guest);
             }
 
-            $draws = $party->kringleDraws()->where('week_start', '2026-11-09')->get();
+            $draws = $party->kringleDraws()->where('week_start', '2026-11-12')->get();
             expect($draws)->toHaveCount($n)
                 ->and($draws->pluck('recipient_id')->unique())->toHaveCount($n);
             foreach ($draws as $draw) {
@@ -189,7 +189,7 @@ test('endgame guard: the second-to-last spinner of the week is forced onto the l
     // with only Cora, so Ben must draw Cora; Cora then draws Ana.
     KringleDraw::create([
         'party_id' => $ana->party_id,
-        'week_start' => '2026-11-09',
+        'week_start' => '2026-11-12',
         'giver_id' => $ana->id,
         'recipient_id' => $ben->id,
     ]);
@@ -214,8 +214,8 @@ test('a guest spins once per week through the API and sees only their own result
     $before = $this->postJson('/api/kringle_current')->assertOk()->json('kringle');
     expect($before['active'])->toBeTrue()
         ->and($before['theme'])->toBeIn(KringleService::THEMES)
-        ->and($before['week_start'])->toBe('2026-11-09')
-        ->and($before['week_end'])->toBe('2026-11-15')
+        ->and($before['week_start'])->toBe('2026-11-12')
+        ->and($before['week_end'])->toBe('2026-11-18')
         ->and($before['spun'])->toBeFalse()
         ->and($before['recipient'])->toBeNull();
 
@@ -264,10 +264,10 @@ test('a new week starts unspun, and history carries the callers own past recipie
     $ana = $guests['Ana Cruz'];
 
     // Last week: a theme ran and Ana drew Ben.
-    $party->kringleThemes()->create(['week_start' => '2026-11-02', 'theme' => 'Something red']);
+    $party->kringleThemes()->create(['week_start' => '2026-11-05', 'theme' => 'Something red']);
     KringleDraw::create([
         'party_id' => $party->id,
-        'week_start' => '2026-11-02',
+        'week_start' => '2026-11-05',
         'giver_id' => $ana->id,
         'recipient_id' => $guests['Ben Reyes']->id,
     ]);
@@ -278,7 +278,7 @@ test('a new week starts unspun, and history carries the callers own past recipie
     expect($state['spun'])->toBeFalse()
         ->and($state['history'])->toHaveCount(1)
         ->and($state['history'][0]['theme'])->toBe('Something red')
-        ->and($state['history'][0]['week_start'])->toBe('2026-11-02')
+        ->and($state['history'][0]['week_start'])->toBe('2026-11-05')
         ->and($state['history'][0]['recipient_name'])->toBe('Ben Reyes');
 });
 

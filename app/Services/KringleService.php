@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * Monito Monita (Kris Kringle): the weekly themed exchange that runs
  * alongside the main Secret Santa exchange, which it never touches.
  *
- * Themes: one per party per Monday week (Asia/Manila), generated
+ * Themes: one per party per Thursday week (Asia/Manila), generated
  * lazily the first time anyone asks in a new week and stored, drawn
  * at random from the pool without repeats until the pool cycles.
  * The run ends at the party week: the week containing the party's
@@ -72,14 +72,14 @@ class KringleService
         'Something golden',
     ];
 
-    /** Monday of the current week, Asia/Manila. */
+    /** Thursday of the current week, Asia/Manila. */
     public function currentWeekStart(): Carbon
     {
-        return Carbon::now(self::TIMEZONE)->startOfWeek(Carbon::MONDAY)->startOfDay();
+        return Carbon::now(self::TIMEZONE)->startOfWeek(Carbon::THURSDAY)->startOfDay();
     }
 
     /**
-     * Monday of the party's week as a 'Y-m-d' string, or null when no
+     * Thursday of the party's week as a 'Y-m-d' string, or null when no
      * party date is set. All week comparisons in this service are
      * date-string comparisons: the current week is computed in
      * Asia/Manila while the party date lives in the app's timezone,
@@ -92,7 +92,7 @@ class KringleService
         }
 
         return Carbon::parse($party->date->toDateString())
-            ->startOfWeek(Carbon::MONDAY)
+            ->startOfWeek(Carbon::THURSDAY)
             ->toDateString();
     }
 

@@ -124,7 +124,7 @@ and best practices.
    No browser automation or visual test servers.
 8. Monito Monita (Kris Kringle) is a separate feature from the main
    exchange and never touches the main draw. Themes: one per party per
-   Monday week (Asia/Manila), generated lazily and stored in
+   Thursday week (Asia/Manila), generated lazily and stored in
    `kringle_themes`, drawn at random from `KringleService::THEMES`
    without repeats until the pool cycles; the run ends at the party
    week (the `parties.date` anchor; no date, no end). Host regenerate
