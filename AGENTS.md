@@ -146,9 +146,12 @@ and best practices.
    remaining pool. Guest navigation: the dock is Home / Monito
    (the Kringle page) / plus button / Wishlists / Vote; My wishes is a view
    inside the Wishlists page (`/guest/wishlists?view=mine`), and
-   `/guest/gifts` redirects there. The roulette scroll and the gift
-   reveal always animate: the owner exempted them from the
-   reduced-motion freeze, like the mascot (2026-11-07).
+   `/guest/gifts` redirects there. The roulette scroll always animates: the owner exempted it
+   from the reduced-motion freeze, like the mascot (2026-11-07).
+   The Monito gift-box reveal is gone (2026-11-25): after the
+   roulette lands, the result is the plain card at once, fresh spin
+   or return visit alike. The main exchange's one-time reveal still
+   uses GiftReveal.
 
 ## Working notes
 
